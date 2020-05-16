@@ -33,9 +33,10 @@ class ProcessingStep(object):
         logging.info('connection host file: %s to docker file: %s',
                      source_mount, target_mount)
 
-        self.client.containers.run(
+        ret = self.client.containers.run(
             self.image.id,
             args, mounts=mounts)
+        logging.debug(ret)
 
     def run(self):
         pass
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     TOPICS = ["/upper_realsense/color/image_raw",
               "/lower_realsense/color/image_raw"
               ]
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     for file in os.listdir(os.path.join(get_file_path(), 'data')):
         for topic in TOPICS:
             for op in OPERATIONS:
