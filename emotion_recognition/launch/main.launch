@@ -1,11 +1,10 @@
 <?xml version="1.0"?>
-
 <launch>
-   
+  <arg name="bag_file" default=""/>
+  <arg name="topic_name" default=""/>
   <include file="$(find emotion_recognition)/launch/emotion_recognition.launch">
-   <arg name = "model_weights" value="model.h5"/>
-   <arg name = "pre_processing_bag_file" value= "rgb_uca/flo_recording_2020-03-25-17-52-11_1.bag"/>
-   <arg name = "topic_name"  value = "/lower_realsense/color/image_raw"/> 
+    <arg name="model_weights" value="model.h5"/>
+    <arg name="pre_processing_bag_file" value="rgb_uca/flo_recording_2020-03-25-17-52-11_1.bag"/>
+    <arg name="topic_name" value="/lower_realsense/color/image_raw"/>
   </include>
-  
 </launch>
