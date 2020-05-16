@@ -18,16 +18,19 @@ class ProcessingStep(object):
         self.type = 'parent'
         self.path = self.get_file_path()
         logging.info('Building Dockerfile at: %s', self.path)
-        self.image = self.client.images.build(path=self.path)[0]
-        logging.info('Done building')
+        ret = self.client.images.build(path=self.path)
+        self.image = ret[0]
+        logging.debug(list(ret[1]))
+        logging.info('Done building: %s', self.image.id)
 
     def _run(self,  args):
         target_mount = '/home/data/'
-        source_mount = 'data'
+        source_mount = os.path.join(get_file_path(), 'data')
         mounts = [
             docker.types.Mount(
                 target=target_mount,
-                source=source_mount
+                source=source_mount,
+                type='bind'
             )
         ]
         logging.info('connection host file: %s to docker file: %s',
@@ -51,7 +54,7 @@ if __name__ == "__main__":
     TOPICS = ["/upper_realsense/color/image_raw",
               "/lower_realsense/color/image_raw"
               ]
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     for file in os.listdir(os.path.join(get_file_path(), 'data')):
         for topic in TOPICS:
             for op in OPERATIONS:
