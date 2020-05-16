@@ -161,7 +161,7 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
 install(PROGRAMS
    src/emotion_recognition.py
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 ## Mark executables for installation
