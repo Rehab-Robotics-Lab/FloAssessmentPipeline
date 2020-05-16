@@ -13,4 +13,4 @@ WORKDIR /home/catkin_ws
 RUN /ros_entrypoint.sh catkin_make
 RUN sed -i "`wc -l < /ros_entrypoint.sh`i\\source \"/home/catkin_ws/devel/setup.bash\"\\" /ros_entrypoint.sh
 
-ENTRYPOINT ["/ros_entrypoint.sh", "roslaunch","emotion_recognition", "main.launch"]
+ENTRYPOINT ["/ros_entrypoint.sh", "roslaunch","emotion_recognition", "emotion_recognition.launch"]
