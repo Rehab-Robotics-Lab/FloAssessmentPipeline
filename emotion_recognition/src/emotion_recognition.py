@@ -71,12 +71,16 @@ def process_frame(frame, model):
 
 if __name__ == '__main__':
 
-    rospy.init_node('emotion_recognition', anonymous=True)
+    rospy.init_node('emotion_recognition')
     rospy.loginfo('started emotion recognition')
 
     pre_processing_bag_file = rospy.get_param("~pre_processing_bag_file", None)
     weights = rospy.get_param("~model_weights", None)
     topic = rospy.get_param("~topic", None)
+
+    rospy.loginfo('Bag file: %s', pre_processing_bag_file)
+    rospy.loginfo('Weights file: %s', weights)
+    rospy.loginfo('Topic: %s', topic)
 
     # Reading Bag File
     if(not(pre_processing_bag_file == "")):
