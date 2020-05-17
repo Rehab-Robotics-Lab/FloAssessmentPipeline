@@ -8,7 +8,7 @@ class Process(ProcessingStep):
         self.type = 'Emotion Recognition'
 
     def run(self, file, topic):
-        args = ['bag_file:="{}"'.format(file),
-                'topic_name:="{}"'.format(topic),
-                'model_weights:="model.h5"']
+        args = ['bag_file:={}'.format(file),
+                'topic_name:={}'.format(topic),
+                'model_weights:=/home/catkin_ws/src/emotion_recognition/src/model.h5']
         super(Process, self)._run(args)

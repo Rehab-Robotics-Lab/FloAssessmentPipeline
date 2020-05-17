@@ -3,9 +3,9 @@
   <arg name="model_weights" default=""/>
   <arg name="bag_file" default=""/>
   <arg name="topic_name" default=""/>
-  <node name="emotion_recognition" pkg="emotion_recognition" type="emotion_recognition.py" respawn="false" required="true" output="screen">
+  <node name="emotion_recognition" pkg="emotion_recognition" type="emotion_recognition.py" respawn="false" output="screen" required="true">
     <param name="model_weights" type="string" value="$(arg model_weights)"/>
     <param name="pre_processing_bag_file" type="string" value="$(arg bag_file)"/>
-    <param name="topic_name" type="string" value="$(arg topic_name)"/>
+    <param name="topic" type="string" value="$(arg topic_name)"/>
   </node>
 </launch>
