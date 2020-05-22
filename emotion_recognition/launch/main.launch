@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find emotion_recognition)/launch/emotion_recognition.launch">
+   <arg name = "model_weights" value="/home/gsuveer/catkin_ws/src/LilFloAssessmentPipeline/emotion_recognition/src/model.h5"/>
+   <arg name = "bag_file" value= "/home/gsuveer/catkin_ws/src/LilFloAssessmentPipeline/data/flo_recording_2020-03-25-17-53-11_2.bag"/>
+   <arg name ="cascade_file" value = "/home/gsuveer/catkin_ws/src/LilFloAssessmentPipeline/emotion_recognition/src/haarcascade_frontalface_default.xml" />
+   <arg name = "topic_name"  value = "/lower_realsense/color/image_raw" />    
+  </include>
+</launch>

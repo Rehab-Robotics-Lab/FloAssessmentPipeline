@@ -5,15 +5,17 @@ This is the pipeline for assessing patient function based on data from the FloSy
 ## Setting up:
 
 - [install docker](https://docs.docker.com/get-docker/)
-  - be sure to follow the post-install steps
+  - be sure to follow the post-install steps (https://docs.docker.com/engine/install/linux-postinstall/)
 - [install pipenv](https://pipenv-fork.readthedocs.io/en/latest/index.html)
 - install python dependencies with pipenv: `pipenv install`
 - [install cuda drivers](https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#linux)
+                        ( https://developer.nvidia.com/cuda-downloads)
 - [install nvidia-container-toolkit](https://github.com/NVIDIA/nvidia-docker#ubuntu-160418042004-debian-jessiestretchbuster)
+
 
 ## Running:
 
-- `mkdir data`
+- `mkdir data` (The data folder should be at the root of the LilFloAssessment Folder)
 - Put bag files in data directory
 - `pipenv run python top_level_runner.py`
 
