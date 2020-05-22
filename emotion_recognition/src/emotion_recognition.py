@@ -46,15 +46,15 @@ def create_model(weights=None):
 # Takes a RGB frame and the NN model to return the emotion detected on that frame
 
 
-def process_frame(frame, model):
+def process_frame(frame, model, facecasc):
 
     # Loads the Haar cascade file for face area detection
-    facecasc = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+ 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = facecasc.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
 
     maxindex = None
-    prediction_scores = np.zeros(7)
+    prediction = np.zeros((1,7))
 
     for (x, y, w, h) in faces:
         # Extracting Region of interest
@@ -66,7 +66,7 @@ def process_frame(frame, model):
 
         print(prediction.shape)
 
-    return prediction_scores
+    return prediction
 
 
 if __name__ == '__main__':
@@ -77,10 +77,21 @@ if __name__ == '__main__':
     pre_processing_bag_file = rospy.get_param("~pre_processing_bag_file", None)
     weights = rospy.get_param("~model_weights", None)
     topic = rospy.get_param("~topic", None)
+    cascade = rospy.get_param("~cascade", None)
 
     rospy.loginfo('Bag file: %s', pre_processing_bag_file)
     rospy.loginfo('Weights file: %s', weights)
     rospy.loginfo('Topic: %s', topic)
+    rospy.loginfo('Cascade File: %s', cascade)
+
+    #Loading HAARCASCADE File
+    if(not(cascade == "")):
+        try:
+            facecasc = cv2.CascadeClassifier(cascade)
+        except:
+            rospy.loginfo("HAARCASCADE object could not be initialised")
+    else:
+        rospy.loginfo("No Argument provided for cascade file")
 
     # Reading Bag File
     if(not(pre_processing_bag_file == "")):
@@ -113,7 +124,7 @@ if __name__ == '__main__':
     for topic, frame, t in pre_processing_bag.read_messages(topics=[topic]):
         # Think about desired encoding
         prediction_scores = process_frame(
-            bridge.imgmsg_to_cv2(frame, "rgb8"), model)
+            bridge.imgmsg_to_cv2(frame, "rgb8"), model, facecasc)
 
         print(prediction_scores, t)
 
@@ -123,12 +134,12 @@ if __name__ == '__main__':
         scores = Float32MultiArray()
         scores.data = prediction_scores
 
-        pre_processing_bag.write(topic + '/prediction_scores', scores)
+        #pre_processing_bag.write(topic + '/prediction_scores', scores)
 
         predicted_emotion = String()
         predicted_emotion.data = emotion_dict[max_index]
 
-        pre_processing_bag.write(
-            topic + '/predicted_emotion', predicted_emotion)
+        #pre_processing_bag.write(
+        #    topic + '/predicted_emotion', predicted_emotion)
 
     pre_processing_bag.close()
