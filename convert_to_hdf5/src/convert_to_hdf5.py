@@ -56,12 +56,12 @@ if __name__ == '__main__':
     for topic in topics_metainfo:
         rospy.loginfo('Extracting info from : %s', topic)
         for tp, msg, t in pre_processing_bag.read_messages([topic]):
-             meta_info[tp.split('/')[1]] = msg 
+             meta_info[tp.split('/')[1] + "/" + tp.split('/')[2]] = msg 
              break
     for topic in topics:
         rospy.loginfo('Extracting info from : %s', topic)        
         n = pre_processing_bag.get_message_count(topic)
-        topic_meta_info = meta_info[topic.split('/')[1]]
+        topic_meta_info = meta_info[topic.split('/')[1] + "/" + tp.split('/')[2]]
         data = np.zeros((topic_meta_info.height, topic_meta_info.width, 3, n))
         i = 0         
         for tp, msg, t in pre_processing_bag.read_messages([topic]):             
