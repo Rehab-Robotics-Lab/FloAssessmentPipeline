@@ -5,6 +5,7 @@ import cv2
 import os
 from sys import platform
 import argparse
+import numpy as np
 
 try:
     # Import Openpose (Windows/Ubuntu/OSX)
@@ -32,7 +33,7 @@ try:
     args = parser.parse_known_args()
 
     # Custom Params (refer to include/openpose/flags.hpp for more parameters)
-    params = dict()
+    params= dict()
     params["model_folder"] = "../../models/"
 
     # Add others in path?
@@ -55,11 +56,13 @@ try:
     opWrapper = op.WrapperPython()
     opWrapper.configure(params)
     opWrapper.start()
-
+    print(params)
     # Process Image
     datum = op.Datum()
     imageToProcess = cv2.imread(args[0].image_path)
-    datum.cvInputData = imageToProcess
+    cap  = cv2.VideoCapture('video.avi')
+    ret, imageToProcess = cap.read()
+    datum.cvInputData = np.uint8(imageToProcess)
     opWrapper.emplaceAndPop([datum])
     print(type(datum.poseKeypoints))
     print(datum.poseKeypoints.shape)

@@ -17,7 +17,7 @@ n      = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-Images = np.empty((height,width,3,n))
+Images = np.empty((height,width,3,n), dtype=np.uint8)
 
 print("Number of Frames", n)
 
@@ -29,9 +29,12 @@ while(i<n and ret):
     i = i+1
     
 print(i)
+print(type(Images))
+print(Images.dtype)
+
 cap.release()
 
-OutputImages, OutputPoseKeypoints = processFrames(Images)
+OutputImages, OutputPoseKeypoints = processFrames(np.uint8(Images))
 
 np.save('output/testdata.npy', OutputImages)
 np.save('output/testdata_keypoints.npy', OutputPoseKeypoints)
