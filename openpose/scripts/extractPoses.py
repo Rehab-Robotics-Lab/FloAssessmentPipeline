@@ -31,7 +31,7 @@ def processFrame(Image, opWrapper) :
     
     
     datum = op.Datum()
-    datum.cvInputData = Image
+    datum.cvInputData = np.uint8(Image)
     opWrapper.emplaceAndPop([datum])
     cv2.imwrite('output/test.jpg', datum.cvOutputData)
     return datum.cvOutputData, datum.poseKeypoints
@@ -44,15 +44,26 @@ The last channel is taken as number of images
 '''
 
 def processFrames(Images):
+    global params
+    print(params)
+    
+    if len(Images.shape)<4 :
+        Images = np.expand_dims(Images,-1)
     
     OutputImages = np.empty(Images.shape)
-    OutputPoseKeypoints = np.zeros((Images.shape[3],25,3))
-
+    num_images = 1
+    
+    try :
+        num_images = Images.shape[3]
+    except:
+        pass
+    
+    OutputPoseKeypoints = np.zeros((num_images,25,3))
+        
     opWrapper = op.WrapperPython()
     opWrapper.configure(params)
     opWrapper.start()
 
-        
     for i in range(Images.shape[-1]):
         OutputImage, poseKeypoints = processFrame(Images[:,:,:,i], opWrapper)
         OutputImages[:,:,:,i] = OutputImage
