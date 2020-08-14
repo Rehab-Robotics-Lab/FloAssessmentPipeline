@@ -7,6 +7,8 @@ Created on Sat Aug  8 16:52:54 2020
 """
 
 import numpy as np
+import helpers
+from scipy.spatial import ConvexHull, convex_hull_plot_2d
 
 '''
 Fuction that takes in a 3D keypoints and timestamps
@@ -93,3 +95,18 @@ Angular motion
 
 def angular_motion(keypoints):
     pass
+
+'''
+Reachable workspace 
+Takes in 3D keypoints and calculates volume of Convex Hull traced by left and right wrist keypoints
+Returns volume of each convex hull in metric scale
+'''
+def reachable_workspace(keypoints):
+    right_wrist_points = helpers.right_wrist_points(keypoints)
+    left_wrist_points = helpers.left_wrist_points(keypoints)
+    
+    right_wrist_hull = ConvexHull(right_wrist_points)
+    left_wrist_hull  = ConvexHull(left_wrist_points)
+    
+    return left_wrist_hull.volume, right_wrist_hull.volume
+
