@@ -94,6 +94,7 @@ Angular motion
 '''
 
 def angular_motion(keypoints):
+    
     pass
 
 '''

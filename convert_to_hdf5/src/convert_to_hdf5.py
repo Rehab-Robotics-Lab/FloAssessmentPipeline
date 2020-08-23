@@ -75,8 +75,8 @@ if __name__ == '__main__':
     for topic in topics:
         rospy.loginfo('Extracting info from : %s', topic)        
         n = pre_processing_bag.get_message_count(topic)
-        topic_meta_info = meta_info["/"+ topic.split('/')[1] + "/" + topic.split('/')[2]+ "/" + "camera_info"]
         
+        topic_meta_info = meta_info["/"+ topic.split('/')[1] + "/" + topic.split('/')[2]+ "/" + "camera_info"]        
         #Number of Groups to break data into based on batch size
         groups = 1      
         if(n>batch_size):
