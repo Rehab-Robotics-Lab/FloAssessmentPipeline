@@ -43,6 +43,7 @@ if __name__ == '__main__':
             rospy.loginfo("HDF5 Database COULD NOT BE READ/CREATED")
     else:
         rospy.loginfo("No Argument provided for HDF5 Filename")
+        
     experiment_subgroup = hdf5_database.create_group(experiment_id)
     video_subgroup = experiment_subgroup.create_group('Video')
     topics = ["/upper_realsense/color/image_raw",
@@ -73,7 +74,7 @@ if __name__ == '__main__':
         if(n>batch_size):
                 groups = int(n/batch_size) + 1
                 
-        topic_subgroup = video_subgroup.create_group(topic)
+        topic_subgroup = video_subgroup.create_group(topic.split('/')[1])
         
         print("Messages: ",n)
         print("Groups: ", groups)
@@ -112,7 +113,7 @@ if __name__ == '__main__':
                 else:
                     data=np.zeros((data.shape[0],data.shape[1], data.shape[2], data.shape[3]), dtype=np.uint8)
                 
-                    
+    hdf5_database.close()            
     rospy.loginfo("Exiting Process")
 
     
