@@ -7,8 +7,32 @@ Created on Sat Aug  8 16:52:54 2020
 """
 
 import numpy as np
-import helpers
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
+
+'''
+Given a set of 3D keypoints, returns left shoulder points across time
+'''
+def left_shoulder_points(keypoints):
+    return keypoints[:,5,:]
+
+'''
+Given a set of 3D keypoints, returns right shoulder points across time
+'''
+def right_shoulder_points(keypoints):
+    return keypoints[:,2,:]
+
+'''
+Given a set of 3D keypoints, return left wrist points across time
+'''
+def left_wrist_points(keypoints):
+    return keypoints[:,7,:]
+
+
+'''
+Given a  set of 3D keypoints, returns right wrist points across time
+'''
+def right_wrist_points(keypoints):
+    return keypoints[:,4,:]
 
 '''
 Fuction that takes in a 3D keypoints and timestamps
