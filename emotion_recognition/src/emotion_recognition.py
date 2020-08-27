@@ -105,7 +105,6 @@ def extract_emotions(images, weights):
     for i in range(n):
         prediction_scores = process_frame(
             images[:,:,:,i], model, facecasc)
-        
         prediction_scores_array[:,i] = prediction_scores
         max_index = int(np.argmax(prediction_scores))
         

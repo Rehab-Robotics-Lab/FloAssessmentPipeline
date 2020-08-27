@@ -24,7 +24,6 @@ Function to take a Frame and return keypoints and output image with keypoints
 '''
 def processFrame(img, opWrapper) :
     
-    
     datum = op.Datum()
     if not img.dtype == np.uint8:
         img=np.uint8(img)
@@ -32,7 +31,6 @@ def processFrame(img, opWrapper) :
     #To be resolved
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     datum.cvInputData = img
-    #cv2.imwrite('output/input.jpg', img)
     opWrapper.emplaceAndPop([datum])
     #print(datum.poseKeypoints.shape)
     #cv2.imwrite('output/test.jpg', datum.cvOutputData)
