@@ -29,13 +29,13 @@ def processFrame(img, opWrapper) :
     if not img.dtype == np.uint8:
         img=np.uint8(img)
         print("Wrong image dtype: Changing to np.uint8")
+    #To be resolved
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    print(img.dtype)
-    
     datum.cvInputData = img
-    cv2.imwrite('output/input.jpg', img)
+    #cv2.imwrite('output/input.jpg', img)
     opWrapper.emplaceAndPop([datum])
-    cv2.imwrite('output/test.jpg', datum.cvOutputData)
+    #print(datum.poseKeypoints.shape)
+    #cv2.imwrite('output/test.jpg', datum.cvOutputData)
     return datum.cvOutputData, datum.poseKeypoints
 
 '''
@@ -62,8 +62,8 @@ def processFrames(Images):
     except:
         pass
     
-    #OutputPoseKeypoints = np.zeros((num_images,25,3))
-    OutputPoseKeypoints = []
+    OutputPoseKeypoints = np.zeros((num_images,25,3))
+    #OutputPoseKeypoints = []
     opWrapper = op.WrapperPython()
     opWrapper.configure(params)
     opWrapper.start()
@@ -73,7 +73,12 @@ def processFrames(Images):
         imageToProcess = Images[:,:,:,i]
         OutputImage, poseKeypoints = processFrame(imageToProcess, opWrapper)
         OutputImages[:,:,:,i] = OutputImage
-        #OutputPoseKeypoints[i,:,:] = poseKeypoints
-        OutputPoseKeypoints.append(poseKeypoints)
+        
+        if(poseKeypoints.shape[0]>1):
+            print("More than one person Detected: skipping frame" )
+            continue
+        
+        OutputPoseKeypoints[i,:,:] = poseKeypoints
+        #OutputPoseKeypoints.append(poseKeypoints)
     
     return OutputImages, OutputPoseKeypoints

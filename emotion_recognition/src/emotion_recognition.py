@@ -97,7 +97,7 @@ def extract_emotions(images, weights):
 
     # Index to emotion Mapping
     emotion_dict = {0: "Angry", 1: "Disgusted", 2: "Fearful",
-                    3: "Happy", 4: "Neutral", 5: "Sad", 6: "Surprised"}
+                    3: "Happy", 4: "Neutral", 5: "Sad", 6: "Surprised", -1: "No Face"}
 
     n = images.shape[3]
     prediction_scores_array = np.zeros((7,n))
@@ -105,9 +105,13 @@ def extract_emotions(images, weights):
     for i in range(n):
         prediction_scores = process_frame(
             images[:,:,:,i], model, facecasc)
-
+        
         prediction_scores_array[:,i] = prediction_scores
         max_index = int(np.argmax(prediction_scores))
+        
+        if np.sum(prediction_scores)==0:
+            max_index = -1
+        
         predicted_emotion.append(emotion_dict[max_index])
 
     return predicted_emotion, prediction_scores_array

@@ -9,12 +9,13 @@ import numpy as np
 import h5py
 import cv2
 import emotion_recognition.src.emotion_recognition as emo
+#import openpose.scripts.extractPoses as kp
 #Reading data from HDF5
 
 hf = h5py.File('/media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuveer/Desktop/Flo_data/experiment1.hdf5', 'r')
 print(hf.keys())
 
-dset = hf['Experiment_1/Video/lower_realsense/group_1']
+dset = hf['Experiment_1/Video/lower_realsense/color/group_1']
 print(dset.shape)
 print(type(dset))
 images = np.asarray(dset)
@@ -31,7 +32,7 @@ print(len(predicted_emotion))
 print(predicted_emotion[0])
 
 #Run docker here
-
+'''
 images = np.load('/media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuveer/Desktop/Flo_data/testdata.npy')
 
 for i in range(images.shape[3]):
@@ -48,3 +49,5 @@ for i in range(images.shape[3]):
 
 cv2.destroyAllWindows()
 video.release()
+'''
+
