@@ -92,7 +92,7 @@ if __name__ == '__main__':
         else:
             #Should this be float?
             data = np.zeros((topic_meta_info.height, topic_meta_info.width, 3, batch_size), dtype=np.uint8)
-            
+        
         timestamps_secs = []
         timestamps_nsecs = []
         i = 0

@@ -24,6 +24,7 @@ Function to take a Frame and return keypoints and output image with keypoints
 '''
 def processFrame(img, opWrapper) :
     
+
     datum = op.Datum()
     if not img.dtype == np.uint8:
         img=np.uint8(img)
@@ -34,6 +35,7 @@ def processFrame(img, opWrapper) :
     opWrapper.emplaceAndPop([datum])
     #print(datum.poseKeypoints.shape)
     #cv2.imwrite('output/test.jpg', datum.cvOutputData)
+
     return datum.cvOutputData, datum.poseKeypoints
 
 '''
@@ -49,6 +51,7 @@ def processFrames(Images):
     print("Parameters : ", params)
     
     if len(Images.shape)<4 :
+
         print("Adding Extra Dimension")
         Images = np.expand_dims(Images,-1)
     
@@ -60,6 +63,7 @@ def processFrames(Images):
     except:
         pass
     
+
     OutputPoseKeypoints = np.zeros((num_images,25,3))
     #OutputPoseKeypoints = []
     opWrapper = op.WrapperPython()
@@ -78,5 +82,5 @@ def processFrames(Images):
         
         OutputPoseKeypoints[i,:,:] = poseKeypoints
         #OutputPoseKeypoints.append(poseKeypoints)
-    
+        
     return OutputImages, OutputPoseKeypoints

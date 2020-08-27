@@ -12,26 +12,26 @@ from scipy.spatial import ConvexHull, convex_hull_plot_2d
 '''
 Given a set of 3D keypoints, returns left shoulder points across time
 '''
-def left_shoulder_points(keypoints):
+def extract_left_shoulder_points(keypoints):
     return keypoints[:,5,:]
 
 '''
 Given a set of 3D keypoints, returns right shoulder points across time
 '''
-def right_shoulder_points(keypoints):
+def extract_right_shoulder_points(keypoints):
     return keypoints[:,2,:]
 
 '''
 Given a set of 3D keypoints, return left wrist points across time
 '''
-def left_wrist_points(keypoints):
+def extract_left_wrist_points(keypoints):
     return keypoints[:,7,:]
 
 
 '''
 Given a  set of 3D keypoints, returns right wrist points across time
 '''
-def right_wrist_points(keypoints):
+def extract_right_wrist_points(keypoints):
     return keypoints[:,4,:]
 
 '''
@@ -127,8 +127,8 @@ Takes in 3D keypoints and calculates volume of Convex Hull traced by left and ri
 Returns volume of each convex hull in metric scale
 '''
 def reachable_workspace(keypoints):
-    right_wrist_points = helpers.right_wrist_points(keypoints)
-    left_wrist_points = helpers.left_wrist_points(keypoints)
+    right_wrist_points = extract_right_wrist_points(keypoints)
+    left_wrist_points = extract_left_wrist_points(keypoints)
     
     right_wrist_hull = ConvexHull(right_wrist_points)
     left_wrist_hull  = ConvexHull(left_wrist_points)

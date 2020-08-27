@@ -7,9 +7,4 @@ Created on Fri Aug 14 18:59:09 2020
 """
 
 
-import numpy as np
-
-
-
-
     
