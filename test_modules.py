@@ -30,6 +30,10 @@ video=cv2.VideoWriter('/media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuve
 print(len(predicted_emotion))
 print(predicted_emotion[0])
 
+#Run docker here
+
+images = np.load('/media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuveer/Desktop/Flo_data/testdata.npy')
+
 for i in range(images.shape[3]):
     image = cv2.putText(np.float32(images[:,:,:,i]), 
                         predicted_emotion[i], 

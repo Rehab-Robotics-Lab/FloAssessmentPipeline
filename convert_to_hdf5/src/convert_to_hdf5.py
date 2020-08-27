@@ -86,34 +86,20 @@ if __name__ == '__main__':
         group = 1         
         
         for tp, msg, t in pre_processing_bag.read_messages([topic]):             
-             data[:,:,:,i] = bridge.imgmsg_to_cv2(msg, "rgb8")
-             timestamps_secs.append(msg.header.stamp.secs)
-             timestamps_nsecs.append(msg.header.stamp.nsecs)
-             i = i+1             
-             if(i== data.shape[3]):
-                rospy.loginfo("Number of Frames Extracted : %d", i)     
-                dataset = topic_subgroup.create_dataset("group_"+str(group), data=data)
-                dataset.attrs.create("timestamps_secs", timestamps_secs)
-                dataset.attrs.create("timestamps_nsecs", timestamps_secs)
-                dataset.attrs.create("height", topic_meta_info.height)
-                dataset.attrs.create("width", topic_meta_info.width)
-                dataset.attrs.create("D", topic_meta_info.D)
-                dataset.attrs.create("K", topic_meta_info.K)
-                dataset.attrs.create("R", topic_meta_info.R)
-                dataset.attrs.create("P", topic_meta_info.P)
-                dataset.attrs.create("binning_x", topic_meta_info.binning_x)
-                dataset.attrs.create("binning_y", topic_meta_info.binning_y)
-                i=0
-                group= group+1
-                timestamps_nsecs=[]
-                timestamps_secs=[]
-                
-                if groups == group:
-                    data=np.zeros((data.shape[0],data.shape[1], data.shape[2], n%batch_size), dtype=np.uint8)
-                else:
-                    data=np.zeros((data.shape[0],data.shape[1], data.shape[2], data.shape[3]), dtype=np.uint8)
-                
-    hdf5_database.close()            
-    rospy.loginfo("Exiting Process")
+             data[:,:,:,i] = bridge.imgmsg_to_cv2(msg,"bgr8")   
+             i = i+1                  
+        rospy.loginfo("Number of Frames Extracted : %d", i)     
+        dataset = video_subgroup.create_dataset(topic, data=data)
+        dataset.attrs.create("height", topic_meta_info.height)
+        dataset.attrs.create("width", topic_meta_info.width)
+        dataset.attrs.create("D", topic_meta_info.D)
+        dataset.attrs.create("K", topic_meta_info.K)
+        dataset.attrs.create("R", topic_meta_info.R)
+        dataset.attrs.create("P", topic_meta_info.P)
+        dataset.attrs.create("binning_x", topic_meta_info.binning_x)
+        dataset.attrs.create("binning_y", topic_meta_info.binning_y)
+        
+        rospy.loginfo("Exiting Process")
+
 
     

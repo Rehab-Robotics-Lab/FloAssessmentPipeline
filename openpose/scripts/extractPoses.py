@@ -26,7 +26,14 @@ def processFrame(img, opWrapper) :
     
     
     datum = op.Datum()
-    datum.cvInputData = np.uint8(img)
+    if not img.dtype == np.uint8:
+        img=np.uint8(img)
+        print("Wrong image dtype: Changing to np.uint8")
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    print(img.dtype)
+    
+    datum.cvInputData = img
+    cv2.imwrite('output/input.jpg', img)
     opWrapper.emplaceAndPop([datum])
     cv2.imwrite('output/test.jpg', datum.cvOutputData)
     return datum.cvOutputData, datum.poseKeypoints
@@ -44,9 +51,10 @@ def processFrames(Images):
     print("Parameters : ", params)
     
     if len(Images.shape)<4 :
+        print("Adding Extra Dimension")
         Images = np.expand_dims(Images,-1)
     
-    OutputImages = np.empty(Images.shape)
+    OutputImages = np.empty(Images.shape,dtype=np.uint8)
     num_images = 1
     
     try :
