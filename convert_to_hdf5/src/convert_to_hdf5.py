@@ -65,8 +65,9 @@ if __name__ == '__main__':
         data = np.zeros((topic_meta_info.height, topic_meta_info.width, 3, n))
         i = 0         
         for tp, msg, t in pre_processing_bag.read_messages([topic]):             
-             data[:,:,:,i] = bridge.imgmsg_to_cv2(msg, "rgb8")   
+             data[:,:,:,i] = bridge.imgmsg_to_cv2(msg, "bgr8")   
              i = i+1             
+             
         rospy.loginfo("Number of Frames Extracted : %d", i)     
         dataset = video_subgroup.create_dataset(topic, data=data)
         dataset.attrs.create("height", topic_meta_info.height)
