@@ -13,26 +13,38 @@ from scipy.spatial import ConvexHull, convex_hull_plot_2d
 Given a set of 3D keypoints, returns left shoulder points across time
 '''
 def extract_left_shoulder_points(keypoints):
-    return keypoints[:,5,:]
+    return keypoints[:,5,:] #Shape n*3
 
 '''
 Given a set of 3D keypoints, returns right shoulder points across time
 '''
 def extract_right_shoulder_points(keypoints):
-    return keypoints[:,2,:]
+    return keypoints[:,2,:] #Shape n*3
 
 '''
 Given a set of 3D keypoints, return left wrist points across time
 '''
 def extract_left_wrist_points(keypoints):
-    return keypoints[:,7,:]
-
+    return keypoints[:,7,:] #Shape n*3
 
 '''
 Given a  set of 3D keypoints, returns right wrist points across time
 '''
 def extract_right_wrist_points(keypoints):
-    return keypoints[:,4,:]
+    return keypoints[:,4,:] #Shape n*3
+
+'''
+Given a  set of 3D keypoints, returns right elbow points across time
+'''
+def extract_right_elbow_points(keypoints):
+    return keypoints[:,3,:] #Shape n*3
+
+'''
+Given a  set of 3D keypoints, returns left elbow points across time
+'''
+def extract_left_elbow_points(keypoints):
+    return keypoints[:,6,:] #Shape n*3
+
 
 '''
 Fuction that takes in a 3D keypoints and timestamps
@@ -44,8 +56,8 @@ def velocity_profile(keypoints, timestamps):
     #Confirm Axis
     delta_xyz = np.diff(keypoints, axis=0)
     delta_t   = np.diff(timestamps)
-    
-    velocity = delta_xyz/delta_t
+    delta_t   = np.expand_dims(np.expand_dims(delta_t,-1),-1)
+    velocity = np.divide(delta_xyz, delta_t)
     timestamps = timestamps - timestamps[0]
     
     return velocity, timestamps[:timestamps.shape[0]-1] 
@@ -118,8 +130,20 @@ Angular motion
 '''
 
 def angular_motion(keypoints):
+    right_wrist_points = extract_right_wrist_points(keypoints)
+    left_wrist_points = extract_left_wrist_points(keypoints)
     
-    pass
+    right_elbow_points = extract_right_elbow_points(keypoints)
+    left_elbow_points = extract_left_elbow_points(keypoints)
+    
+    right_shoulder_points = extract_right_shoulder_points(keypoints)
+    left_shoulder_points  = extract_left_shoulder_points(keypoints)
+    
+    right_elbow_basis_x = np.norm(right_wrist_points - right_elbow_points,axis=0)
+    
+    right_shoulder_basis_x = np.norm(right_elbow_points - right_shoulder_points, axis=0)
+    
+    
 
 '''
 Reachable workspace 

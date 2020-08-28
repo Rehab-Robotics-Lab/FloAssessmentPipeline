@@ -17,7 +17,7 @@ dset = hf['Experiment_1/Video/lower_realsense/color/group_1']
 images = np.asarray(dset)
 timestamps_secs = dset.attrs.get("timestamps_secs")
 K = dset.attrs.get("K")
-
+#How to deal with time
 dset = hf['Experiment_1/Video/lower_realsense/depth/group_1']
 depth = np.asarray(dset)
 depth_timestamps_secs = dset.attrs.get("timestamps_secs")
@@ -52,7 +52,8 @@ video.release()
 '''
 
 keypoints = np.load('/media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuveer/Desktop/Flo_data/testdata_keypoints.npy')
-K_inv = np.linalg.inv(K)
+print("K: " ,np.reshape(K,(3,3)))
+K_inv = np.linalg.inv(np.reshape(K,(3,3)))
 #Depth Keypoint synchronization
 for i in range(keypoints.shape[0]):
     time = timestamps_secs[i]
@@ -61,19 +62,23 @@ for i in range(keypoints.shape[0]):
     #Possible interpolation error?
     #Slight error might also be introduced due to timestamp slicing
     z = depth_image_sync[np.uint8(keypoints[i,:,0]),np.uint8(keypoints[i,:,1])]
-    keypoints[i,:,0] = np.multiply(keypoints[i,:,0] , z)
-    keypoints[i,:,1] = np.multiply(keypoints[i,:,1] , z)
+    #keypoints[i,:,0] = np.multiply(keypoints[i,:,0] , z)
+    #keypoints[i,:,1] = np.multiply(keypoints[i,:,1] , z)
     keypoints[i,:,2] = z
     #25 * 3
     kp_ = keypoints[i,:,:]
-    print(kp_.shape)
-    print(K_inv.shape)
+    #print(kp_.shape)
+    #print(K_inv.shape)
     #Points in camera frame
     kp_c= np.matmul(K_inv, kp_.T)  
+    keypoints[i,:,:] = kp_c.T
+    
+#print("x:", keypoints[0,:,0])
+#print("y:", keypoints[0,:,1])
+#print("z:", keypoints[0,:,2])
+    
+print("Range of Motion: ", kp.range_of_motion(keypoints))
+print("Distance Moved: ", kp.path(keypoints))
+print("Velocity Profile", kp.velocity_profile(keypoints, timestamps_secs))
 
-print("x:", keypoints[0,:,0])
-print("y:", keypoints[0,:,1])
-print("z:", keypoints[0,:,2])
-    
-    
 
