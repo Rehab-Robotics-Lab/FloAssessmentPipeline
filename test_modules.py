@@ -84,23 +84,33 @@ for i in range(keypoints.shape[0]):
 #print("Distance Moved: ", kp.path(keypoints))
 #print("Velocity Profile", kp.velocity_profile(keypoints, timestamps_secs))
 
-T = kp.body_center_transforms(keypoints)
-
-
-#TF broadcaster
+keypoints = keypoints/1000
+T_body = kp.body_center_transforms(keypoints)
+T_right_shoulder, T_right_elbow, T_left_shoulder, T_left_elbow = kp.angular_motion(keypoints)
 rospy.init_node("TF_Broadcaster")
 br = tf.TransformBroadcaster()
-for i in range(T.shape[-1]):
+for i in range(T_body.shape[-1]):
+    br.sendTransform((T_body[0,3,i],T_body[1,3,i],T_body[2,3,i]),
+                     tf.transformations.quaternion_from_matrix(T_body[:,:,i]),
+                     rospy.Time.now(),"body","camera")
     
-    q = tf.transformations.quaternion_from_matrix(T[:,:,i])
-    q = q/(q[0]**2+q[1]**2+q[2]**2+q[3]**2)
-    print("Sending Transform: ", q[0]**2+q[1]**2+q[2]**2+q[3]**2)
-    br.sendTransform((T[0,3,i],T[1,3,i],T[2,3,i]),
-                     q,
-                     rospy.Time(),"body","world")
+    br.sendTransform((T_right_shoulder[0,3,i],T_right_shoulder[1,3,i],T_right_shoulder[2,3,i]),
+                     tf.transformations.quaternion_from_matrix(T_right_shoulder[:,:,i]),
+                     rospy.Time.now(),"right_shoulder","camera")
+    
+    br.sendTransform((T_right_elbow[0,3,i],T_right_elbow[1,3,i],T_right_elbow[2,3,i]),
+                     tf.transformations.quaternion_from_matrix(T_right_elbow[:,:,i]),
+                     rospy.Time.now(),"right_elbow","camera")
+    
+    br.sendTransform((T_left_shoulder[0,3,i],T_left_shoulder[1,3,i],T_left_shoulder[2,3,i]),
+                     tf.transformations.quaternion_from_matrix(T_left_shoulder[:,:,i]),
+                     rospy.Time.now(),"left_shoulder","camera")
+    
+    br.sendTransform((T_left_elbow[0,3,i],T_left_elbow[1,3,i],T_left_elbow[2,3,i]),
+                     tf.transformations.quaternion_from_matrix(T_left_elbow[:,:,i]),
+                     rospy.Time.now(),"left_elbow","camera")
+    
     rospy.sleep(0.1)
-
-
 
 
 
