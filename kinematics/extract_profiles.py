@@ -10,6 +10,12 @@ import numpy as np
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
 
 '''
+Given a set of 3D keypoints, returns bottom center points across time
+'''
+def extract_body_bottom_center(keypoints):
+    return keypoints[:,8,:] #Shape n*3
+
+'''
 Given a set of 3D keypoints, returns left shoulder points across time
 '''
 def extract_left_shoulder_points(keypoints):
@@ -143,6 +149,10 @@ def angular_motion(keypoints):
     
     right_shoulder_basis_x = np.norm(right_elbow_points - right_shoulder_points, axis=0)
     
+    right_shoulder_basis_y = np.cross(right_elbow_basis_x, right_shoulder_basis_x)
+    right_elbow_basis_y    = right_shoulder_basis_y
+    
+    
     
 
 '''
@@ -159,3 +169,64 @@ def reachable_workspace(keypoints):
     
     return left_wrist_hull.volume, right_wrist_hull.volume
 
+'''
+Body Center Transforms
+'''
+def body_center_transforms(keypoints):
+    left_shoulder_points  = extract_left_shoulder_points(keypoints)
+    right_shoulder_points = extract_right_shoulder_points(keypoints)
+    bottom_body_points    = extract_body_bottom_center(keypoints)
+    top_body_points       = (left_shoulder_points+right_shoulder_points)/2
+    center_body_points    = (top_body_points + bottom_body_points)/2
+
+    parallel_vector1 = left_shoulder_points - bottom_body_points
+    parallel_vector1 = parallel_vector1/np.expand_dims(np.linalg.norm(parallel_vector1, axis=-1),-1) 
+    
+    parallel_vector2 = right_shoulder_points - bottom_body_points
+    
+    parallel_vector2 = parallel_vector2/np.expand_dims(np.linalg.norm(parallel_vector2, axis=-1),-1)
+    '''
+    print(parallel_vector1.shape)
+    print(parallel_vector2.shape)
+    print("Parallel vector 1", np.linalg.norm(parallel_vector2,axis =-1))
+    print("Parallel vector 2", np.linalg.norm(parallel_vector1,axis =-1))
+    '''
+    basis_z = np.cross(parallel_vector1, parallel_vector2)
+    basis_z = basis_z/np.expand_dims(np.linalg.norm(basis_z, axis=-1),-1)
+    basis_y = top_body_points - bottom_body_points
+    basis_y = basis_y/np.expand_dims(np.linalg.norm(basis_y,axis=-1),-1)
+    
+    #Not normalising basis x because it is the cross product of two orthogonal vectors
+    basis_x = np.cross(basis_z, basis_y)
+    
+    
+    print(basis_x.shape)
+    print(basis_y.shape)
+    print(basis_z.shape)
+    print("basis_x", np.linalg.norm(basis_x,axis =-1))
+    print("basis_y", np.linalg.norm(basis_y,axis =-1))
+    print("basis_z", np.linalg.norm(basis_z,axis =-1))
+    
+    n = basis_x.shape[0]
+    
+    body_center_frame = np.zeros((3,3))
+    camera_frame = np.asarray([[1,0,0],[0,1,0],[0,0,1]])
+    camera_frame_inv = np.linalg.inv(camera_frame)
+    
+    T = np.zeros((4,4,n))
+    
+    for i in range(n):
+        body_center_frame[:,0] = basis_x[i,:].T
+        body_center_frame[:,1] = basis_y[i,:].T
+        body_center_frame[:,2] = basis_z[i,:].T
+        
+        rotation = np.matmul(body_center_frame, camera_frame_inv)
+        T[:3,:3,i]=rotation
+        T[:3,3,i] = center_body_points[i,:]
+    
+    T[3,3,:] = 1
+    return T
+        
+    
+    
+    
