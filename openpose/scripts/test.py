@@ -40,7 +40,7 @@ cap.release()
 
 '''
 hf = h5py.File('output/experiment1.hdf5', 'r')
-dset = hf['Experiment_1/Video/lower_realsense/group_1']
+dset = hf['Experiment_1/Video/lower_realsense/color/group_1']
 Images = np.asarray(dset)
 
 

@@ -61,7 +61,6 @@ def normalize(vector):
 '''
 Fuction that takes in a 3D keypoints and timestamps
 returns a velocity profile with timestamps 
-
 keypoints shape (n * 25 * 3)
 '''
 def velocity_profile(keypoints, timestamps):
