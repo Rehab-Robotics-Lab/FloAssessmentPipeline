@@ -91,10 +91,14 @@ for i in range(keypoints.shape[0]):
         print("Depth Timestamp: ",depth_timestamps[idx])
         print("Color Timestamp: ",color_timestamps[i])
         print("Difference Timestamps: ", np.absolute(depth_timestamps[idx]-color_timestamps[i]))
+        depth_image_sync[depth_image_sync > 3000]=0
         draw_on_image(depth_image_sync, keypoints[i,:,:2])
-        draw_on_image(images[:,:,:,i], keypoints[i,:,:2])
+        image = images[:,:,:,i]
+        image[depth_image_sync > 3000]=0 
+        draw_on_image(image, keypoints[i,:,:2])
     
     z = depth_image_sync[np.uint8(keypoints[i,:,0]),np.uint8(keypoints[i,:,1])]
+    
     keypoints[i,:,0] = np.multiply(keypoints[i,:,0] , z)
     keypoints[i,:,1] = np.multiply(keypoints[i,:,1] , z)
     keypoints[i,:,2] = z
