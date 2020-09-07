@@ -75,7 +75,6 @@ if __name__ == '__main__':
                        "/fisheye_cam/camera_info"]    
     
     bridge = CvBridge()
-    chunk_size = 500
     initial_size = 0 
     if(mode == "w"):
         
@@ -102,11 +101,11 @@ if __name__ == '__main__':
                 
             timestamp_secs = hdf5_database.create_dataset(current_prefix + image_timestamps_secs_group[i], (initial_size,), 
                                                            maxshape=(None,),
-                                                           dtype= np.uint8, chunks= True)
+                                                           dtype= np.float32, chunks= True)
             
             timestamp_nsecs = hdf5_database.create_dataset(current_prefix + image_timestamps_nsecs_group[i], (initial_size,), 
                                                            maxshape=(None,),
-                                                           dtype= np.uint8, chunks= True)
+                                                           dtype= np.float32, chunks= True)
             
             dataset.attrs.create("height", topic_meta_info.height)
             dataset.attrs.create("width", topic_meta_info.width)
