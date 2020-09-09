@@ -10,6 +10,7 @@ import h5py
 import cv2
 import emotion_recognition.src.emotion_recognition as emo
 import kinematics.extract_profiles as kp
+import kinematics.filters as filters
 import tf
 import rospy
 import matplotlib.pyplot as plt
@@ -32,24 +33,28 @@ def draw_on_image(image, kp):
 
 hf = h5py.File('/media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuveer/Desktop/Flo_data/experiment1.hdf5', 'r')
 
-dset = hf['Experiment_1/Video/lower_realsense/color/group_1']
-images = np.asarray(dset)
+dset = hf['Experiment_1/Video/lower_realsense/color/image_raw']
+images = np.asarray(dset[:500,:,:,:])
 print(images.shape)
-timestamps_secs = dset.attrs.get("timestamps_secs")
-timestamps_necs = dset.attrs.get("timestamps_secs")
-color_timestamps = (timestamps_secs * 1e-9) + timestamps_necs
+timestamps_secs = hf['Experiment_1/Video/lower_realsense/color/timestamp_secs']
+timestamps_necs = hf['Experiment_1/Video/lower_realsense/color/timestamp_nsecs']
+color_timestamps = (timestamps_secs[:500] * 1e-9) + timestamps_necs[:500]
 
 K = dset.attrs.get("K")
 #How to deal with time
-dset = hf['Experiment_1/Video/lower_realsense/depth/group_1']
-depth = np.asarray(dset)
-depth_timestamps_secs = dset.attrs.get("timestamps_secs")
-depth_timestamps_nsecs = dset.attrs.get("timestamps_nsecs")
-depth_timestamps = (depth_timestamps_secs*1e-9) + timestamps_necs
+dset = hf['Experiment_1/Video/lower_realsense/depth/image_rect_raw']
+depth = np.asarray(dset[:500,:,:])
+depth_timestamps_secs = hf['Experiment_1/Video/lower_realsense/depth/timestamp_secs']
+depth_timestamps_nsecs = hf['Experiment_1/Video/lower_realsense/depth/timestamp_nsecs']
+depth_timestamps = (depth_timestamps_secs[:500]*1e-9) + timestamps_necs[:500]
 
 print(depth.shape)
 K_inv = np.linalg.inv(np.reshape(K,(3,3)))
 print("K_inv", K_inv)
+
+plt.imshow(images[0,:,:,:])
+plt.show()
+
 '''
 weights = "emotion_recognition/src/model.h5"
 predicted_emotion, prediction_scores_array = emo.extract_emotions(images, weights)
@@ -91,11 +96,17 @@ for i in range(keypoints.shape[0]):
         print("Depth Timestamp: ",depth_timestamps[idx])
         print("Color Timestamp: ",color_timestamps[i])
         print("Difference Timestamps: ", np.absolute(depth_timestamps[idx]-color_timestamps[i]))
-        depth_image_sync[depth_image_sync > 3000]=0
+        #depth_image_sync[depth_image_sync > 3000]=0
         draw_on_image(depth_image_sync, keypoints[i,:,:2])
+        draw_on_image(filters.removeOutliers(depth_image_sync), 
+                      keypoints[i,:,:2])
+        
         image = images[:,:,:,i]
         image[depth_image_sync > 3000]=0 
         draw_on_image(image, keypoints[i,:,:2])
+        
+        
+        
     
     z = depth_image_sync[np.uint8(keypoints[i,:,0]),np.uint8(keypoints[i,:,1])]
     

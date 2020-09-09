@@ -5,8 +5,7 @@ Created on Sat Sep  5 22:05:35 2020
 
 @author: gsuveer
 """
-import scipy.signal.convolve2d as convolve2d
-import scipy.signal.medfilt2d  as medianFilter
+import scipy
 import numpy as np
 
 def removeOutliers(image, kernel_size=3, passes=1, threshold= 10):
@@ -36,7 +35,7 @@ def removeOutliers(image, kernel_size=3, passes=1, threshold= 10):
     kernel[kernel.shape[0]/2,kernel.shape[1]/2] = 0
     conv_output = image
     for p in passes:
-        conv_output = convolve2d(conv_output, kernel, mode='same', boundary='symm')
+        conv_output = scipy.signal.convolve2d(conv_output, kernel, mode='same', boundary='symm')
     
     diff = np.absolute(image-conv_output)
     idx  = diff>threshold
@@ -69,7 +68,7 @@ def median_filter(image, kernel_size=3, passes=1):
     
     output = image
     for p in passes:
-        output = medianFilter(output, kernel_size=kernel_size)
+        output = scipy.signal.medfilt2d(output, kernel_size=kernel_size)
     
     return output
 
@@ -97,6 +96,6 @@ def mean_filter(image, kernel_size=3, passes=1):
     kernel = (1/(kernel_size*kernel_size)) * np.ones((kernel_size,kernel_size))
     output = image
     for p in passes:
-        output = convolve2d(output, kernel, mode='same', boundary='symm')
+        output = scipy.signal.convolve2d(output, kernel, mode='same', boundary='symm')
     return output
     
