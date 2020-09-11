@@ -19,3 +19,5 @@ WORKDIR /
 RUN  ./ros_entrypoint.sh rosdep install --from-paths /catkin_ws/src/ --ignore-src -r -y
 
 COPY ./ros_entrypoint.sh /
+
+CMD ["roslaunch", "convert_to_hdf5", "main.launch"]
