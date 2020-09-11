@@ -14,6 +14,7 @@ import rosbag
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge
+from tqdm import tqdm
 
 if __name__ == '__main__':
 
@@ -43,7 +44,7 @@ if __name__ == '__main__':
             rospy.loginfo("HDF5 Database COULD NOT BE READ/CREATED")
     else:
         rospy.loginfo("No Argument provided for HDF5 Filename")
-        
+    
     current_prefix = experiment_id+'/Video'
     
     
@@ -116,27 +117,29 @@ if __name__ == '__main__':
             dataset.attrs.create("binning_x", topic_meta_info.binning_x)
             dataset.attrs.create("binning_y", topic_meta_info.binning_y)
             datasets[topic]=dataset
-         
-    for i, topic in enumerate(image_topics):
-        rospy.loginfo('Extracting info from : %s' %(topic))        
-        dataset = hdf5_database[current_prefix + topic]
-        timestamp_secs = hdf5_database[current_prefix + image_timestamps_secs_group[i]]
-        timestamp_nsecs = hdf5_database[current_prefix + image_timestamps_nsecs_group[i]]
-        
-        for tp, msg, t in pre_processing_bag.read_messages([topic]):        
-            dataset.resize(dataset.shape[0]+1, axis=0)
-            timestamp_secs.resize(timestamp_secs.shape[0]+1, axis=0)
-            timestamp_nsecs.resize(timestamp_nsecs.shape[0]+1, axis=0)
-            
-            if topic.split('/')[2] == "depth":
-                dataset[dataset.shape[0]-1,:,:] = bridge.imgmsg_to_cv2(msg,"16UC1")    
-            else:
-                dataset[dataset.shape[0]-1,:,:,:] = bridge.imgmsg_to_cv2(msg,"bgr8")
-            
-            timestamp_secs[timestamp_secs.shape[0]-1]   = msg.header.stamp.secs
-            timestamp_nsecs[timestamp_nsecs.shape[0]-1] = msg.header.stamp.nsecs
-                
+    
+    with tqdm(total=len(image_topics)) as outer_progress_bar:
+        for i, topic in tqdm(enumerate(image_topics)):
+            rospy.loginfo('Extracting info from : %s' %(topic))        
+            dataset = hdf5_database[current_prefix + topic]
+            timestamp_secs = hdf5_database[current_prefix + image_timestamps_secs_group[i]]
+            timestamp_nsecs = hdf5_database[current_prefix + image_timestamps_nsecs_group[i]]
+            with tqdm(total=pre_processing_bag.get_message_count(topic)) as inner_progress_bar:
+                for tp, msg, t in pre_processing_bag.read_messages([topic]):        
+                    dataset.resize(dataset.shape[0]+1, axis=0)
+                    timestamp_secs.resize(timestamp_secs.shape[0]+1, axis=0)
+                    timestamp_nsecs.resize(timestamp_nsecs.shape[0]+1, axis=0)
+                    
+                    if topic.split('/')[2] == "depth":
+                        dataset[dataset.shape[0]-1,:,:] = bridge.imgmsg_to_cv2(msg,"16UC1")    
+                    else:
+                        dataset[dataset.shape[0]-1,:,:,:] = bridge.imgmsg_to_cv2(msg,"bgr8")
+                    
+                    timestamp_secs[timestamp_secs.shape[0]-1]   = msg.header.stamp.secs
+                    timestamp_nsecs[timestamp_nsecs.shape[0]-1] = msg.header.stamp.nsecs
+                    inner_progress_bar.update(1)
+            outer_progress_bar.update(1)
     hdf5_database.close()            
     rospy.loginfo("Exiting Process")
-
+    rospy.signal_shutdown("Exiting Cleanly")
     

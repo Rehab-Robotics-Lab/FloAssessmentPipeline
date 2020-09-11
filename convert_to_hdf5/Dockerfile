@@ -2,7 +2,7 @@ FROM ros:noetic
 
 RUN apt-get update  -y
 RUN apt-get install -y python3-venv python3-pip
-RUN pip3 install h5py
+RUN pip3 install h5py tqdm
 
 RUN mkdir -p catkin_ws/src/convert_to_hdf5
 RUN mkdir -p data
