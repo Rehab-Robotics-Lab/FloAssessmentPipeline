@@ -30,17 +30,17 @@ out=flo-exp-aim1-hdf5/$subject_padded/
 
 bag_files=$(aws s3 ls "$src"'ros/'| awk '{print $4}' | grep bag.bz2)
 
-aws s3 cp "$src"'meta.yaml' .
+aws s3 cp "$src"'meta.yaml' tmp/
 
 prior_pid=-1
 for bag_fn in $bag_files
 do
-    aws s3 cp "$src"'ros/'"$bag_fn" .
+    aws s3 cp "$src"'ros/'"$bag_fn" tmp/
     if ((prior_pid > 0)); then
         wait $prior_pid
     fi
-    lbzip2 -d "$bag_fn" && put into hdf5 && rm ${$bag_fn:0:-4} &
+    lbzip2 -d "tmp/$bag_fn" && put into hdf5 && rm ${$bag_fn:0:-4} &
     prior_pid=$!
 done
 
-aws s3 cp ./*.hdf5 "$out"
+aws s3 cp tmp/*.hdf5 "$out"
