@@ -36,7 +36,7 @@ prior_pid=-1
 for bag_fn in $bag_files
 do
     aws s3 cp "$src"'ros/'"$bag_fn" .
-    if ((prior_pid < 0)); then
+    if ((prior_pid > 0)); then
         wait $prior_pid
     fi
     lbzip2 -d "$bag_fn" && put into hdf5 && rm ${$bag_fn:0:-4} &
