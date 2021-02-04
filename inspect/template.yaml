@@ -1,0 +1,83 @@
+---
+id: <subj number>
+segments:
+  in-person:
+    simon-says:
+      ros:
+        start: <time in seconds since epoch>
+        end: <time in seconds since epoch>
+      gopro:
+        start: <seconds in first file below>
+        end: <seconds in last file below
+        files:
+          - <list of files in order>
+    target-touch:
+      ros:
+        start: <time in seconds since epoch>
+        end: <time in seconds since epoch>
+      gopro:
+        start: <seconds in first file below>
+        end: <seconds in last file below
+        files:
+          - <list of files in order>
+
+  classical-telepresence:
+    simon-says:
+      ros:
+        start: <time in seconds since epoch>
+        end: <time in seconds since epoch>
+      gopro:
+        start: <seconds in first file below>
+        end: <seconds in last file below
+        files:
+          - <list of files in order>
+    target-touch:
+      ros:
+        start: <time in seconds since epoch>
+        end: <time in seconds since epoch>
+      gopro:
+        start: <seconds in first file below>
+        end: <seconds in last file below
+        files:
+          - <list of files in order>
+
+  augmented-telepresence:
+    simon-says:
+      ros:
+        start: <time in seconds since epoch>
+        end: <time in seconds since epoch>
+      gopro:
+        start: <seconds in first file below>
+        end: <seconds in last file below
+        files:
+          - <list of files in order>
+    target-touch:
+      ros:
+        start: <time in seconds since epoch>
+        end: <time in seconds since epoch>
+      gopro:
+        start: <seconds in first file below>
+        end: <seconds in last file below
+        files:
+          - <list of files in order>
+
+calibration:
+ros:
+  start: <time in seconds since epoch>
+  end: <time in seconds since epoch>
+gopro:
+  start: <seconds in first file below>
+  end: <seconds in last file below
+  files:
+    - <list of files in order>
+
+
+bag-mapping:
+  vid_color_data_upper: upper_realsense/color/image_raw_relay
+  vid_color_info_upper: upper_realsense/color/camera_info
+  vid_depth_data_upper: upper_realsense/depth/image_rect_raw_relay
+  vid_depth_info_upper: upper_realsense/depth/camera_info
+  vid_color_data_lower: lower_realsense/color/image_raw_relay
+  vid_color_info_lower: lower_realsense/color/camera_info
+  vid_depth_data_lower: lower_realsense/depth/image_rect_raw_relay
+  vid_depth_info_lower: lower_realsense/depth/camera_info
