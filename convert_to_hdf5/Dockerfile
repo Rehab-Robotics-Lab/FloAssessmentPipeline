@@ -1,12 +1,12 @@
 FROM ros:noetic
 
 RUN apt-get update  -y
-RUN apt-get install -y python3-venv python3-pip lbzip2
+RUN apt-get install -y python3-venv python3-pip lbzip2 curl unzip
 RUN pip3 install h5py tqdm
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install
 
 RUN mkdir -p catkin_ws/src/convert_to_hdf5
-RUN mkdir -p data
+RUN mkdir -p /data
 
 COPY ./launch         catkin_ws/src/convert_to_hdf5/launch
 COPY ./src            catkin_ws/src/convert_to_hdf5/src

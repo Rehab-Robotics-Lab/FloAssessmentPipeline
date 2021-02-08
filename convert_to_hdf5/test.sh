@@ -19,15 +19,15 @@ do
 done
 
 data=$(echo "$data" | sed 's:/*$::')
-meta="$data/$meta"
-bag="$data/$bag"
+meta="/data/$meta"
+bag="/data/$bag"
 
 echo "Saving output to: ${data}"
 echo "Working with bag file: ${bag}"
 echo "Using meta file: ${meta}"
 
 if [ "$rebuild" = true ] ; then
-    ehco 'rebuilding docker image'
+    echo 'rebuilding docker image'
     docker build . --tag hdf5convert
 fi
 
@@ -36,4 +36,4 @@ docker run  \
     -it \
     --rm \
     hdf5convert \
-    roslaunch convert_to_hdf5 convert_to_hdf5.launch bag_file:="$bag" out_dir:="$data" meta_file:="$meta"
+    roslaunch convert_to_hdf5 convert_to_hdf5.launch bag_file:="$bag" out_dir:="/data" meta_file:="$meta"
