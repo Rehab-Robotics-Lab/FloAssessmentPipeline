@@ -1,7 +1,9 @@
 FROM ros:noetic
 
+# Note, this is meant to run on both arm64 and amd64
+
 RUN apt-get update  -y
-RUN apt-get install -y python3-venv python3-pip lbzip2 curl unzip
+RUN apt-get install -y python3-venv python3-pip lbzip2 curl unzip libhdf5-serial-dev hdf5-tools libhdf5-dev python3-opencv python3-dev python3-numpy ros-noetic-cv-bridge
 RUN pip3 install h5py tqdm
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install
 
@@ -17,7 +19,7 @@ WORKDIR catkin_ws
 RUN  ./../ros_entrypoint.sh catkin_make
 WORKDIR /
 
-RUN  ./ros_entrypoint.sh rosdep install --from-paths /catkin_ws/src/ --ignore-src -r -y
+#RUN  ./ros_entrypoint.sh rosdep install --from-paths /catkin_ws/src/ --ignore-src -r -y
 
 COPY ./ros_entrypoint.sh /
 
