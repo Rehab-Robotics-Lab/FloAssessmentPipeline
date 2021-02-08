@@ -2,8 +2,8 @@
 set -o errexit
 set -o pipefail
 
-aws configure set default.s3.max_concurrent_requests 1000
-aws configure set default.s3.max_queue_size 100000
+aws configure set default.s3.max_concurrent_requests 100
+aws configure set default.s3.max_queue_size 10000
 
 # parse options
 while getopts :s: flag
@@ -76,10 +76,10 @@ rm /data/ros/meta.yaml
 
 prior=$(pwd)
 cd /data/ros
-files2transfer=$(find . -type f)
+files2transfer=$(find . -type f -printf '%P\n')
 for fn in $files2transfer
 do
-    aws s3 cp "$fn" "$hdf5/$(dirname "$fn")" &
+    aws s3 cp "$fn" "$hdf5$fn" &
 done
 wait
 echo "Done with upload"
