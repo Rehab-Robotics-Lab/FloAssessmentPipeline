@@ -2,6 +2,9 @@
 set -o errexit
 set -o pipefail
 
+aws configure set default.s3.max_concurrent_requests 1000
+aws configure set default.s3.max_queue_size 100000
+
 # parse options
 while getopts :s: flag
 do
@@ -24,6 +27,7 @@ echo "Processing for subj: $subject_padded"
 
 src=s3://flo-exp-aim1-data-raw/$subject_padded/
 meta=s3://flo-exp-aim1-data-meta/$subject_padded/meta.yaml
+hdf5=s3://flo-exp-aim1-data-hdf5/$subject_padded/
 #src=/media/mjsobrep/flo-external/008/ # <- this should get pulled in from batch job
 # copy from s3 into local storage
 
@@ -36,6 +40,8 @@ mkdir /data/ros/
 
 aws s3 cp "$meta" /data/ros/
 
+done_first=false
+previous_bag_fn=''
 for bag_fn in $bag_files
 do
     #bring in the bag file from s3
@@ -43,15 +49,42 @@ do
 
     lbzip2 -d "/data/ros/$bag_fn"
 
+    if [ $done_first = true ] ; then
+        docker wait hdf5-converter
+        rm "/data/ros/${previous_bag_fn%.*}"
+    fi
+
     docker run  \
         --mount type=bind,source="/data/ros",target=/data \
-        -it \
+        -dit \
         --rm \
+        --name=hdf5-converter
         hdf5convert \
         roslaunch convert_to_hdf5 convert_to_hdf5.launch bag_file:="/data/${bag_fn%.*}" out_dir:="/data" meta_file:="/data/meta.yaml"
 
-    rm "/data/ros/${bag_fn%.*}"
+    previous_bag_fn=$bag_fn
+    done_first=true
 done
+
+if [ $done_first = true ] ; then
+    docker wait hdf5-converter
+    rm "/data/ros/${previous_bag_fn%.*}"
+fi
+
+
+rm /data/ros/meta.yaml
+
+prior=$(pwd)
+cd /data/ros
+files2transfer=$(find . -type f)
+for fn in $files2transfer
+do
+    aws s3 cp "$fn" "$hdf5/$(dirname "$fn")" &
+done
+wait
+echo "Done with upload"
+cd "$prior"
+rm -rf /data/*
 
 echo "--------------------------------------"
 echo "--- Done generating HDF5 files !!!!---"
