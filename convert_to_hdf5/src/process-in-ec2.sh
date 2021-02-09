@@ -50,7 +50,7 @@ do
     lbzip2 -d "/data/ros/$bag_fn"
 
     if [ $done_first = true ] ; then
-        docker wait hdf5-converter
+        [ "$(docker ps -q -f name=hdf5-converter)" ] && docker wait hdf5-converter
         rm "/data/ros/${previous_bag_fn%.*}"
     fi
 
@@ -67,7 +67,7 @@ do
 done
 
 if [ $done_first = true ] ; then
-    docker wait hdf5-converter
+    [ "$(docker ps -q -f name=hdf5-converter)" ] && docker wait hdf5-converter
     rm "/data/ros/${previous_bag_fn%.*}"
 fi
 
