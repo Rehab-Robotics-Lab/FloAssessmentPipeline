@@ -1,3 +1,7 @@
+#!/bin/bash
+set -o errexit
+set -o pipefail
+
 sudo apt-get update -y
 sudo apt-get upgrade -y
 sudo apt-get install -y curl unzip wget
