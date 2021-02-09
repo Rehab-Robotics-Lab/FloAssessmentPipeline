@@ -54,11 +54,11 @@ do
         rm "/data/ros/${previous_bag_fn%.*}"
     fi
 
-    docker run  \
+    docker run \
         --mount type=bind,source="/data/ros",target=/data \
         -dit \
         --rm \
-        --name=hdf5-converter
+        --name=hdf5-converter \
         hdf5convert \
         roslaunch convert_to_hdf5 convert_to_hdf5.launch bag_file:="/data/${bag_fn%.*}" out_dir:="/data" meta_file:="/data/meta.yaml"
 
