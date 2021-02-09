@@ -41,11 +41,12 @@ def generate_record_defs(meta_data):
     end_times = []
     for segment in meta_data['segments']:
         for activity in meta_data['segments'][segment]:
-            record_names.append(segment+'/'+activity)
-            start_times.append(meta_data['segments']
-                               [segment][activity]['ros']['start'])
-            end_times.append(meta_data['segments']
-                             [segment][activity]['ros']['end'])
+            if 'ros' in meta_data['segments'][segment][activity]:
+                record_names.append(segment+'/'+activity)
+                start_times.append(meta_data['segments']
+                                   [segment][activity]['ros']['start'])
+                end_times.append(meta_data['segments']
+                                 [segment][activity]['ros']['end'])
     return record_names, start_times, end_times
 
 
