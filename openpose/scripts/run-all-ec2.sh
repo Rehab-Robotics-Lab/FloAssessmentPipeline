@@ -22,7 +22,7 @@ if ! [[ $subject =~ $re ]] ; then
 fi
 
 ./process-in-ec2.sh -s "$subject" -c augmented-telepresence -a simon-says
-./process-in-ec2.sh -s "$subject" -c augmented-telepresence -a simon-says
+./process-in-ec2.sh -s "$subject" -c augmented-telepresence -a target-touch
 ./process-in-ec2.sh -s "$subject" -c classical-telepresence -a simon-says
 ./process-in-ec2.sh -s "$subject" -c classical-telepresence -a target-touch
 ./process-in-ec2.sh -s "$subject" -c in-person -a target-touch
