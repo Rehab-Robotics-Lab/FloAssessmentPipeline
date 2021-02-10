@@ -170,11 +170,11 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
 
                 hdf5_database.create_dataset(vid_topic_secs_name, (INITIAL_SIZE,),
                                              maxshape=(None,),
-                                             dtype=np.float32, chunks=(CHUNK_SIZE,))
+                                             dtype=np.uint32, chunks=(CHUNK_SIZE,))
 
                 hdf5_database.create_dataset(vid_topic_nsecs_name, (INITIAL_SIZE,),
                                              maxshape=(None,),
-                                             dtype=np.float32, chunks=(CHUNK_SIZE,))
+                                             dtype=np.uint32, chunks=(CHUNK_SIZE,))
 
                 dataset.attrs.create('height', topic_meta_info.height)
                 dataset.attrs.create('width', topic_meta_info.width)
