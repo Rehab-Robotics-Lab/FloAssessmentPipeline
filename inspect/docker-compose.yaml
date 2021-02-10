@@ -12,7 +12,7 @@ services:
     command: [roscore]
 
   rqt-bag:
-    image: osrf/ros:noetic-desktop-full
+    image: osrf/ros:melodic-desktop-full
     depends_on:
       - ros-master
     volumes:
