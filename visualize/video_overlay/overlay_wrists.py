@@ -52,7 +52,7 @@ def overlay(file_stub, cam):
 
     dset = 'vid/color/data/{}/data'.format(cam)
     video_writer = cv2.VideoWriter(
-        file_stub+'-'+cam+'-wrist.avi', cv2.VideoWriter_fourcc(*'MJPG'), 10, (1920, 1080))
+        file_stub+'-'+cam+'-wrist.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
     t_vals = np.zeros(500, dtype=np.float64)
     x_l_vals = np.ones(500, dtype=np.float64)
     y_l_vals = np.ones(500, dtype=np.float64)
