@@ -87,14 +87,14 @@ def overlay(file_stub, cam):
         y_r_vals = np.roll(y_r_vals, 1)
         t_vals[0] = time
         x_l_vals[0] = keypoints[4][0]
-        x_l_vals[0] = keypoints[4][1]
+        y_l_vals[0] = keypoints[4][1]
         x_r_vals[0] = keypoints[7][0]
-        x_r_vals[0] = keypoints[7][1]
+        y_r_vals[0] = keypoints[7][1]
         if idx == 0:
             x_l_vals[-1] = keypoints[4][0]
-            x_l_vals[-1] = keypoints[4][1]
+            y_l_vals[-1] = keypoints[4][1]
             x_r_vals[-1] = keypoints[7][0]
-            x_r_vals[-1] = keypoints[7][1]
+            y_r_vals[-1] = keypoints[7][1]
             t_vals[-1] = time
 
         adj_time = t_vals - time
@@ -105,10 +105,10 @@ def overlay(file_stub, cam):
             (scaled_time[in_range], 200+(.2*x_l_vals[in_range]))))],
             isClosed=False, color=(250, 0, 0), thickness=4)
         cv2.polylines(img, [np.int32(np.transpose(
-            (scaled_time[in_range], 400+(.2*x_r_vals[in_range]))))],
+            (scaled_time[in_range], 400+(.2*y_l_vals[in_range]))))],
             isClosed=False, color=(250, 250, 0), thickness=4)
         cv2.polylines(img, [np.int32(np.transpose(
-            (scaled_time[in_range], 600+(.2*y_l_vals[in_range]))))],
+            (scaled_time[in_range], 600+(.2*x_r_vals[in_range]))))],
             isClosed=False, color=(250, 0, 250), thickness=4)
         cv2.polylines(img, [np.int32(np.transpose(
             (scaled_time[in_range], 800+(.2*y_r_vals[in_range]))))],
