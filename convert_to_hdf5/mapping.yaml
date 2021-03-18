@@ -1,0 +1,19 @@
+bag-mapping:
+  vid/color/data/upper: /upper_realsense/color/image_raw_relay
+  vid/color/info/upper: /upper_realsense/color/camera_info
+  vid/depth/data/upper: /upper_realsense/depth/image_rect_raw_relay
+  vid/depth/info/upper: /upper_realsense/depth/camera_info
+  vid/color/data/lower: /lower_realsense/color/image_raw_relay
+  vid/color/info/lower: /lower_realsense/color/camera_info
+  vid/depth/data/lower: /lower_realsense/depth/image_rect_raw_relay
+  vid/depth/info/lower: /lower_realsense/depth/camera_info
+  audio: /robot_audio/audio_relay
+  game/state: /game_runner_state 
+  game/actions: /game_runner_actions 
+  robot_pose/joint_states: /joint_states # hopefuly just an array of joint angles. Unfortunately, I don't think these really update. That might be a problem. For CV we will want to know if the subject's joing angles match the robot's joint angles. Need to find realtime robot joint angles, even if just simulated. 
+  robot_pose/commands: /move/goal #/motor_commands # these may allow us to know what the robot pose looks like? idk
+  speech/state: /tts_state # talking, synthesizing, or waiting?
+  speech/utterance: /tts_utterances # what is the robot saying, should just be the text?
+  face/matrix: /face_state # the actual plot of the eyes and mouth
+  face/name: # the name of the face being displayed
+  face/eye_direction: # which way the eyes are looking
