@@ -1,0 +1,141 @@
+Saving output to: /media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuveer/Desktop/Flo_data
+Working with bag file: /data/flo_recording_2020-12-15-12-34-36_25.bag
+... logging to /root/.ros/log/e8e2beea-7e0b-11eb-9947-0242ac110002/roslaunch-1be63f0bf7c1-1.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/catkin_ws/src/convert_to_hdf5/launch/convert_to_hdf5.launch
+[1mstarted roslaunch server http://1be63f0bf7c1:40037/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /convert_to_hdf5/bag_file: /data/flo_recordi...
+ * /convert_to_hdf5/meta_file: /data/meta.yaml
+ * /convert_to_hdf5/out_dir: /data
+ * /rosdistro: noetic
+ * /rosversion: 1.15.8
+
+NODES
+  /
+    convert_to_hdf5 (convert_to_hdf5/convert_to_hdf5.py)
+
+auto-starting new master
+[1mprocess[master]: started with pid [49][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/catkin_ws/src/convert_to_hdf5/launch/convert_to_hdf5.launch http://localhost:11311
+[1msetting /run_id to e8e2beea-7e0b-11eb-9947-0242ac110002[0m
+[1mprocess[rosout-1]: started with pid [59][0m
+started core service [/rosout]
+[1mprocess[convert_to_hdf5-2]: started with pid [62][0m
+[INFO] [1614987519.263068]: started rosbag to hdf5 conversion
+[INFO] [1614987519.268754]: Bag file: /data/flo_recording_2020-12-15-12-34-36_25.bag
+[INFO] [1614987519.274199]: meta Filename: /data/meta.yaml
+[INFO] [1614987519.279242]: output directory: /data
+[INFO] [1614987520.484514]: Succefully read bag file with topics:
+[INFO] [1614987520.485458]: 		/cpu_stats
+[INFO] [1614987520.486421]: 		/diagnostics
+[INFO] [1614987520.487237]: 		/diagnostics_agg
+[INFO] [1614987520.488128]: 		/diagnostics_toplevel_state
+[INFO] [1614987520.488975]: 		/hdd_stats
+[INFO] [1614987520.489798]: 		/joint_states
+[INFO] [1614987520.490710]: 		/lower_realsense/color/camera_info
+[INFO] [1614987520.491709]: 		/lower_realsense/color/image_raw_relay
+[INFO] [1614987520.492483]: 		/lower_realsense/depth/camera_info
+[INFO] [1614987520.493335]: 		/lower_realsense/depth/image_rect_raw_relay
+[INFO] [1614987520.494211]: 		/mem_stats
+[INFO] [1614987520.495003]: 		/mobile_base/debug/raw_control_command
+[INFO] [1614987520.495763]: 		/mobile_base/debug/raw_data_command
+[INFO] [1614987520.496492]: 		/mobile_base/debug/raw_data_stream
+[INFO] [1614987520.497289]: 		/mobile_base/sensors/core
+[INFO] [1614987520.497975]: 		/mobile_base/sensors/dock_ir
+[INFO] [1614987520.498739]: 		/mobile_base/sensors/imu_data
+[INFO] [1614987520.499563]: 		/mobile_base/sensors/imu_data_raw
+[INFO] [1614987520.500421]: 		/mobile_base_nodelet_manager/bond
+[INFO] [1614987520.501081]: 		/move/status
+[INFO] [1614987520.501813]: 		/net_stats
+[INFO] [1614987520.502434]: 		/odom
+[INFO] [1614987520.503202]: 		/remote_video_clean_relay
+[INFO] [1614987520.504205]: 		/robot_audio/audio_relay
+[INFO] [1614987520.504951]: 		/rosout
+[INFO] [1614987520.505713]: 		/rosout_agg
+[INFO] [1614987520.506464]: 		/sound_play/status
+[INFO] [1614987520.507338]: 		/tf
+[INFO] [1614987520.508069]: 		/tts/status
+[INFO] [1614987520.508794]: 		/upper_realsense/color/camera_info
+[INFO] [1614987520.509501]: 		/upper_realsense/color/image_raw_relay
+[INFO] [1614987520.510151]: 		/upper_realsense/depth/camera_info
+[INFO] [1614987520.510901]: 		/upper_realsense/depth/image_rect_raw_relay
+[INFO] [1614987520.521219]: Extracting meta info from standard video topic: vid/color/data/upper
+[INFO] [1614987520.522026]: 		mapped to real info topic: /upper_realsense/color/camera_info
+[INFO] [1614987520.534743]: Extracting meta info from standard video topic: vid/depth/data/upper
+[INFO] [1614987520.535535]: 		mapped to real info topic: /upper_realsense/depth/camera_info
+[INFO] [1614987520.536352]: Extracting meta info from standard video topic: vid/color/data/lower
+[INFO] [1614987520.537050]: 		mapped to real info topic: /lower_realsense/color/camera_info
+[INFO] [1614987520.537848]: Extracting meta info from standard video topic: vid/depth/data/lower
+[INFO] [1614987520.538515]: 		mapped to real info topic: /lower_realsense/depth/camera_info
+[INFO] [1614987520.539280]: Working on seq/act: in-person/simon-says
+[INFO] [1614987520.540570]: 	Parsing for standard topic : vid/color/data/upper
+[INFO] [1614987520.541301]: 		raw topic : /upper_realsense/color/image_raw_relay
+[INFO] [1614987520.542179]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.542823]: 	Parsing for standard topic : vid/depth/data/upper
+[INFO] [1614987520.543475]: 		raw topic : /upper_realsense/depth/image_rect_raw_relay
+[INFO] [1614987520.544345]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.545014]: 	Parsing for standard topic : vid/color/data/lower
+[INFO] [1614987520.545655]: 		raw topic : /lower_realsense/color/image_raw_relay
+[INFO] [1614987520.546476]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.547105]: 	Parsing for standard topic : vid/depth/data/lower
+[INFO] [1614987520.547864]: 		raw topic : /lower_realsense/depth/image_rect_raw_relay
+[INFO] [1614987520.548745]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.549467]: Working on seq/act: in-person/target-touch
+[INFO] [1614987520.550559]: 	Parsing for standard topic : vid/color/data/upper
+[INFO] [1614987520.551258]: 		raw topic : /upper_realsense/color/image_raw_relay
+[INFO] [1614987520.552129]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.552816]: 	Parsing for standard topic : vid/depth/data/upper
+[INFO] [1614987520.553478]: 		raw topic : /upper_realsense/depth/image_rect_raw_relay
+[INFO] [1614987520.554270]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.554984]: 	Parsing for standard topic : vid/color/data/lower
+[INFO] [1614987520.555744]: 		raw topic : /lower_realsense/color/image_raw_relay
+[INFO] [1614987520.556625]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.557309]: 	Parsing for standard topic : vid/depth/data/lower
+[INFO] [1614987520.558010]: 		raw topic : /lower_realsense/depth/image_rect_raw_relay
+[INFO] [1614987520.558844]: 		Dataset already existed!! no action taken
+[INFO] [1614987520.559525]: Working on seq/act: augmented-telepresence/simon-says
+[31m[ERROR] [1614987520.560584]: HDF5 Database COULD NOT BE READ/CREATED: /data/augmented-telepresence/simon-says.hdf5
+[0mTraceback (most recent call last):
+  File "/usr/local/lib/python3.8/dist-packages/h5py/_hl/files.py", line 207, in make_fid
+    fid = h5f.open(name, h5f.ACC_RDWR, fapl=fapl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5f.pyx", line 96, in h5py.h5f.open
+BlockingIOError: [Errno 11] Unable to open file (unable to lock file, errno = 11, error message = 'Resource temporarily unavailable')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/catkin_ws/src/convert_to_hdf5/src/convert_to_hdf5.py", line 302, in <module>
+    node()
+  File "/catkin_ws/src/convert_to_hdf5/src/convert_to_hdf5.py", line 208, in node
+    hdf5_files = load_hdf_files(
+  File "/catkin_ws/src/convert_to_hdf5/src/convert_to_hdf5.py", line 121, in load_hdf_files
+    hdf5_files[idx] = h5py.File(hdf5_fn_full, 'a')
+  File "/usr/local/lib/python3.8/dist-packages/h5py/_hl/files.py", line 442, in __init__
+    fid = make_fid(name, mode, userblock_size,
+  File "/usr/local/lib/python3.8/dist-packages/h5py/_hl/files.py", line 209, in make_fid
+    fid = h5f.create(name, h5f.ACC_EXCL, fapl=fapl, fcpl=fcpl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5f.pyx", line 116, in h5py.h5f.create
+FileExistsError: [Errno 17] Unable to create file (unable to open file: name = '/data/augmented-telepresence/simon-says.hdf5', errno = 17, error message = 'File exists', flags = 15, o_flags = c2)
+[31m================================================================================REQUIRED process [convert_to_hdf5-2] has died!
+process has died [pid 62, exit code 1, cmd /catkin_ws/src/convert_to_hdf5/src/convert_to_hdf5.py __name:=convert_to_hdf5 __log:=/root/.ros/log/e8e2beea-7e0b-11eb-9947-0242ac110002/convert_to_hdf5-2.log].
+log file: /root/.ros/log/e8e2beea-7e0b-11eb-9947-0242ac110002/convert_to_hdf5-2*.log
+Initiating shutdown!
+================================================================================[0m
+[convert_to_hdf5-2] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m
