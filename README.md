@@ -1,17 +1,25 @@
 # FloAssessmentPipeline
 
-This is the pipeline for assessing patient function based on data from the FloSystem
+This is the pipeline for assessing patient function based on data from the Flo System.
+The fundamental idea is to operate over a 3 step pipeline:
+
+1.  Extract pose
+2.  Calculate features of motion
+3.  Classify/Regress measure of function
+
+Along the way there is data cleaning, manipulation, and visualization.
+
 Data is ingested as compressed bag files. That data is put into HDF5 files.
-All of the non-video generated data (poses, etc) go into a seperate hdf5 file
+All of the non-video generated data (poses, etc.) go into a separate hdf5 file
 to make it easier to manage.
 
-Everything is done on AWS
+Everything is done on AWS.
 
 ## Some tools
 
-ViTables is really great for being able to explore hdf5 files
+*   **ViTables:** is really great for being able to explore hdf5 files
 
-## skething pipeline
+## Pipeline
 
 The pipeline will be running in AWS batch (eventually, for now all in EC2)
 
@@ -34,46 +42,38 @@ The pipeline will be running in AWS batch (eventually, for now all in EC2)
 
 1.  Drag the subjects folder into the [Penn+Box Folder](https://upenn.app.box.com/folder/126576235920)
 
-### getting rosbags into hdf5
+### Generate Metadata
 
-job def: subj no
-parallelization: multiple subjects at once
+Metadata must be gathered before begining the pipeline. For instructions,
+see [inpsect/README.md](inpsect/README.md)
 
-1.  copy meta file for this subj
-2.  for each file in ros archive, in parallel (implemented in `convert_to_hdf5/src/run_script.bash`):
-    *   copy first bag file from s3 ros folder into local
-    *   uncompress: `lbzip2 -d filename` or other similar
-3.  for each rosbag, append the rosbag to the desired hdf5 file
-    *   use the mapping in the metadata file to determine which topics to record
-    *   scan through the hdf5 file to see if each message is within the time range for any of the segments from the meta file (note, this does not include calibration for now)
-    *   add any found messages on target topics to the hdf5 file for that experiment/activity/modality. Name hdf5 files per the segment names in the meta files ex: `in-person_simon-says_ros.hdf5`
-    *   use szip compression on the hdf5 file as a filter
-4.  put hdf5 file into the hdf5 s3 bucket with prefix for the appropriate subject: `flo-exp-aim1-data-hdf5/<user id, three digits: 008>`
-
-### OpenPose
-
-job def: subj no, hdf5 file name
-parallelization: multiple hdf5 files (each subject has multiple)
-
-Input: exiting HDF5 file with videos
-
-There is a single output: an HDF5 file with the poses extracted from each view, the depth values (for depth cameras) at those pixel locations
-
-1.  Look in HDF5 file for any datasets starting with `vid_color_data_` and run openpose on those
-2.  if there is matching `vid_depth_data_` set, then extract the depth values that correspond to the pixel locations
-3.  put in new hdf5 file with `pose_<upper/lower>` (need to think through that data structure a bit more I think)
-
-### QC and publications
-
-we need a way to generate videos overlaying everything and visualizing it all to make sure it is workin and to put in publications
-
-## Metadata
-
-In order to run, we will need some metadata.
 This is done in meta.yaml, which should be in each subjects root dir.
 This specifies the start and end times for each segment of the experiment.
 
-for an example see inspect/template.yaml
+For an example see inspect/template.yaml
+
+### getting rosbags into hdf5
+
+In order to make processing easier, we move everything into HDF5 files.
+This allows easier indexing and out of order processing
+
+For instructions on running, see: [convert_to_hdf5/README.md](convert_to_hdf5/README.md)
+
+### Pose Detection
+
+A central component of the pipeline is extracting pose from video.
+There are a few different tools that can be used to do that, all of them
+imperfect.
+
+#### OpenPose
+
+OpenPose provides 2D pose of subjects. You can view more information at [openpose/README.md](openpose/README.md).
+
+### QC and publications
+
+we need a way to generate videos overlaying everything and visualize it all to make sure it is working and to put in publications...
+
+For information look to [visualize/README.md](visualize/README.md)
 
 ## Setting up for AWS Batch Jobs
 
