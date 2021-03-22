@@ -50,21 +50,6 @@ parallelization: multiple subjects at once
     *   use szip compression on the hdf5 file as a filter
 4.  put hdf5 file into the hdf5 s3 bucket with prefix for the appropriate subject: `flo-exp-aim1-data-hdf5/<user id, three digits: 008>`
 
-### Getting gopro into hdf5
-
-job def: subj no
-parallelization: multiple subjects at once
-
-Why are we putting go pro videos into hdf5 files? So that the rest of the pipeline can work on them without needing adjustment and to allow arbitrary frame access.
-
-Why don't we combine with the ros data? MJS proposed an approach where the grid would be tracked through the calibrationi process for both the gopro and the realsense sensors. The path could then be aligned in time and space giving both camera extrinsics as well as time offsets. Unfortunately, to propogate across go pro files, this would require an accurate offset between those files. The hope was that the date of creation could be used. Unfortunately gopros only store the creation date with second precision, so the alignment would be off by up to one second. With that level of misalignment, we might as well just keep them seperate.
-
-1.  copy meta file for this subj
-2.  copy the files needed from the calibration section
-3.  Develop an intrinsic calibration matrix from these files (maybe randomly select frames, check for a grid, get 300 frames with grid, then calibrate off those? could make better by selecting with sharp focus on grid and by looking for grids that are well spaced out, but start with random for now)
-4.  for each sequence, grab all of the frames, rectify them, and put them in their respective hdf5 file under the name `vid_gopro` name each hdf5 file per: `in-person_simon-says_gopro.hdf5`
-5.  put hdf5 file into the hdf5 s3 bucket with prefix for the appropriate subject: `flo-exp-aim1-data-hdf5/<user id, three digits: 008>`
-
 ### OpenPose
 
 job def: subj no, hdf5 file name
