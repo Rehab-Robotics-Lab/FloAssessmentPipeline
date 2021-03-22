@@ -15,6 +15,25 @@ ViTables is really great for being able to explore hdf5 files
 
 The pipeline will be running in AWS batch (eventually, for now all in EC2)
 
+### Uploading data
+
+1.  create a folder for the subject with three digits `NNN` ex: `009` or `024`
+2.  compress all of the bagfiles: `lbzip2 *.bag`
+3.  packup the parameter files: `tar -cvf flo_parameters-yyyy-mm-dd_.tar *.yaml`
+4.  put the compressed bag files and tar parameter file into a folder `NNN/ros`
+5.  put all of the gopro videos into a folder `NNN/gopro` next to the `NNN/ros` folder
+6.  put all of the 3rd person videos into a folder `NNN/3rd-person` next to the `NNN/ros` and `NNN/gopro` folders
+
+#### Upload to AWS
+
+1.  Go one level above the subject folder
+2.  start with a dryrun: `aws s3 sync NNN s3://flo-exp-aim1-data-raw/NNN --dryrun` to make sure everything looks good
+3.  Then run for real with no dry run
+
+#### Upload data to Penn+Box
+
+1.  Drag the subjects folder into the [Penn+Box Folder](https://upenn.app.box.com/folder/126576235920)
+
 ### getting rosbags into hdf5
 
 job def: subj no
