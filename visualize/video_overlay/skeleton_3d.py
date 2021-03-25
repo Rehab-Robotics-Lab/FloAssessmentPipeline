@@ -155,7 +155,7 @@ def skeleton_3d(file_stub, cam, save = False):
 
     if save:
         writervideo = animation.FFMpegWriter(fps = 60)
-        ani.save(file_stub + '3d-scatted-animated.avi', writer= writervideo)
+        ani.save(file_stub + '3d-skeleton.avi', writer= writervideo)
 
     #plt.show()
 
