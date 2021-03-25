@@ -11,7 +11,7 @@ do
         a) activity=${OPTARG};;
         p) camera=${OPTARG};;
         o) overlay=${OPTARG};;
-	      d) data=${OPTARG};;
+	d) data=${OPTARG};;
         :) echo 'missing argument' >&2; exit 1;;
         \?) echo 'invalid option' >&2; exit 1
     esac
