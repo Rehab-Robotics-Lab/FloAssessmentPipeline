@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launch>
 
-  <arg name="bag_file" default=""/>
-  <arg name="topic_names" default=""/>
-  <arg name="hdf5_file" default=""/>
-  <arg name="mode" default="a"/>
-  <arg name="experiment_metadata" default="Experiment_1"/>
+  <arg name="bag_file"              />
+  <arg name="meta_file"             />
+  <arg name="out_dir"               />
 
   <node name="convert_to_hdf5" pkg="convert_to_hdf5" type="convert_to_hdf5.py" respawn="false" output="screen" required="true">
-    <param name="pre_processing_bag_file" type="string" value="$(arg bag_file)"/>
-    <param name="topics"        type="string" value="$(arg topic_names)"/>
-    <param name="hdf5_filename" type="string" value="$(arg hdf5_file)"/>
-    <param name="mode"          type="string" value="$(arg mode)"/>
-    <param name="experiment_metadata" type="string" value="$(arg experiment_metadata)"/>
+    <param name="bag_file"  type="string" value="$(arg bag_file)"  />
+    <param name="meta_file" type="string" value="$(arg meta_file)" />
+    <param name="out_dir"   type="string" value="$(arg out_dir)"   />
   </node>
 
 </launch>
