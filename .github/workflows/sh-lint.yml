@@ -17,8 +17,8 @@ jobs:
 
       - name: Setup Shell Check
         run: |
-            apt-get update
-            apt-get install shellcheck
+            sudo apt-get update
+            sudo apt-get install shellcheck
 
       - name: Lint with Shell Check
         run: |
