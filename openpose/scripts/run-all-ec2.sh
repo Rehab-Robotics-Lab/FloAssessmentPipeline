@@ -7,8 +7,6 @@ while getopts :s:c:a: flag
 do
     case "${flag}" in
         s) subject=${OPTARG};;
-        c) condition=${OPTARG};;
-        a) activity=${OPTARG};;
         :) echo 'missing argument' >&2; exit 1;;
         \?) echo 'invalid option' >&2; exit 1
     esac
