@@ -6,7 +6,7 @@ on:
     types: [synchronize, opened, reopened]
 
 jobs:
-  python-lint:
+  bash-lint:
     runs-on: ubuntu-latest
 
     steps:
