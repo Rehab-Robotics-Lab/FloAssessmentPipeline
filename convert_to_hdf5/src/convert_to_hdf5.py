@@ -214,32 +214,41 @@ def match_depth(hdf5_files, data_info_mapping):
             dataset_lower = hdf5_database[lower_color_match_topic]
 
         for vid_topic in data_info_mapping:
-            timestamp_secs = hdf5_database[vid_topic + '/secs']
-            timestamp_nsecs = hdf5_database[vid_topic + '/nsecs']
+            if 'vid' in vid_topic: # This addresses that we read only from vid topics
+                timestamp_secs = hdf5_database[vid_topic + '/secs']
+                timestamp_nsecs = hdf5_database[vid_topic + '/nsecs']
 
-            if timestamp_secs.shape[0] == 0 or  timestamp_nsecs.shape[0] == 0:
-                tstamp = None
-            else:
-                tstamp = np.expand_dims(np.asarray(timestamp_secs) + 1e-9 * np.asarray(timestamp_nsecs), 0)
+                if timestamp_secs.shape[0] == 0 or  timestamp_nsecs.shape[0] == 0:
+                    tstamp = None
+                else:
+                    timestamp_secs = np.asarray(timestamp_secs)
+                    timestamp_nsecs = np.asarray(timestamp_nsecs)
+                    tstamp = np.expand_dims( timestamp_secs + 1e-9 * timestamp_nsecs, 0)
 
-            if 'upper' in vid_topic and 'color' in vid_topic:
-                timestamps['upper_color'] = copy.deepcopy(tstamp)
-            if 'upper' in vid_topic and 'depth' in vid_topic:
-                timestamps['upper_depth'] = copy.deepcopy(tstamp)
-            if 'lower' in vid_topic and 'color' in vid_topic:
-                timestamps['lower_color'] = copy.deepcopy(tstamp)
-            if 'lower' in vid_topic and 'depth' in vid_topic:
-                timestamps['lower_depth'] = copy.deepcopy(tstamp)
+                if 'upper' in vid_topic and 'color' in vid_topic:
+                    timestamps['upper_color'] = copy.deepcopy(tstamp)
+                if 'upper' in vid_topic and 'depth' in vid_topic:
+                    timestamps['upper_depth'] = copy.deepcopy(tstamp)
+                if 'lower' in vid_topic and 'color' in vid_topic:
+                    timestamps['lower_color'] = copy.deepcopy(tstamp)
+                if 'lower' in vid_topic and 'depth' in vid_topic:
+                    timestamps['lower_depth'] = copy.deepcopy(tstamp)
 
-        if timestamps['lower_color'] is None or timestamps['lower_color'] is None:
-            rospy.loginfo('No Timestamps in current HDF5 database')
+        if timestamps['lower_color'] is None or timestamps['upper_color'] is None :
+            rospy.loginfo('No Color Timestamps in current HDF5 database')
+            continue
+
+        if timestamps['lower_depth'] is None or timestamps['upper_depth'] is None :
+            rospy.loginfo('No Depth Timestamps in current HDF5 database')
             continue
 
         dataset_upper.resize(timestamps['upper_color'].shape[1], axis = 0)
-        dataset_upper[...] = np.argmin(np.abs(timestamps['upper_color'] - timestamps['upper_depth'].T), axis=0)
+        dataset_upper[...] = np.argmin(np.abs(timestamps['upper_color'] -
+                                              timestamps['upper_depth'].T), axis=0)
 
         dataset_lower.resize(timestamps['lower_color'].shape[1], axis=0)
-        dataset_lower[...] = np.argmin(np.abs(timestamps['lower_color'] - timestamps['lower_depth'].T), axis = 0)
+        dataset_lower[...] = np.argmin(np.abs(timestamps['lower_color'] -
+                                              timestamps['lower_depth'].T), axis = 0)
 
 def node():
     rospy.init_node('rosbag_to_hdf5_node')
