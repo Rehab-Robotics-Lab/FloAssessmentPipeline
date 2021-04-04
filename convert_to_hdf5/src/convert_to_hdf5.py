@@ -20,6 +20,7 @@ TODO
 """
 
 import pathlib
+import copy
 import numpy as np
 import yaml
 import h5py
@@ -27,7 +28,6 @@ import rospy
 import rosbag
 from cv_bridge import CvBridge
 from tqdm import tqdm
-import copy
 
 INITIAL_SIZE = 0
 CHUNK_SIZE = 500
@@ -161,6 +161,8 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
         data_info_mapping: The mapping between video data topics and info data topics
         meta_data: The meta data as a dictionary
         topic_info: The data from the info topics in a dictionary keyed on the video topic name
+
+    Returns: List of the HDF5 File data objects
     """
     hdf5_files = len(record_names)*[None]
     for idx, hdf5_fn in enumerate(record_names):
@@ -174,7 +176,6 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
             rospy.logerr(
                 'HDF5 Database COULD NOT BE READ/CREATED: %s', hdf5_fn_full)
             raise
-
 
         for vid_topic in data_info_mapping:
             raw_topic = meta_data['bag-mapping'][vid_topic]
@@ -240,7 +241,17 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
                 rospy.loginfo('\t\tNo meta info')
     return hdf5_files
 
-def match_depth(hdf5_files, data_info_mapping):
+
+def match_depth(hdf5_files, data_info_mapping):  # pylint: disable=too-many-branches
+    """Match the depth to the color topics for videos.
+
+    Adds a data structure to the hdf5 file objects which are passed in (modifying the
+    existing objects).
+
+    Args:
+        hdf5_files: the list of hdf file objects to work on
+        data_info_mapping: The mapping between video data topics and info data topics
+    """
     upper_color_match_topic = 'vid/color/data/upper/matched_depth_index'
     lower_color_match_topic = 'vid/color/data/lower/matched_depth_index'
 
@@ -249,31 +260,32 @@ def match_depth(hdf5_files, data_info_mapping):
     dataset_lower = None
 
     for hdf5_database in hdf5_files:
-        if upper_color_match_topic not in hdf5_database :
+        if upper_color_match_topic not in hdf5_database:
             dataset_upper = hdf5_database.create_dataset(upper_color_match_topic, (INITIAL_SIZE,),
-                                         maxshape=(None,),
-                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
+                                                         maxshape=(None,),
+                                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
         else:
             dataset_upper = hdf5_database[upper_color_match_topic]
 
         if lower_color_match_topic not in hdf5_database:
             dataset_lower = hdf5_database.create_dataset(lower_color_match_topic, (INITIAL_SIZE,),
-                                         maxshape=(None,),
-                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
+                                                         maxshape=(None,),
+                                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
         else:
             dataset_lower = hdf5_database[lower_color_match_topic]
 
         for vid_topic in data_info_mapping:
-            if 'vid' in vid_topic: # This addresses that we read only from vid topics
+            if 'vid' in vid_topic:  # This addresses that we read only from vid topics
                 timestamp_secs = hdf5_database[vid_topic + '/secs']
                 timestamp_nsecs = hdf5_database[vid_topic + '/nsecs']
 
-                if timestamp_secs.shape[0] == 0 or  timestamp_nsecs.shape[0] == 0:
+                if timestamp_secs.shape[0] == 0 or timestamp_nsecs.shape[0] == 0:
                     tstamp = None
                 else:
                     timestamp_secs = np.asarray(timestamp_secs)
                     timestamp_nsecs = np.asarray(timestamp_nsecs)
-                    tstamp = np.expand_dims( timestamp_secs + 1e-9 * timestamp_nsecs, 0)
+                    tstamp = np.expand_dims(
+                        timestamp_secs + 1e-9 * timestamp_nsecs, 0)
 
                 if 'upper' in vid_topic and 'color' in vid_topic:
                     timestamps['upper_color'] = copy.deepcopy(tstamp)
@@ -284,21 +296,24 @@ def match_depth(hdf5_files, data_info_mapping):
                 if 'lower' in vid_topic and 'depth' in vid_topic:
                     timestamps['lower_depth'] = copy.deepcopy(tstamp)
 
-        if timestamps['lower_color'] is None or timestamps['upper_color'] is None :
+        # TODO: should this be and or or?
+        if timestamps['lower_color'] is None or timestamps['upper_color'] is None:
             rospy.loginfo('No Color Timestamps in current HDF5 database')
             continue
 
-        if timestamps['lower_depth'] is None or timestamps['upper_depth'] is None :
+        # TODO: should this be and or or?
+        if timestamps['lower_depth'] is None or timestamps['upper_depth'] is None:
             rospy.loginfo('No Depth Timestamps in current HDF5 database')
             continue
 
-        dataset_upper.resize(timestamps['upper_color'].shape[1], axis = 0)
+        dataset_upper.resize(timestamps['upper_color'].shape[1], axis=0)
         dataset_upper[...] = np.argmin(np.abs(timestamps['upper_color'] -
                                               timestamps['upper_depth'].T), axis=0)
 
         dataset_lower.resize(timestamps['lower_color'].shape[1], axis=0)
         dataset_lower[...] = np.argmin(np.abs(timestamps['lower_color'] -
-                                              timestamps['lower_depth'].T), axis = 0)
+                                              timestamps['lower_depth'].T), axis=0)
+
 
 def node():  # pylint: disable=too-many-statements, too-many-locals
     """The ROS node from which bag access, data parsing, and and hdf5 file generation
@@ -340,7 +355,7 @@ def node():  # pylint: disable=too-many-statements, too-many-locals
         # bag_read_time = 0
         # clk_total = time.perf_counter()
         outer_progress_bar.set_description('Working on: {}'.format(vid_topic))
-        
+
         with tqdm(total=bag_file.get_message_count(raw_topic)) as inner_progress_bar:
             # clck = time.perf_counter()
             for _, msg, _ in bag_file.read_messages([raw_topic]):
