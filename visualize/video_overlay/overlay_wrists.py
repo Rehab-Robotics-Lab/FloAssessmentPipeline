@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
-import h5py
-from tqdm import tqdm, trange
-import cv2
+"""A module for overlaying data and text onto images"""
+
 import math
 import sys
 import numpy as np
+import h5py
+from tqdm import trange
+import cv2
 
 # from: https://stackoverflow.com/a/65146731/5274985
 
 
-def draw_text(img, text,
+def draw_text(img, text,  # pylint: disable=too-many-arguments
               font=cv2.FONT_HERSHEY_SIMPLEX,
               pos=(0, 0),
               font_scale=1,
@@ -19,8 +21,22 @@ def draw_text(img, text,
               text_color_bg=(0, 0, 0),
               margin=3,
               ):
+    """Draw text on an image using opencv
 
-    x, y = pos
+    Args:
+        img: opencv compatible image
+        text: text to write
+        font: the font to use (find here:
+              https://docs.opencv.org/master/d6/d6e/group__imgproc__draw.html#ga0f9314ea6e35f99bb23f29567fc16e11)
+        pos: the position to start drawing at
+        font_scale: scale to draw
+        font_thickness: thickness of the lines in text
+        text_color: text color as a tuple of (red, green, blue)
+        text_color_bg: background color as a tuple of (red, green, blue)
+        margin: the margin around the text
+    """
+
+    x, y = pos  # pylint: disable=invalid-name
     text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
     text_w, text_h = text_size
     cv2.rectangle(img, (max(pos[0]-margin, 0), max(pos[1]-margin, 0)),
@@ -33,7 +49,7 @@ def draw_text(img, text,
 # from: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch09s11.html
 
 
-def colorScale(mag, cmin, cmax):
+def color_scale(mag, cmin, cmax):
     """ Return a tuple of floats between 0 and 1 for R, G, and B. """
     # Normalize to 0-1
     try:
@@ -46,7 +62,15 @@ def colorScale(mag, cmin, cmax):
     return int(red*255), int(green*255), int(blue*255)
 
 
-def overlay(file_stub, cam):
+def overlay(file_stub, cam):  # pylint: disable=too-many-locals
+    """overlay data from hdf5 file onto images from hdf file.
+
+    Requires both the no video and video hdf5 files.
+
+    Args:
+        file_stub: The common file stub for the two hdf5 files
+        cam: The camera to use (upper or lower)
+    """
     hdf5_video = h5py.File(file_stub+'.hdf5')
     hdf5_tracking = h5py.File(file_stub+'-novid.hdf5')
 
@@ -73,10 +97,10 @@ def overlay(file_stub, cam):
         # Joints listed here: https://github.com/CMU-Perceptual-Computing-Lab/openpose/
         # blob/master/doc/02_output.md#keypoints-in-cpython
         for joint in (4, 7):
-            x = int(keypoints[joint][0])
-            y = int(keypoints[joint][1])
+            x = int(keypoints[joint][0])  # pylint: disable=invalid-name
+            y = int(keypoints[joint][1])  # pylint: disable=invalid-name
             cv2.circle(img, (x, y), 20,
-                       colorScale(confidence[4], 0, 1), 8)
+                       color_scale(confidence[4], 0, 1), 8)
 
         # TODO: get this all in a clean loop
         # TODO: plot on top of each other
@@ -101,18 +125,24 @@ def overlay(file_stub, cam):
         in_range = adj_time > -15
         scaled_time = adj_time * 30 + 450
 
-        cv2.polylines(img, [np.int32(np.transpose(
-            (scaled_time[in_range], 200+(.2*x_l_vals[in_range]))))],
-            isClosed=False, color=(250, 0, 0), thickness=4)
-        cv2.polylines(img, [np.int32(np.transpose(
-            (scaled_time[in_range], 400+(.2*y_l_vals[in_range]))))],
-            isClosed=False, color=(250, 250, 0), thickness=4)
-        cv2.polylines(img, [np.int32(np.transpose(
-            (scaled_time[in_range], 600+(.2*x_r_vals[in_range]))))],
-            isClosed=False, color=(250, 0, 250), thickness=4)
-        cv2.polylines(img, [np.int32(np.transpose(
-            (scaled_time[in_range], 800+(.2*y_r_vals[in_range]))))],
-            isClosed=False, color=(0, 250, 0), thickness=4)
+        cv2.polylines(img,
+                      [np.int32(
+                          np.transpose(
+                              (scaled_time[in_range],
+                               200+(.2*x_l_vals[in_range]))))],
+                      isClosed=False, color=(250, 0, 0), thickness=4)
+        cv2.polylines(img,
+                      [np.int32(np.transpose(
+                          (scaled_time[in_range], 400+(.2*y_l_vals[in_range]))))],
+                      isClosed=False, color=(250, 250, 0), thickness=4)
+        cv2.polylines(img,
+                      [np.int32(np.transpose(
+                          (scaled_time[in_range], 600+(.2*x_r_vals[in_range]))))],
+                      isClosed=False, color=(250, 0, 250), thickness=4)
+        cv2.polylines(img,
+                      [np.int32(np.transpose(
+                          (scaled_time[in_range], 800+(.2*y_r_vals[in_range]))))],
+                      isClosed=False, color=(0, 250, 0), thickness=4)
 
         # img[0:300, 10:50] = x_l_plot.render()
         # img[0:300, 55:95] = y_l_plot.render()
