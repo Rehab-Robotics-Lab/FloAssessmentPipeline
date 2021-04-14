@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 import pathlib
 from extractPoses import processFrames
+from extractDepth import addStereoDepth
 import sys
 from tqdm import tqdm
 
@@ -64,15 +65,23 @@ def convert(pth):
             hdf5_in.copy(dset, hdf5_out[group])
         elif 'color' in dset:
             tqdm.write('\t\tVideo, so processing')
+
             keypoints_dset = hdf5_out.create_dataset(
                 dset+'-keypoints', (hdf5_in[dset].len(), 25, 2), dtype=np.float32)
+
             confidence_dset = hdf5_out.create_dataset(
                 dset+'-confidence', (hdf5_in[dset].len(), 25), dtype=np.float32)
+
             for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks'):
                 color_arr = hdf5_in[dset][chunk]
                 keypoints = processFrames(color_arr)
                 keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
                 confidence_dset[chunk[0], :] = keypoints[:, :, 2]
+
+            print('Adding Stereo Depth')
+            addStereoDepth(hdf5_in, hdf5_out)
+            print('Done Adding Stereo Depth')
+
         else:
             tqdm.write('not sure what to do with this dataset')
 

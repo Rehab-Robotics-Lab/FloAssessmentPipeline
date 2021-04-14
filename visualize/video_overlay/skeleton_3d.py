@@ -16,63 +16,6 @@ import copy
 
 # Inspiration from: https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55
 
-def extract_depth(depth_img, keypoints, inv_Kc, Kd, color_img, window_size = 3):
-
-    keypoints_with_depth = np.ones((9, 3))
-    keypoints_with_depth[:,:2] = keypoints[:9, :]
-
-    shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
-
-    keypoints_in_depth = (Kd @ (inv_Kc @ keypoints_with_depth.T)).T
-    keypoints_with_depth = (inv_Kc @ keypoints_with_depth.T).T
-
-    depth_img_ws = copy.deepcopy(depth_img)
-
-    for joint in range(0, 9):
-        x = int(keypoints[joint][0])
-        y = int(keypoints[joint][1])
-        cv2.circle(color_img, (x, y), 10,
-                   colorScale(0.8, 0, 1), 8)
-
-        xd = int(keypoints_in_depth[joint][0]) - shift
-        yd = int(keypoints_in_depth[joint][1])
-
-        cv2.circle(depth_img_ws, (xd+shift, yd), 10,
-                   colorScale(0.8, 0, 1), 8)
-
-        cv2.circle(depth_img, (xd, yd), 10,
-                   colorScale(0.8, 0, 1), 8)
-    '''
-    print("Color img", color_img.shape)
-    print("Depth img", depth_img.shape)
-    fig = plt.figure()
-    ax1 = plt.subplot(131)
-    ax1.imshow(color_img)
-    ax2 = plt.subplot(132)
-    ax2.imshow(depth_img)
-    ax3 = plt.subplot(133)
-    ax3.imshow(depth_img_ws)
-    plt.show()
-    '''
-    for i in range(keypoints_with_depth.shape[0]):
-
-        x = int(keypoints_in_depth[i, 0] - shift)
-        y = int(keypoints_in_depth[i, 1])
-        #print("x: %d y: %d" %(x,y))
-
-        Z = np.mean(depth_img[ y - window_size : y + window_size,
-                               x - window_size : x + window_size])
-
-        keypoints_with_depth[i] = keypoints_with_depth[i] * (Z/1000)
-        '''
-        print("X", keypoints_with_depth[0][0])
-        print("Y", keypoints_with_depth[0][1])
-        print("Z", keypoints_with_depth[0][2])
-        print("Zd:", Z / 1000)
-        '''
-
-    return keypoints_with_depth
-
 def animate(iteration, data, scatters, lines, texts, ax, joint_pairs):
 
     for i in range(data[0].shape[0]):
@@ -93,7 +36,7 @@ def skeleton_3d(file_stub, cam, save = False):
     hdf5_video = h5py.File(file_stub+'.hdf5', 'r')
     hdf5_tracking = h5py.File(file_stub+'-novid.hdf5', 'r')
 
-    color_dset = 'vid/color/data/{}/data'.format(cam)
+    color_dset = 'vid/color/dat a/{}/data'.format(cam)
     depth_match_dset = 'vid/color/data/{}/matched_depth_index'.format(cam)
     depth_dset = "vid/depth/data/{}/data".format(cam)
 
