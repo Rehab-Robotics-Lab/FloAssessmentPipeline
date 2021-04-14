@@ -30,6 +30,7 @@ from tqdm import tqdm
 import yaml
 import pathlib
 import time
+import copy
 
 INITIAL_SIZE = 0
 CHUNK_SIZE = 500
@@ -77,7 +78,7 @@ def load_bag_file(bag_filename):
         return
 
     topics = bag_file.get_type_and_topic_info()[1].keys()
-    rospy.loginfo('Succefully read bag file with topics:')
+    rospy.loginfo('Successfully read bag file with topics:')
     for topic in topics:
         rospy.loginfo('\t\t%s', topic)
     return bag_file
@@ -123,6 +124,7 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
             rospy.logerr(
                 'HDF5 Database COULD NOT BE READ/CREATED: %s', hdf5_fn_full)
             raise
+
 
         for vid_topic in data_info_mapping:
             raw_topic = meta_data['bag-mapping'][vid_topic]
@@ -188,6 +190,56 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
                 rospy.loginfo('\t\tNo meta info')
     return hdf5_files
 
+def match_depth(hdf5_files, data_info_mapping):
+    upper_color_match_topic = 'vid/color/data/upper/matched_depth_index'
+    lower_color_match_topic = 'vid/color/data/lower/matched_depth_index'
+
+    timestamps = {}
+    dataset_upper = None
+    dataset_lower = None
+
+    for hdf5_database in hdf5_files:
+        if upper_color_match_topic not in hdf5_database :
+            dataset_upper = hdf5_database.create_dataset(upper_color_match_topic, (INITIAL_SIZE,),
+                                         maxshape=(None,),
+                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
+        else:
+            dataset_upper = hdf5_database[upper_color_match_topic]
+
+        if lower_color_match_topic not in hdf5_database:
+            dataset_lower = hdf5_database.create_dataset(lower_color_match_topic, (INITIAL_SIZE,),
+                                         maxshape=(None,),
+                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
+        else:
+            dataset_lower = hdf5_database[lower_color_match_topic]
+
+        for vid_topic in data_info_mapping:
+            timestamp_secs = hdf5_database[vid_topic + '/secs']
+            timestamp_nsecs = hdf5_database[vid_topic + '/nsecs']
+
+            if timestamp_secs.shape[0] == 0 or  timestamp_nsecs.shape[0] == 0:
+                tstamp = None
+            else:
+                tstamp = np.expand_dims(np.asarray(timestamp_secs) + 1e-9 * np.asarray(timestamp_nsecs), 0)
+
+            if 'upper' in vid_topic and 'color' in vid_topic:
+                timestamps['upper_color'] = copy.deepcopy(tstamp)
+            if 'upper' in vid_topic and 'depth' in vid_topic:
+                timestamps['upper_depth'] = copy.deepcopy(tstamp)
+            if 'lower' in vid_topic and 'color' in vid_topic:
+                timestamps['lower_color'] = copy.deepcopy(tstamp)
+            if 'lower' in vid_topic and 'depth' in vid_topic:
+                timestamps['lower_depth'] = copy.deepcopy(tstamp)
+
+        if timestamps['lower_color'] is None or timestamps['lower_color'] is None:
+            rospy.loginfo('No Timestamps in current HDF5 database')
+            continue
+
+        dataset_upper.resize(timestamps['upper_color'].shape[1], axis = 0)
+        dataset_upper[...] = np.argmin(np.abs(timestamps['upper_color'] - timestamps['upper_depth'].T), axis=0)
+
+        dataset_lower.resize(timestamps['lower_color'].shape[1], axis=0)
+        dataset_lower[...] = np.argmin(np.abs(timestamps['lower_color'] - timestamps['lower_depth'].T), axis = 0)
 
 def node():
     rospy.init_node('rosbag_to_hdf5_node')
@@ -210,6 +262,7 @@ def node():
 
     bridge = CvBridge()
     outer_progress_bar = tqdm(data_info_mapping)
+
     for vid_topic in outer_progress_bar:
         # rospy.loginfo('Extracting info from : %s' % (vid_topic))
         raw_topic = meta_data['bag-mapping'][vid_topic]
@@ -225,7 +278,7 @@ def node():
         # bag_read_time = 0
         # clk_total = time.perf_counter()
         outer_progress_bar.set_description('Working on: {}'.format(vid_topic))
-
+        
         with tqdm(total=bag_file.get_message_count(raw_topic)) as inner_progress_bar:
             # clck = time.perf_counter()
             for _, msg, _ in bag_file.read_messages([raw_topic]):
@@ -292,8 +345,12 @@ def node():
             # rospy.loginfo('first time: {}'.format(first_time/total_time))
             # rospy.loginfo('second time: {}'.format(second_time/total_time))
             # rospy.loginfo('bag read time: {}'.format(bag_read_time/total_time))
+
+    match_depth(hdf5_files, data_info_mapping)
+
     for file in hdf5_files:
         file.close()
+
     rospy.loginfo('Exiting Process')
     rospy.signal_shutdown('Exiting Cleanly')
 
