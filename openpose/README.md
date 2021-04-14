@@ -30,3 +30,17 @@ The Openpose repo is in `/openpose`
 ### permission denied error
 
 you can get permission denied errors if you haven't properly run the mount_instance_store.sh file
+
+
+### Running Locally
+
+1. Run script: ./setup_local.sh
+2. Build openpose using: build dockerfile: `docker build . --tag openpose`
+3. Run script: ./scripts/run_local.sh -d <"Location to data directory">
+
+You might get a common GPU architecture not supported error. In that case, make sure to restart docker with : 
+
+sudo systemctl restart docker
+
+Make sure you are able to run:
+sudo docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
