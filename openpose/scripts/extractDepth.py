@@ -8,39 +8,24 @@ import copy
 
 def extract_depth(depth_img, keypoints, inv_Kc, Kd, color_img, window_size = 3):
 
-    keypoints_with_depth = np.ones((9, 3))
-    keypoints_with_depth[:,:2] = keypoints[:9, :]
+    keypoints_with_depth = np.ones(keypoints.shape)
+    keypoints_with_depth[:,:2] = keypoints
 
     shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
 
     keypoints_in_depth = (Kd @ (inv_Kc @ keypoints_with_depth.T)).T
     keypoints_with_depth = (inv_Kc @ keypoints_with_depth.T).T
 
-    depth_img_ws = copy.deepcopy(depth_img)
+    kernel = np.ones((window_size, window_size)) / window_size ** 2
 
-    for joint in range(0, 9):
-        x = int(keypoints[joint][0])
-        y = int(keypoints[joint][1])
-        cv2.circle(color_img, (x, y), 10,
-                   colorScale(0.8, 0, 1), 8)
-
-        xd = int(keypoints_in_depth[joint][0]) - shift
-        yd = int(keypoints_in_depth[joint][1])
-
-        cv2.circle(depth_img_ws, (xd+shift, yd), 10,
-                   colorScale(0.8, 0, 1), 8)
-
-        cv2.circle(depth_img, (xd, yd), 10,
-                   colorScale(0.8, 0, 1), 8)
+    depth_avg = convolve2d(
+        depth_img, kernel, mode='same')
 
     for i in range(keypoints_with_depth.shape[0]):
 
         x = int(keypoints_in_depth[i, 0] - shift)
         y = int(keypoints_in_depth[i, 1])
-        #print("x: %d y: %d" %(x,y))
-
-        Z = np.mean(depth_img[ y - window_size : y + window_size,
-                               x - window_size : x + window_size])
+        Z = depth_avg[y, x]
 
         keypoints_with_depth[i] = keypoints_with_depth[i] * (Z/1000)
 
