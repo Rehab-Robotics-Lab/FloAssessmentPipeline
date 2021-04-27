@@ -26,7 +26,8 @@ The pipeline will be running in AWS batch (eventually, for now all in EC2)
 ### Uploading data
 
 1.  create a folder for the subject with three digits `NNN` ex: `009` or `024`
-2.  compress all of the bagfiles: `lbzip2 *.bag`
+2.  compress all of the bagfiles: `lbzip2 *.bag` you may want to use the `-k` option to keep the source files
+    and you may want to use the `-v` option to see progress
 3.  packup the parameter files: `tar -cvf flo_parameters-yyyy-mm-dd_.tar *.yaml`
 4.  put the compressed bag files and tar parameter file into a folder `NNN/ros`
 5.  put all of the gopro videos into a folder `NNN/gopro` next to the `NNN/ros` folder
