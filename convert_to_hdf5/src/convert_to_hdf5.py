@@ -111,7 +111,39 @@ def get_topic_info(data_info_mapping, bag_file, meta_data):
     return topic_info
 
 
-def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_info):
+def get_realsense_extrinsics(bag_file):
+    """Extracts extrinsics for all realsense cameras
+
+    Args:
+        bag_file: the opened bag file
+
+    Returns: A dictionary with keys that are the names of the camera
+             ex: 'upper_realsense' and values that are a message of type
+             realsense2_camera/Extrinsics. These messages have three fields
+             `header`, `rotation`, `translation`. The rotation is 9 element
+             list, the translation is a 3 element list.
+    """
+    topics = bag_file.get_type_and_topic_info()[1].keys()
+    realsense_topics = filter(lambda val: 'realsense' in val, topics)
+    extrinsics_topics = filter(
+        lambda val: 'extrinsics' and 'depth_to_color' in val, realsense_topics)
+    extrinsics = {}
+    for topic in extrinsics_topics:
+        rospy.loginfo('extracting extrinsics from: %s', topic)
+        cam = topic.split('/')[0]
+        try:
+            _, msg, _ = next(bag_file.read_messages([topic]))
+        except StopIteration:
+            # TODO: bring in a default value if we don't have anything.
+            #       These defaults should be based on the serial number
+            #       of the camera
+            extrinsics[cam] = None
+            continue
+        extrinsics[cam] = msg
+    return extrinsics
+
+
+def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_info, extrinsics):
     hdf5_files = len(record_names)*[None]
     for idx, hdf5_fn in enumerate(record_names):
         rospy.loginfo('Working on seq/act: %s', hdf5_fn)
@@ -124,7 +156,6 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
             rospy.logerr(
                 'HDF5 Database COULD NOT BE READ/CREATED: %s', hdf5_fn_full)
             raise
-
 
         for vid_topic in data_info_mapping:
             raw_topic = meta_data['bag-mapping'][vid_topic]
@@ -186,9 +217,16 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
                 dataset.attrs.create('P', topic_meta_info.P)
                 dataset.attrs.create('binning_x', topic_meta_info.binning_x)
                 dataset.attrs.create('binning_y', topic_meta_info.binning_y)
+                cam_name = vid_topic.split('/')[0]
+                if cam_name in extrinsics:
+                    dataset.attrs.create(
+                        'depth_to_color-roation', extrinsics[cam_name]['rotation'])
+                    dataset.attrs.create(
+                        'depth_to_color-translation', extrinsics[cam_name]['translation'])
             else:
                 rospy.loginfo('\t\tNo meta info')
     return hdf5_files
+
 
 def match_depth(hdf5_files, data_info_mapping):
     upper_color_match_topic = 'vid/color/data/upper/matched_depth_index'
@@ -199,17 +237,17 @@ def match_depth(hdf5_files, data_info_mapping):
     dataset_lower = None
 
     for hdf5_database in hdf5_files:
-        if upper_color_match_topic not in hdf5_database :
+        if upper_color_match_topic not in hdf5_database:
             dataset_upper = hdf5_database.create_dataset(upper_color_match_topic, (INITIAL_SIZE,),
-                                         maxshape=(None,),
-                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
+                                                         maxshape=(None,),
+                                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
         else:
             dataset_upper = hdf5_database[upper_color_match_topic]
 
         if lower_color_match_topic not in hdf5_database:
             dataset_lower = hdf5_database.create_dataset(lower_color_match_topic, (INITIAL_SIZE,),
-                                         maxshape=(None,),
-                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
+                                                         maxshape=(None,),
+                                                         dtype=np.uint32, chunks=(CHUNK_SIZE,))
         else:
             dataset_lower = hdf5_database[lower_color_match_topic]
 
@@ -217,10 +255,11 @@ def match_depth(hdf5_files, data_info_mapping):
             timestamp_secs = hdf5_database[vid_topic + '/secs']
             timestamp_nsecs = hdf5_database[vid_topic + '/nsecs']
 
-            if timestamp_secs.shape[0] == 0 or  timestamp_nsecs.shape[0] == 0:
+            if timestamp_secs.shape[0] == 0 or timestamp_nsecs.shape[0] == 0:
                 tstamp = None
             else:
-                tstamp = np.expand_dims(np.asarray(timestamp_secs) + 1e-9 * np.asarray(timestamp_nsecs), 0)
+                tstamp = np.expand_dims(np.asarray(
+                    timestamp_secs) + 1e-9 * np.asarray(timestamp_nsecs), 0)
 
             if 'upper' in vid_topic and 'color' in vid_topic:
                 timestamps['upper_color'] = copy.deepcopy(tstamp)
@@ -235,11 +274,14 @@ def match_depth(hdf5_files, data_info_mapping):
             rospy.loginfo('No Timestamps in current HDF5 database')
             continue
 
-        dataset_upper.resize(timestamps['upper_color'].shape[1], axis = 0)
-        dataset_upper[...] = np.argmin(np.abs(timestamps['upper_color'] - timestamps['upper_depth'].T), axis=0)
+        dataset_upper.resize(timestamps['upper_color'].shape[1], axis=0)
+        dataset_upper[...] = np.argmin(
+            np.abs(timestamps['upper_color'] - timestamps['upper_depth'].T), axis=0)
 
         dataset_lower.resize(timestamps['lower_color'].shape[1], axis=0)
-        dataset_lower[...] = np.argmin(np.abs(timestamps['lower_color'] - timestamps['lower_depth'].T), axis = 0)
+        dataset_lower[...] = np.argmin(
+            np.abs(timestamps['lower_color'] - timestamps['lower_depth'].T), axis=0)
+
 
 def node():
     rospy.init_node('rosbag_to_hdf5_node')
@@ -257,8 +299,9 @@ def node():
 
     record_names, start_times, end_times = generate_record_defs(meta_data)
     topic_info = get_topic_info(data_info_mapping, bag_file, meta_data)
+    extrinsics = get_realsense_extrinsics(bag_file)
     hdf5_files = load_hdf_files(
-        record_names, out_dir, data_info_mapping, meta_data, topic_info)
+        record_names, out_dir, data_info_mapping, meta_data, topic_info, extrinsics)
 
     bridge = CvBridge()
     outer_progress_bar = tqdm(data_info_mapping)
@@ -278,7 +321,7 @@ def node():
         # bag_read_time = 0
         # clk_total = time.perf_counter()
         outer_progress_bar.set_description('Working on: {}'.format(vid_topic))
-        
+
         with tqdm(total=bag_file.get_message_count(raw_topic)) as inner_progress_bar:
             # clck = time.perf_counter()
             for _, msg, _ in bag_file.read_messages([raw_topic]):
