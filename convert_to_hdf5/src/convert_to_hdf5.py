@@ -137,7 +137,16 @@ def get_realsense_extrinsics(bag_file):
             # TODO: bring in a default value if we don't have anything.
             #       These defaults should be based on the serial number
             #       of the camera
-            extrinsics[cam] = None
+            if cam == 'upper':
+                extrinsics[cam] = {'rotation' : [0.9999701380729675, -0.002988155698403716, -0.007129556965082884,
+                                                 0.0029693155083805323, 0.9999920725822449, -0.002651665825396776,
+                                                 0.007137423846870661, 0.002630416536703706, 0.9999710917472839],
+                                   'translation' : [0.01487416960299015, -0.00021148919768165797, 0.00020022370154038072]}
+            elif cam == 'lower':
+                extrinsics[cam] = {'rotation' : [0.999991774559021, 0.0029397103935480118, -0.0027878701221197844,
+                                                 -0.002943191444501281, 0.9999948740005493, -0.0012454235693439841,
+                                                 0.0027841946575790644, 0.0012536186259239912, 0.9999953508377075],
+                                   'translation' : [0.015180261805653572, -6.84795159031637e-05, -0.00040547942626290023]}
             continue
         extrinsics[cam] = msg
     return extrinsics
