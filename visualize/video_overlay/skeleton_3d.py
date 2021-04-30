@@ -16,49 +16,29 @@ import copy
 
 # Inspiration from: https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55
 
-def animate(iteration, data, scatters, lines, texts, ax, joint_pairs):
 
-    for i in range(data[0].shape[0]):
-        scatters[i]._offsets3d = (data[iteration][i,0:1], data[iteration][i,1:2], data[iteration][i,2:])
+def animate(iteration, data, scatters, lines, texts, ax, joint_pairs):
+    for i in range(data.shape[1]):
+        scatters[i]._offsets3d = (data[iteration, i, 0:1], data[iteration, i, 1:2], data[iteration, i, 2:])
 
     for i, line in enumerate(lines):
-        line.set_data([data[iteration][joint_pairs[i][0], 0], data[iteration][joint_pairs[i][1], 0]],
-                      [data[iteration][joint_pairs[i][0], 1], data[iteration][joint_pairs[i][1], 1]])
-        line.set_3d_properties([data[iteration][joint_pairs[i][0], 2], data[iteration][joint_pairs[i][1], 2]])
+        line.set_data([data[iteration, joint_pairs[i][0], 0], data[iteration, joint_pairs[i][1], 0]],
+                      [data[iteration, joint_pairs[i][0], 1], data[iteration, joint_pairs[i][1], 1]])
+        line.set_3d_properties([data[iteration, joint_pairs[i][0], 2], data[iteration, joint_pairs[i][1], 2]])
 
     for i, text in enumerate(texts):
-        x, y, _ = proj3d.proj_transform(data[iteration][i, 0], data[iteration][i, 1], data[iteration][i, 2], ax.get_proj())
-        text.set_position((x,y))
+        x, y, _ = proj3d.proj_transform(data[iteration, i, 0], data[iteration, i, 1], data[iteration, i, 2], ax.get_proj())
+        text.set_position((x, y))
 
     return scatters, lines, texts
+
 
 def skeleton_3d(file_stub, cam, save = False):
     hdf5_video = h5py.File(file_stub+'.hdf5', 'r')
     hdf5_tracking = h5py.File(file_stub+'-novid.hdf5', 'r')
-
     color_dset = 'vid/color/dat a/{}/data'.format(cam)
-    depth_match_dset = 'vid/color/data/{}/matched_depth_index'.format(cam)
-    depth_dset = "vid/depth/data/{}/data".format(cam)
 
-    points3d = []
-
-    K_c = hdf5_video[color_dset].attrs['K'].reshape(3, 3)
-    P_c = hdf5_video[color_dset].attrs['P'].reshape(3, 4)
-    R_c = hdf5_video[color_dset].attrs['R'].reshape(3, 3)
-    inv_Kc = np.linalg.inv(K_c)
-
-    K_d = hdf5_video[depth_dset].attrs['K'].reshape(3, 3)
-    P_d = hdf5_video[depth_dset].attrs['P'].reshape(3, 4)
-    R_d = hdf5_video[depth_dset].attrs['R'].reshape(3, 3)
-    inv_Kd = np.linalg.inv(K_d)
-
-    for idx in trange(hdf5_video[color_dset].shape[0]):
-        matched_index = hdf5_video[depth_match_dset][idx]
-        depth_img = hdf5_video[depth_dset][matched_index]
-        keypoints = hdf5_tracking[color_dset+'-keypoints'][idx]
-        confidence = hdf5_tracking[color_dset+'-confidence'][idx]
-        color_img = hdf5_video[color_dset][idx]
-        points3d.append(extract_depth(depth_img, keypoints, inv_Kc, K_d, color_img))
+    points3d = hdf5_tracking[color_dset + '-3dkeypoints-stereo']
 
     joint_pairs = [(0, 1), (4, 3), (3, 2), (2, 1), (1, 5), (5, 6), (6, 7), (1, 8)]
     annotations = ['nose', 'neck', 'lshoulder', 'lelbow', 'lwrist', 'rshoulder', 'relbow', 'rwrists', 'waist']
@@ -66,17 +46,17 @@ def skeleton_3d(file_stub, cam, save = False):
     fig = plt.figure()
     ax = p3.Axes3D(fig)
 
-    scatters = [ ax.scatter(points3d[0][i,0:1], points3d[0][i,1:2], points3d[0][i,2:]) for i in range(points3d[0].shape[0]) ]
+    scatters = [ ax.scatter(points3d[0, i, 0:1], points3d[0, i, 1:2], points3d[0, i, 2:]) for i in range(points3d.shape[1]) ]
 
-    lines     = [ ax.plot([points3d[0][joint[0], 0], points3d[0][joint[1], 0]],
-                            [points3d[0][joint[0], 1], points3d[0][joint[1], 1]],
-                            [points3d[0][joint[0], 2], points3d[0][joint[1], 2]],
+    lines = [ ax.plot([points3d[0, joint[0], 0], points3d[0, joint[1], 0]],
+                            [points3d[0, joint[0], 1], points3d[0, joint[1], 1]],
+                            [points3d[0, joint[0], 2], points3d[0, joint[1], 2]],
                             'black')[0] for joint in joint_pairs]
 
     texts = [ax.text2D(points3d[0][i, 0], points3d[0][i, 1],
-                     '%s' % (annotations[i]),
-                     size=5,
-                     zorder=1, color='k') for i in range(len(annotations))]
+             '%s' % (annotations[i]),
+             size=5,
+             zorder=1, color='k') for i in range(len(annotations))]
 
     ax.set_xlim3d([-1, 1])
     ax.set_xlabel('X')
@@ -94,11 +74,11 @@ def skeleton_3d(file_stub, cam, save = False):
                                   animate,
                                   len(points3d),
                                   fargs=(points3d, scatters, lines, texts, ax, joint_pairs),
-                                  interval = 50)
+                                  interval=50)
 
     if save:
-        writervideo = animation.FFMpegWriter(fps = 60)
-        ani.save(file_stub + '3d-skeleton.avi', writer= writervideo)
+        writervideo = animation.FFMpegWriter(fps=60)
+        ani.save(file_stub + '3d-skeleton.avi', writer=writervideo)
 
     #plt.show()
 

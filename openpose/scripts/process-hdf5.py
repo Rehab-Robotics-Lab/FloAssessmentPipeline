@@ -38,6 +38,8 @@ def convert(pth):
     nme = pathlib.Path(pth).stem+'-novid.hdf5'
     new_pth = parents.joinpath(nme)
 
+    added_keypoints = False
+
     try:
         hdf5_out = h5py.File(new_pth, 'w')
     except:  # pylint: disable=bare-except
@@ -78,18 +80,22 @@ def convert(pth):
                 keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
                 confidence_dset[chunk[0], :] = keypoints[:, :, 2]
 
-            print('Adding Stereo Depth')
-            addStereoDepth(hdf5_in, hdf5_out)
-            print('Done Adding Stereo Depth')
+            added_keypoints = True
 
         else:
             tqdm.write('not sure what to do with this dataset')
+
+    if added_keypoints:
+        print('Adding Stereo Depth')
+        addStereoDepth(hdf5_in, hdf5_out)
+        print('Done Adding Stereo Depth')
+    else:
+        print("Dataset not ready for adding depth info")
 
     print('done processing')
     hdf5_in.close()
     hdf5_out.close()
     print('done closing')
-
 
 if __name__ == '__main__':
     convert(sys.argv[1])
