@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.signal import convolve2d
 import h5py
 from tqdm import tqdm, trange
 import cv2
@@ -8,14 +9,13 @@ import copy
 
 def extract_depth(depth_img, keypoints, inv_Kc, Kd, color_img, window_size = 3):
 
-    keypoints_with_depth = np.ones(keypoints.shape)
+    keypoints_with_depth = np.ones((keypoints.shape[0], keypoints.shape[1] + 1))
     keypoints_with_depth[:,:2] = keypoints
 
     shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
 
     keypoints_in_depth = (Kd @ (inv_Kc @ keypoints_with_depth.T)).T
     keypoints_with_depth = (inv_Kc @ keypoints_with_depth.T).T
-
     kernel = np.ones((window_size, window_size)) / window_size ** 2
 
     depth_avg = convolve2d(
@@ -25,7 +25,11 @@ def extract_depth(depth_img, keypoints, inv_Kc, Kd, color_img, window_size = 3):
 
         x = int(keypoints_in_depth[i, 0] - shift)
         y = int(keypoints_in_depth[i, 1])
-        Z = depth_avg[y, x]
+
+        if 0<=y<depth_avg.shape[0] and 0<=x<depth_avg.shape[1]:
+            Z = depth_avg[y, x]
+        else:
+            Z = 0
 
         keypoints_with_depth[i] = keypoints_with_depth[i] * (Z/1000)
 
@@ -33,7 +37,7 @@ def extract_depth(depth_img, keypoints, inv_Kc, Kd, color_img, window_size = 3):
 
 def addStereoDepth(hdf5_video, hdf5_tracking):
 
-    for cam in ['upper', 'lower']:
+    for cam in ['lower', 'upper']:
         color_dset = 'vid/color/data/{}/data'.format(cam)
         depth_match_dset = 'vid/color/data/{}/matched_depth_index'.format(cam)
         depth_dset = "vid/depth/data/{}/data".format(cam)
@@ -60,3 +64,4 @@ def addStereoDepth(hdf5_video, hdf5_tracking):
             confidence = hdf5_tracking[color_dset + '-confidence'][idx]
             color_img = hdf5_video[color_dset][idx]
             keypoints3d_dset[idx, :, :] = extract_depth(depth_img, keypoints, inv_Kc, K_d, color_img)
+
