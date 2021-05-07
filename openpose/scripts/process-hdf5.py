@@ -48,6 +48,7 @@ def convert(pth):
     print('created a new hdf5 file: {}'.format(new_pth))
     nodes = allkeys(hdf5_in)
     print('copying datasets over:')
+    
     for dset in tqdm(nodes, desc='datasets'):
         tqdm.write('\t{}'.format(dset))
         # tqdm.write('\t\tcopying attributes over:')
@@ -85,7 +86,7 @@ def convert(pth):
         else:
             tqdm.write('not sure what to do with this dataset')
 
-    if added_keypoints:
+    if added_keypoints or True:
         print('Adding Stereo Depth')
         addStereoDepth(hdf5_in, hdf5_out)
         print('Done Adding Stereo Depth')

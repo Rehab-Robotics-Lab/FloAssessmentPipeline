@@ -36,7 +36,7 @@ def animate(iteration, data, scatters, lines, texts, ax, joint_pairs):
 def skeleton_3d(file_stub, cam, save = False):
     hdf5_video = h5py.File(file_stub+'.hdf5', 'r')
     hdf5_tracking = h5py.File(file_stub+'-novid.hdf5', 'r')
-    color_dset = 'vid/color/dat a/{}/data'.format(cam)
+    color_dset = 'vid/color/data/{}/data'.format(cam)
 
     points3d = hdf5_tracking[color_dset + '-3dkeypoints-stereo']
 

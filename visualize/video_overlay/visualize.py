@@ -24,5 +24,5 @@ if __name__ == '__main__':
         print('creating 3d skeleton GIF')
         skeleton_3d(file_stub, cam, save = True)
 
-    else
+    else:
         print('Invalid OVERLAY option')
