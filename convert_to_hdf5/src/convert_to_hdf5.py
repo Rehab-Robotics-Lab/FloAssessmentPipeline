@@ -314,7 +314,7 @@ def node():
     extrinsics = get_realsense_extrinsics(bag_file)
     hdf5_files = load_hdf_files(
         record_names, out_dir, data_info_mapping, meta_data, topic_info, extrinsics)
-    print("Extrinsics", extrinsics)
+   
     bridge = CvBridge()
     outer_progress_bar = tqdm(data_info_mapping)
 
