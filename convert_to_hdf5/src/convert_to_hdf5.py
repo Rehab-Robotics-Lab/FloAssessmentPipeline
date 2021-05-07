@@ -128,6 +128,18 @@ def get_realsense_extrinsics(bag_file):
     extrinsics_topics = filter(
         lambda val: 'extrinsics' and 'depth_to_color' in val, realsense_topics)
     extrinsics = {}
+
+    # Default values
+    extrinsics['upper'] = {'rotation': [0.9999701380729675, -0.002988155698403716, -0.007129556965082884,
+                                        0.0029693155083805323, 0.9999920725822449, -0.002651665825396776,
+                                        0.007137423846870661, 0.002630416536703706, 0.9999710917472839],
+                           'translation': [0.01487416960299015, -0.00021148919768165797, 0.00020022370154038072]}
+
+    extrinsics['lower'] = {'rotation': [0.999991774559021, 0.0029397103935480118, -0.0027878701221197844,
+                                        -0.002943191444501281, 0.9999948740005493, -0.0012454235693439841,
+                                        0.0027841946575790644, 0.0012536186259239912, 0.9999953508377075],
+                           'translation': [0.015180261805653572, -6.84795159031637e-05, -0.00040547942626290023]}
+
     for topic in extrinsics_topics:
         rospy.loginfo('extracting extrinsics from: %s', topic)
         cam = topic.split('/')[0]
@@ -137,16 +149,6 @@ def get_realsense_extrinsics(bag_file):
             # TODO: bring in a default value if we don't have anything.
             #       These defaults should be based on the serial number
             #       of the camera
-            if cam == 'upper':
-                extrinsics[cam] = {'rotation' : [0.9999701380729675, -0.002988155698403716, -0.007129556965082884,
-                                                 0.0029693155083805323, 0.9999920725822449, -0.002651665825396776,
-                                                 0.007137423846870661, 0.002630416536703706, 0.9999710917472839],
-                                   'translation' : [0.01487416960299015, -0.00021148919768165797, 0.00020022370154038072]}
-            elif cam == 'lower':
-                extrinsics[cam] = {'rotation' : [0.999991774559021, 0.0029397103935480118, -0.0027878701221197844,
-                                                 -0.002943191444501281, 0.9999948740005493, -0.0012454235693439841,
-                                                 0.0027841946575790644, 0.0012536186259239912, 0.9999953508377075],
-                                   'translation' : [0.015180261805653572, -6.84795159031637e-05, -0.00040547942626290023]}
             continue
         extrinsics[cam] = msg
     return extrinsics
@@ -226,10 +228,11 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
                 dataset.attrs.create('P', topic_meta_info.P)
                 dataset.attrs.create('binning_x', topic_meta_info.binning_x)
                 dataset.attrs.create('binning_y', topic_meta_info.binning_y)
-                cam_name = vid_topic.split('/')[0]
+                cam_name = vid_topic.split('/')[-1]
                 if cam_name in extrinsics:
+                    rospy.loginfo('Added Extrinsics')
                     dataset.attrs.create(
-                        'depth_to_color-roation', extrinsics[cam_name]['rotation'])
+                        'depth_to_color-rotation', extrinsics[cam_name]['rotation'])
                     dataset.attrs.create(
                         'depth_to_color-translation', extrinsics[cam_name]['translation'])
             else:
@@ -311,7 +314,7 @@ def node():
     extrinsics = get_realsense_extrinsics(bag_file)
     hdf5_files = load_hdf_files(
         record_names, out_dir, data_info_mapping, meta_data, topic_info, extrinsics)
-
+    print("Extrinsics", extrinsics)
     bridge = CvBridge()
     outer_progress_bar = tqdm(data_info_mapping)
 

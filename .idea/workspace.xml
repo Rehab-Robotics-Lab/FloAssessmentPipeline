@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="68c17e67-91d1-48e6-a2e9-97130b8aafa9" name="Default Changelist" comment="" />
+    <list default="true" id="68c17e67-91d1-48e6-a2e9-97130b8aafa9" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/src/convert_to_hdf5.py" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/src/convert_to_hdf5.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/test_depth.sh" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/test_depth.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/extractDepth.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/extractDepth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/process-hdf5.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/process-hdf5.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/skeleton_3d.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/skeleton_3d.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/visualize.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/visualize.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
