@@ -9,7 +9,8 @@
       <change beforePath="$PROJECT_DIR$/openpose/scripts/extractDepth.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/extractDepth.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/openpose/scripts/process-hdf5.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/process-hdf5.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/visualize/video_overlay/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/skeleton_3d.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/skeleton_3d.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/overlay_wrists.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/skeleton_3d.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/visualize/video_overlay/visualize.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/visualize.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
