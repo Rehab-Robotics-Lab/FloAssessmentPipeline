@@ -2,8 +2,37 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="68c17e67-91d1-48e6-a2e9-97130b8aafa9" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/log.txt" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/.github/workflows/python-lint.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.github/workflows/sh-lint.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Pipfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Pipfile.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/mapping.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/mapping.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/ros_entrypoint.sh" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/ros_entrypoint.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/convert_to_hdf5/src/convert_to_hdf5.py" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/src/convert_to_hdf5.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/src/run_script.bash" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/src/run_script.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/test.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/emotion_recognition/src/emotion_recognition.py" beforeDir="false" afterPath="$PROJECT_DIR$/emotion_recognition/src/emotion_recognition.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/inspect/save_meta.sh" beforeDir="false" afterPath="$PROJECT_DIR$/inspect/save_meta.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/inspect/setup_ec2.sh" beforeDir="false" afterPath="$PROJECT_DIR$/inspect/setup_ec2.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/extractPoses.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/extract_poses.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/process-hdf5.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/process_hdf5.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/process_hdf5.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/run-all-ec2.sh" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/run-all-ec2.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/test2.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/setup.sh" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/setup.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_gpu.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_script.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/top_level_runner.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/overlay_wrists.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/overlay_wrists.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
