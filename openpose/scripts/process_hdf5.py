@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+"""Module to extract pose using openpose from hdf5 file"""
 
-import h5py
-import numpy as np
 import pathlib
 from extractPoses import processFrames
 from extractDepth import addStereoDepth
 import sys
+import numpy as np
+import h5py
 from tqdm import tqdm
 
 
@@ -22,6 +23,12 @@ def allkeys(obj):
 
 
 def convert(pth):
+    """Extract poses from video in hdf5 file and build new hdf
+    file with poses, confidences, and other non-video data.
+
+    Args:
+        pth: the path of the hdf5 source file to work with
+    """
     print('processing on {}'.format(pth))
 
     # open hdf5 file
@@ -77,7 +84,7 @@ def convert(pth):
 
             for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks'):
                 color_arr = hdf5_in[dset][chunk]
-                keypoints = processFrames(color_arr)
+                keypoints = process_frames(color_arr)
                 keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
                 confidence_dset[chunk[0], :] = keypoints[:, :, 2]
 
