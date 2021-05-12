@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="68c17e67-91d1-48e6-a2e9-97130b8aafa9" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/convert_to_hdf5/src/extrinsics.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/convert_to_hdf5/src/convert_to_hdf5.py" beforeDir="false" afterPath="$PROJECT_DIR$/convert_to_hdf5/src/convert_to_hdf5.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/openpose/scripts/extractDepth.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/openpose/scripts/process_hdf5.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/process_hdf5.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualize/video_overlay/overlay_wrists.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualize/video_overlay/overlay_wrists.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/openpose/scripts/extract_depth.py" beforeDir="false" afterPath="$PROJECT_DIR$/openpose/scripts/extract_depth.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
