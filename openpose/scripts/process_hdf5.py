@@ -2,11 +2,11 @@
 """Module to extract pose using openpose from hdf5 file"""
 
 import pathlib
-from extractPoses import processFrames
-from extractDepth import addStereoDepth
 import sys
 import numpy as np
 import h5py
+from extract_poses import process_frames
+from extract_depth import add_stereo_depth
 from tqdm import tqdm
 
 
@@ -23,6 +23,7 @@ def allkeys(obj):
 
 
 def convert(pth):
+    # pylint: disable= too-many-statements
     """Extract poses from video in hdf5 file and build new hdf
     file with poses, confidences, and other non-video data.
 
@@ -55,7 +56,6 @@ def convert(pth):
     print('created a new hdf5 file: {}'.format(new_pth))
     nodes = allkeys(hdf5_in)
     print('copying datasets over:')
-    
     for dset in tqdm(nodes, desc='datasets'):
         tqdm.write('\t{}'.format(dset))
         # tqdm.write('\t\tcopying attributes over:')
@@ -93,17 +93,18 @@ def convert(pth):
         else:
             tqdm.write('not sure what to do with this dataset')
 
-    if added_keypoints or True:
+    if added_keypoints:
         print('Adding Stereo Depth')
-        addStereoDepth(hdf5_in, hdf5_out)
+        add_stereo_depth(hdf5_in, hdf5_out)
         print('Done Adding Stereo Depth')
     else:
-        print("Dataset not ready for adding depth info")
+        print('Dataset not ready for adding depth info')
 
     print('done processing')
     hdf5_in.close()
     hdf5_out.close()
     print('done closing')
+
 
 if __name__ == '__main__':
     convert(sys.argv[1])

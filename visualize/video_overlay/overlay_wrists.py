@@ -6,8 +6,8 @@ import math
 import sys
 import numpy as np
 import h5py
-from tqdm import trange
 import cv2
+from tqdm import trange
 
 # from: https://stackoverflow.com/a/65146731/5274985
 
@@ -18,8 +18,7 @@ def draw_text(img, text,  # pylint: disable=too-many-arguments
               font_thickness=2,
               text_color=(0, 255, 0),
               text_color_bg=(0, 0, 0),
-              margin=3,
-              ):
+              margin=3):
     """Draw text on an image using opencv
 
     Args:
