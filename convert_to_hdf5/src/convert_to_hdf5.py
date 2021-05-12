@@ -180,9 +180,6 @@ def get_realsense_extrinsics(bag_file):
         try:
             _, msg, _ = next(bag_file.read_messages([topic]))
         except StopIteration:
-            # TODO: bring in a default value if we don't have anything.
-            #       These defaults should be based on the serial number
-            #       of the camera
             continue
         extrinsics[cam] = msg
     return extrinsics
