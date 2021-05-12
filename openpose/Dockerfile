@@ -36,8 +36,8 @@ RUN pip3 install h5py
 
 WORKDIR /openpose/build/scripts
 
-COPY ./scripts/extractPoses.py ./
+COPY ./scripts/extract_poses.py ./
 COPY ./scripts/process-hdf5.py ./
-COPY ./scripts/extractDepth.py ./
+COPY ./scripts/extract_depth.py ./
 
 CMD /bin/bash -c "cd /openpose/build/scripts && find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
