@@ -1,17 +1,21 @@
+'''
+Module to extract depth given hdf5_in and hdf5_out files
+'''
 import numpy as np
 from scipy.signal import convolve2d
-#from tqdm import tqdm, trange
-#import cv2
-#import matplotlib.pyplot as plt
+from tqdm import trange
 
-def extract_depth(depth_img, keypoints, inv_kc, kd, color_img, r_cd, t_cd, window_size = 3):
-
+def extract_depth(depth_img, keypoints, params, window_size = 3): #pylint: disable= too-many-locals
+    '''
+    Function to extract depth in the aligned camera frame given intrinsic and extrinsics
+    '''
+    inv_kc, k_d, r_cd, t_cd = params
     keypoints_with_depth = np.ones((keypoints.shape[0], keypoints.shape[1] + 1))
     keypoints_with_depth[:,:2] = keypoints  # Keypoints with depth appended
 
     #shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
 
-    keypoints_in_depth = (kd @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) - t_cd))).T
+    keypoints_in_depth = (k_d @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) - t_cd))).T
     keypoints_with_depth = (inv_kc @ keypoints_with_depth.T).T
     kernel = np.ones((window_size, window_size)) / window_size ** 2
 
@@ -22,37 +26,21 @@ def extract_depth(depth_img, keypoints, inv_kc, kd, color_img, r_cd, t_cd, windo
     for i in range(keypoints_with_depth.shape[0]):
 
         #x = int(keypoints_in_depth[i, 0] - shift)
-        x = int(keypoints_in_depth[i, 0])
-        y = int(keypoints_in_depth[i, 1])
+        p_x = int(keypoints_in_depth[i, 0])
+        p_y = int(keypoints_in_depth[i, 1])
 
-        if 0<=y<depth_avg.shape[0] and 0<=x<depth_avg.shape[1]:
-            z = depth_avg[y, x]
+        if 0<=p_y<depth_avg.shape[0] and 0<=p_x<depth_avg.shape[1]:
+            p_z = depth_avg[p_y, p_x]
         else:
-            z = 0
+            p_z = 0
 
-        keypoints_with_depth[i] = keypoints_with_depth[i] * (z/1000)
-    '''
-    for joint in range(0, 9):
-            x = int(keypoints[joint][0])
-            y = int(keypoints[joint][1])
-            cv2.circle(color_img, (x, y), 10,
-                       colorScale(0.8, 0, 1), 8)
-
-            xd = int(keypoints_in_depth[joint][0])
-            yd = int(keypoints_in_depth[joint][1])
-
-            cv2.circle(depth_img, (xd, yd), 10,
-                       colorScale(0.8, 0, 1), 8)
-
-    plt.imshow(depth_img)
-    plt.show()
-    plt.imshow(color_img)
-    plt.show()
-    '''
+        keypoints_with_depth[i] = keypoints_with_depth[i] * (p_z/1000)
     return keypoints_with_depth
 
-def add_stereo_depth(hdf5_video, hdf5_tracking):
-
+def add_stereo_depth(hdf5_video, hdf5_tracking): # pylint: disable= too-many-locals
+    '''
+    Function to create datasets in hdf5_tracking(hdf5_out) and add 3d keypoints
+    '''
     for cam in ['lower', 'upper']:
         color_dset = 'vid/color/data/{}/data'.format(cam)
         depth_match_dset = 'vid/color/data/{}/matched_depth_index'.format(cam)
@@ -83,9 +71,8 @@ def add_stereo_depth(hdf5_video, hdf5_tracking):
             color_img = hdf5_video[color_dset][idx]
             keypoints3d_dset[idx, :, :] = extract_depth(depth_img,
                                                         keypoints,
-                                                        inv_kc,
+                                                        (inv_kc,
                                                         k_d,
                                                         color_img,
                                                         r_cd,
-                                                        t_cd)
-
+                                                        t_cd))
