@@ -21,6 +21,7 @@ TODO
 
 import pathlib
 import copy
+#import time
 import numpy as np
 import yaml
 import h5py
@@ -28,8 +29,6 @@ import rospy
 import rosbag
 from cv_bridge import CvBridge
 from tqdm import tqdm
-import time
-import copy
 
 INITIAL_SIZE = 0
 CHUNK_SIZE = 500
@@ -166,18 +165,13 @@ def get_realsense_extrinsics(bag_file):
     realsense_topics = filter(lambda val: 'realsense' in val, topics)
     extrinsics_topics = filter(
         lambda val: 'extrinsics' and 'depth_to_color' in val, realsense_topics)
-    extrinsics = {}
 
-    # Default values
-    extrinsics['upper'] = {'rotation': [0.9999701380729675, -0.002988155698403716, -0.007129556965082884,
-                                        0.0029693155083805323, 0.9999920725822449, -0.002651665825396776,
-                                        0.007137423846870661, 0.002630416536703706, 0.9999710917472839],
-                           'translation': [0.01487416960299015, -0.00021148919768165797, 0.00020022370154038072]}
-
-    extrinsics['lower'] = {'rotation': [0.999991774559021, 0.0029397103935480118, -0.0027878701221197844,
-                                        -0.002943191444501281, 0.9999948740005493, -0.0012454235693439841,
-                                        0.0027841946575790644, 0.0012536186259239912, 0.9999953508377075],
-                           'translation': [0.015180261805653572, -6.84795159031637e-05, -0.00040547942626290023]}
+    with open('extrinsics.yaml', 'r') as stream:
+        try:
+            extrinsics = yaml.safe_load(stream)
+        except yaml.YAMLError as err:
+            rospy.logerr(err)
+            raise
 
     for topic in extrinsics_topics:
         rospy.loginfo('extracting extrinsics from: %s', topic)
@@ -194,6 +188,7 @@ def get_realsense_extrinsics(bag_file):
 
 
 def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_info, extrinsics):
+    # pylint: disable=too-many-arguments, too-many-locals
     """Load HDF files to prepare to add data. Will create necessary databases in the hdf5
        file and will fill in atrributes using the topic info where relevant
 
@@ -376,9 +371,12 @@ def node():  # pylint: disable=too-many-statements, too-many-locals
     record_names, start_times, end_times = generate_record_defs(meta_data)
     topic_info = get_topic_info(data_info_mapping, bag_file, meta_data)
     extrinsics = get_realsense_extrinsics(bag_file)
-    hdf5_files = load_hdf_files(
-        record_names, out_dir, data_info_mapping, meta_data, topic_info, extrinsics)
-   
+    hdf5_files = load_hdf_files(record_names,
+                                out_dir,
+                                data_info_mapping,
+                                meta_data,
+                                topic_info,
+                                extrinsics)
     bridge = CvBridge()
     outer_progress_bar = tqdm(data_info_mapping)
 
