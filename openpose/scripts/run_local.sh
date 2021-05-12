@@ -2,8 +2,6 @@
 set -o errexit
 set -o pipefail
 
-data="/media/gsuveer/391cd01c-d5a2-4313-947a-da8978447a80/gsuveer/Desktop/Flo_data"
-
 while getopts :d: flag
 do
     case "${flag}" in

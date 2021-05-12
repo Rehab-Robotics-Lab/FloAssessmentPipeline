@@ -166,7 +166,8 @@ def get_realsense_extrinsics(bag_file):
     extrinsics_topics = filter(
         lambda val: 'extrinsics' and 'depth_to_color' in val, realsense_topics)
 
-    with open('extrinsics.yaml', 'r') as stream:
+    extrinsics = {}
+    with open('/data/extrinsics.yaml', 'r') as stream:
         try:
             extrinsics = yaml.safe_load(stream)
         except yaml.YAMLError as err:
