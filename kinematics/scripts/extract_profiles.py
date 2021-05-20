@@ -8,7 +8,6 @@ Created on Sat Aug  8 16:52:54 2020
 
 import numpy as np
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
-import tf
 
 def extract_body_bottom_center(keypoints):
     '''
@@ -62,12 +61,17 @@ def velocity_profile(keypoints, timestamps):
     '''
     Fuction that takes in a 3D keypoints and timestamps
     returns a velocity profile with timestamps
-    keypoints shape (n * 25 * 3)
+    keypoints shape (n * 3)
     '''
     #Confirm Axis
     delta_xyz = np.diff(keypoints, axis=0)
     delta_t   = np.diff(timestamps)
-    delta_t   = np.expand_dims(np.expand_dims(delta_t,-1),-1)
+    delta_t   = np.expand_dims(delta_t,-1)
+
+    print("k", keypoints.shape)
+    print("delta xyz", delta_xyz.shape)
+    print("delta t", delta_t.shape)
+
     velocity = np.divide(delta_xyz, delta_t)
     timestamps = timestamps - timestamps[0]
     
