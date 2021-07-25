@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import h5py
 from extract_poses import process_frames
+from extract_depth import add_stereo_depth
 from tqdm import tqdm
 
 
@@ -22,6 +23,7 @@ def allkeys(obj):
 
 
 def convert(pth):
+    # pylint: disable= too-many-statements
     """Extract poses from video in hdf5 file and build new hdf
     file with poses, confidences, and other non-video data.
 
@@ -43,6 +45,8 @@ def convert(pth):
     parents = pathlib.Path(pth).parents[0]
     nme = pathlib.Path(pth).stem+'-novid.hdf5'
     new_pth = parents.joinpath(nme)
+
+    added_keypoints = False
 
     try:
         hdf5_out = h5py.File(new_pth, 'w')
@@ -71,17 +75,30 @@ def convert(pth):
             hdf5_in.copy(dset, hdf5_out[group])
         elif 'color' in dset:
             tqdm.write('\t\tVideo, so processing')
+
             keypoints_dset = hdf5_out.create_dataset(
                 dset+'-keypoints', (hdf5_in[dset].len(), 25, 2), dtype=np.float32)
+
             confidence_dset = hdf5_out.create_dataset(
                 dset+'-confidence', (hdf5_in[dset].len(), 25), dtype=np.float32)
+
             for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks'):
                 color_arr = hdf5_in[dset][chunk]
                 keypoints = process_frames(color_arr)
                 keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
                 confidence_dset[chunk[0], :] = keypoints[:, :, 2]
+
+            added_keypoints = True
+
         else:
             tqdm.write('not sure what to do with this dataset')
+
+    if added_keypoints:
+        print('Adding Stereo Depth')
+        add_stereo_depth(hdf5_in, hdf5_out)
+        print('Done Adding Stereo Depth')
+    else:
+        print('Dataset not ready for adding depth info')
 
     print('done processing')
     hdf5_in.close()
