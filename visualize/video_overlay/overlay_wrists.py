@@ -6,11 +6,10 @@ import math
 import sys
 import numpy as np
 import h5py
-from tqdm import trange
 import cv2
+from tqdm import trange
 
 # from: https://stackoverflow.com/a/65146731/5274985
-
 
 def draw_text(img, text,  # pylint: disable=too-many-arguments
               font=cv2.FONT_HERSHEY_SIMPLEX,
@@ -19,8 +18,7 @@ def draw_text(img, text,  # pylint: disable=too-many-arguments
               font_thickness=2,
               text_color=(0, 255, 0),
               text_color_bg=(0, 0, 0),
-              margin=3,
-              ):
+              margin=3):
     """Draw text on an image using opencv
 
     Args:
@@ -45,9 +43,6 @@ def draw_text(img, text,  # pylint: disable=too-many-arguments
                 font, font_scale, text_color, font_thickness)
 
     return text_size
-
-# from: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch09s11.html
-
 
 def color_scale(mag, cmin, cmax):
     """ Return a tuple of floats between 0 and 1 for R, G, and B. """

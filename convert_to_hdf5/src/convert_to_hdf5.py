@@ -21,6 +21,7 @@ TODO
 
 import pathlib
 import copy
+#import time
 import numpy as np
 import yaml
 import h5py
@@ -148,8 +149,44 @@ def get_topic_info(data_info_mapping, bag_file, meta_data):
         topic_info[vid_topic] = msg
     return topic_info
 
+def get_realsense_extrinsics(bag_file):
+    """Extracts extrinsics for all realsense cameras
 
-def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_info):  # pylint: disable=too-many-locals
+    Args:
+        bag_file: the opened bag file
+
+    Returns: A dictionary with keys that are the names of the camera
+             ex: 'upper_realsense' and values that are a message of type
+             realsense2_camera/Extrinsics. These messages have three fields
+             `header`, `rotation`, `translation`. The rotation is 9 element
+             list, the translation is a 3 element list.
+    """
+    topics = bag_file.get_type_and_topic_info()[1].keys()
+    realsense_topics = filter(lambda val: 'realsense' in val, topics)
+    extrinsics_topics = filter(
+        lambda val: 'extrinsics' and 'depth_to_color' in val, realsense_topics)
+
+    extrinsics = {}
+    with open('/data/extrinsics.yaml', 'r') as stream:
+        try:
+            extrinsics = yaml.safe_load(stream)
+        except yaml.YAMLError as err:
+            rospy.logerr(err)
+            raise
+
+    for topic in extrinsics_topics:
+        rospy.loginfo('extracting extrinsics from: %s', topic)
+        cam = topic.split('/')[0]
+        try:
+            _, msg, _ = next(bag_file.read_messages([topic]))
+        except StopIteration:
+            continue
+        extrinsics[cam] = msg
+    return extrinsics
+
+
+def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_info, extrinsics):
+    # pylint: disable=too-many-arguments, too-many-locals
     """Load HDF files to prepare to add data. Will create necessary databases in the hdf5
        file and will fill in atrributes using the topic info where relevant
 
@@ -237,10 +274,16 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
                 dataset.attrs.create('P', topic_meta_info.P)
                 dataset.attrs.create('binning_x', topic_meta_info.binning_x)
                 dataset.attrs.create('binning_y', topic_meta_info.binning_y)
+                cam_name = vid_topic.split('/')[-1]
+                if cam_name in extrinsics:
+                    rospy.loginfo('Added Extrinsics')
+                    dataset.attrs.create(
+                        'depth_to_color-rotation', extrinsics[cam_name]['rotation'])
+                    dataset.attrs.create(
+                        'depth_to_color-translation', extrinsics[cam_name]['translation'])
             else:
                 rospy.loginfo('\t\tNo meta info')
     return hdf5_files
-
 
 def match_depth(hdf5_files, data_info_mapping):  # pylint: disable=too-many-branches
     """Match the depth to the color topics for videos.
@@ -275,44 +318,35 @@ def match_depth(hdf5_files, data_info_mapping):  # pylint: disable=too-many-bran
             dataset_lower = hdf5_database[lower_color_match_topic]
 
         for vid_topic in data_info_mapping:
-            if 'vid' in vid_topic:  # This addresses that we read only from vid topics
-                timestamp_secs = hdf5_database[vid_topic + '/secs']
-                timestamp_nsecs = hdf5_database[vid_topic + '/nsecs']
+            timestamp_secs = hdf5_database[vid_topic + '/secs']
+            timestamp_nsecs = hdf5_database[vid_topic + '/nsecs']
 
-                if timestamp_secs.shape[0] == 0 or timestamp_nsecs.shape[0] == 0:
-                    tstamp = None
-                else:
-                    timestamp_secs = np.asarray(timestamp_secs)
-                    timestamp_nsecs = np.asarray(timestamp_nsecs)
-                    tstamp = np.expand_dims(
-                        timestamp_secs + 1e-9 * timestamp_nsecs, 0)
+            if timestamp_secs.shape[0] == 0 or timestamp_nsecs.shape[0] == 0:
+                tstamp = None
+            else:
+                tstamp = np.expand_dims(np.asarray(
+                    timestamp_secs) + 1e-9 * np.asarray(timestamp_nsecs), 0)
 
-                if 'upper' in vid_topic and 'color' in vid_topic:
-                    timestamps['upper_color'] = copy.deepcopy(tstamp)
-                if 'upper' in vid_topic and 'depth' in vid_topic:
-                    timestamps['upper_depth'] = copy.deepcopy(tstamp)
-                if 'lower' in vid_topic and 'color' in vid_topic:
-                    timestamps['lower_color'] = copy.deepcopy(tstamp)
-                if 'lower' in vid_topic and 'depth' in vid_topic:
-                    timestamps['lower_depth'] = copy.deepcopy(tstamp)
+            if 'upper' in vid_topic and 'color' in vid_topic:
+                timestamps['upper_color'] = copy.deepcopy(tstamp)
+            if 'upper' in vid_topic and 'depth' in vid_topic:
+                timestamps['upper_depth'] = copy.deepcopy(tstamp)
+            if 'lower' in vid_topic and 'color' in vid_topic:
+                timestamps['lower_color'] = copy.deepcopy(tstamp)
+            if 'lower' in vid_topic and 'depth' in vid_topic:
+                timestamps['lower_depth'] = copy.deepcopy(tstamp)
 
-        # TODO: should this be and or or?
-        if timestamps['lower_color'] is None or timestamps['upper_color'] is None:
-            rospy.loginfo('No Color Timestamps in current HDF5 database')
-            continue
-
-        # TODO: should this be and or or?
-        if timestamps['lower_depth'] is None or timestamps['upper_depth'] is None:
-            rospy.loginfo('No Depth Timestamps in current HDF5 database')
+        if timestamps['lower_color'] is None or timestamps['lower_color'] is None:
+            rospy.loginfo('No Timestamps in current HDF5 database')
             continue
 
         dataset_upper.resize(timestamps['upper_color'].shape[1], axis=0)
-        dataset_upper[...] = np.argmin(np.abs(timestamps['upper_color'] -
-                                              timestamps['upper_depth'].T), axis=0)
+        dataset_upper[...] = np.argmin(
+            np.abs(timestamps['upper_color'] - timestamps['upper_depth'].T), axis=0)
 
         dataset_lower.resize(timestamps['lower_color'].shape[1], axis=0)
-        dataset_lower[...] = np.argmin(np.abs(timestamps['lower_color'] -
-                                              timestamps['lower_depth'].T), axis=0)
+        dataset_lower[...] = np.argmin(
+            np.abs(timestamps['lower_color'] - timestamps['lower_depth'].T), axis=0)
 
 
 def node():  # pylint: disable=too-many-statements, too-many-locals
@@ -334,9 +368,13 @@ def node():  # pylint: disable=too-many-statements, too-many-locals
 
     record_names, start_times, end_times = generate_record_defs(meta_data)
     topic_info = get_topic_info(data_info_mapping, bag_file, meta_data)
-    hdf5_files = load_hdf_files(
-        record_names, out_dir, data_info_mapping, meta_data, topic_info)
-
+    extrinsics = get_realsense_extrinsics(bag_file)
+    hdf5_files = load_hdf_files(record_names,
+                                out_dir,
+                                data_info_mapping,
+                                meta_data,
+                                topic_info,
+                                extrinsics)
     bridge = CvBridge()
     outer_progress_bar = tqdm(data_info_mapping)
 
