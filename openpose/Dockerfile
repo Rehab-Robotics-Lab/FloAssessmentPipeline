@@ -9,7 +9,7 @@ libgoogle-glog-dev libboost-all-dev libcaffe-cuda-dev libhdf5-dev libatlas-base-
 
 #for python api
 RUN pip3 install --upgrade pip
-RUN pip3 install numpy opencv-python tqdm
+RUN pip3 install numpy opencv-python tqdm scipy matplotlib
 
 #replace cmake as old version has CUDA variable bugs
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.16.0/cmake-3.16.0-Linux-x86_64.tar.gz && \
@@ -35,7 +35,9 @@ WORKDIR /openpose
 RUN pip3 install h5py
 
 WORKDIR /openpose/build/scripts
+
 COPY ./scripts/extract_poses.py ./
-COPY ./scripts/process_hdf5.py ./
+COPY ./scripts/process-hdf5.py ./
+COPY ./scripts/extract_depth.py ./
 
 CMD /bin/bash -c "cd /openpose/build/scripts && find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
