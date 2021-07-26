@@ -40,3 +40,8 @@ parallelization: multiple subjects at once
     *   scan through the hdf5 file to see if each message is within the time range for any of the segments from the meta file (note, this does not include calibration for now)
     *   add any found messages on target topics to the hdf5 file for that experiment/activity/modality. Name hdf5 files per the segment names in the meta files ex: `in-person_simon-says_ros.hdf5`
 4.  put hdf5 file into the hdf5 s3 bucket with prefix for the appropriate subject: `flo-exp-aim1-data-hdf5/<user id, three digits: 008>`
+
+
+### Note: 
+
+Please make sure there is a extrinsics.yaml file in the /data folder 
