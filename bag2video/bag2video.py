@@ -125,6 +125,219 @@ def get_tiled_image_size(image_sizes, cols):
     return (width, height)
 
 
+def get_fourcc(fn):
+    """Get fourcc code based on file extension
+
+    .mp4 -> MP4V
+    .av  -> XVID
+
+    Args:
+        fn: the file path/name which should have an extension
+    """
+    fn_extension = os.path.splitext(fn)
+    if fn_extension[1] == '.mp4':
+        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    elif fn_extension[1] == '.avi':
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    else:
+        LOGGER.error(
+            'invalid file extension on: %s, extension: %s', fn, fn_extension)
+        raise ValueError('invalid file extension on fn arg')
+    return fourcc
+
+
+def construct_vid_writer(output, framerate, size, num=None):
+    """Constructs a video writer object
+
+    Can add a number into the path to differentiate multiple files
+    with the same name. If the num argument is none, does not add
+    such a number
+
+    Args:
+        output: The path/name to write the video to
+        framerate: The framerate for the video
+        size: The frame size for the video
+        num: The sub number for the video
+    """
+    output = os.path.expanduser(output)  # TODO implement num
+
+    fourcc = get_fourcc(output)
+
+    vid_writer = cv2.VideoWriter(output, fourcc, framerate, size)
+
+    return vid_writer
+
+
+def receive_audio_msg(audio, msg, msg_time):
+    """Receive a new audio msg and store it
+
+    Args:
+        audio: The dictionary holding the audio data in field
+               `data`, if need set start in `start` field. Will
+               mutate the input dictionary.
+        msg: The message to process
+        msg_time: The time the message was received.
+    """
+    LOGGER.debug('Received new audio message')
+    if audio['start'] == -1:
+        audio['start'] = msg_time
+        LOGGER.info(
+            'Marking start of audio at %f', audio['start'])
+    audio['data'].append(msg.data)
+
+
+def set_video_start(video, img_time):
+    """Set video start time if not already started.
+
+    Will only make a change if the start time is not already
+    set (as indicated by -1 being set)
+
+    Args:
+        video: The video dictionary which includes key `start`
+        img_time: The time of the latest image.
+    """
+    if video['start'] == -1:
+        video['start'] = img_time
+        LOGGER.info('Marking start of video at %f',
+                    video['start'])
+
+
+def receive_video_msg(video, topic_idx, msg, bridge, vid_writer, columns):
+    """Receive a new video msg and store it
+
+    Args:
+        video: The dictionary holding the video data in field
+               `data`, if needed set the start in `start` field.
+               Will mutate the input dictionary.
+        topic_idx: The index of the topic we are receiving a message
+                   from
+        msg: The message
+        bridge: Ros to CV2 bridge object
+        vid_writer: Opencv bridge writer
+        columns: The number of columns to plot out
+    """
+    LOGGER.debug('Received new image')
+    img_time = msg.header.stamp.to_sec()
+    set_video_start(video, img_time)
+    img_idx = int(
+        round((img_time - video['start']) * video['framerate']))
+    LOGGER.debug('Image index: %i', img_idx)
+    if img_idx < 0:
+        return
+    buffer_length = len(video['images'])
+    while img_idx > video['head']+buffer_length:
+        head_idx = video['head'] % buffer_length
+        LOGGER.debug(
+            'writing out frame %i at buffer idx %i', video['head'], head_idx)
+        img_to_write = retrieve_img_to_write(video)
+        video['head'] += 1
+
+        out_img = stitch_image(img_to_write, columns)
+        vid_writer.write(out_img)
+
+    insert_image(video, msg, topic_idx, img_idx, bridge)
+
+
+def retrieve_img_to_write(video):
+    """Retrieve the next image list to write from the video dictionary.
+
+    For each topic, looks for an image at the current buffer head to
+    write out. If none is found, then use the last stored image
+
+    Args:
+        video: The video dictionary with fields `images` storing the
+               images `head` pointing to the head of the buffer and
+               `last_image` pointing to the last image dropped off
+               of the buffer
+    """
+    head_idx = video['head'] % len(video['images'][0])
+    img_to_write = [None]*len(video['images'])
+    for k_idx, img_list in enumerate(video['images']):
+        LOGGER.debug(
+            'writing out image for topic %i', k_idx)
+        if img_list[head_idx] is not None:
+            img_to_write[k_idx] = img_list[head_idx]
+            video["last_image"][k_idx] = img_list[head_idx]
+        else:
+            img_to_write[k_idx] = video['last_image'][k_idx]
+        img_list[head_idx] = None
+    return img_to_write
+
+
+# TODO: implement support for variable shaped images
+def stitch_image(img_to_write, columns):
+    """Stitch list of images into a cohesive image
+
+    Stitchs across rows first.
+
+    Args:
+        img_to_write: The list of images to write
+        columns: The number of columns
+    """
+    num_rows = int(math.ceil(len(img_to_write)/columns))
+    rows = [None]*num_rows
+    for r_idx in range(num_rows):
+        if columns > 1:
+            rows[r_idx] = cv2.hconcat(img_to_write[
+                r_idx*columns:
+                min(r_idx*columns+columns, len(img_to_write))
+            ])
+        else:
+            rows[r_idx] = img_to_write[r_idx]
+    out_img = cv2.vconcat(rows)
+    return out_img
+
+
+def add_audio(fn, video, audio):
+    """Add audio track to video
+
+    Will take the already written out video file, load it in,
+    pad or trim the start of the audio to match the video
+    start, add the audio, and write back out the video.
+
+    Args:
+        fn: The filename of the video to work with
+        video: Video dictionary with field `start`
+        audio: Audio dictionary with fields `start`, `data`
+               and `sample_rate`
+    """
+    audio_video_offset = audio['start'] - video['start']
+    if audio_video_offset > 0:
+        LOGGER.debug('padding start of audio with silence')
+        audio['data'] = [0]*audio_video_offset * \
+            audio['sample_rate'] + audio['data']
+    elif audio_video_offset < 0:
+        LOGGER.debug('trimming start of audio')
+        audio['data'] = audio['data'][int(
+            audio_video_offset*audio['sample_rate']):len(audio['data'])]
+
+    videoclip = moviepy.video.io.VideoFileClip.VideoFileClip(fn)
+    audioclip = moviepy.audio.AudioClip.AudioArrayClip(
+        audio['data'], fps=audio['sample_rate'])
+    video_with_audio = videoclip.set_audio(audioclip)
+    video_with_audio.write_videofile(fn)
+
+
+def insert_image(video, msg, topic_idx, img_idx, bridge):
+    """Insert image from message into buffer
+
+    Args:
+        video: The video dictionary with fields `images` and
+               `head`. This will be mutated
+        msg: The message with the image to insert
+        topic_idx: The topic index for the message
+        img_idx: The index of this image (based on its time)
+        bridge: Bridge to convert from ros msg to opencv img
+    """
+    buffer_length = len(video['images'])
+    head_idx = video['head'] % buffer_length
+    img_buffer_idx = (
+        (img_idx-video['head']) + head_idx) % buffer_length
+    LOGGER.debug('received image from topic %i', topic_idx)
+    video['images'][topic_idx][img_buffer_idx] = bridge.imgmsg_to_cv2(
+        msg, 'bgr8')
+
+
 def bag2video(
         output,
         audio_topic,
@@ -139,7 +352,7 @@ def bag2video(
     """Extract videos from bag files
 
     Can extract videos from bag files, including audio. Can extract
-    multiple video topics and tile them. 
+    multiple video topics and tile them.
 
     Maintains 2 buffers:
     1. A buffer which is <arg: buffer_length> which is meant to handle
@@ -147,23 +360,23 @@ def bag2video(
     2. A buffer which stores the last image that was removed from the
        previous buffer.
 
-    Uses the timestamp on the image messages to get the right time. 
+    Uses the timestamp on the image messages to get the right time.
     For audio, there is no timestamp, so audio is taken in order
     and just concatenated.
 
     The audio start is either padded with silence or trimmed to match
-    up with the video. 
+    up with the video.
 
     Whenever an image is being written, if there is nothing at the time
-    index where the image should be pulled from, then the most recent 
-    image captured is written. 
+    index where the image should be pulled from, then the most recent
+    image captured is written.
 
-    The video can be optionally split anytime no frames have been read 
+    The video can be optionally split anytime no frames have been read
     for a specified amount of time.
 
     Args:
         output: The filepath to save the complete videos to. Should have
-                the full path, filename, and extension. 
+                the full path, filename, and extension.
         audio_topic:
         columns:
         framerate:
@@ -180,107 +393,34 @@ def bag2video(
 
     topics = found_video_topics+[audio_topic]
 
-    images = [[np.zeros((w, h, c), dtype='uint8')]*(buffer_length*2+1) for w,
-              h, c in found_image_sizes]
-    last_image = [None]*len(found_image_sizes)
-    audio = []
-    audio_start_time = -1
-    video_start_time = -1
-    video_head = 0
-    fps_increment = 1/framerate
+    audio = {'start': -1, 'data': [], 'sample_rate': audio_sample_rate}
+    video = {'start': -1, 'head': 0, 'framerate': framerate,
+             'images': [[np.zeros((w, h, c), dtype='uint8')]*(buffer_length) for w, h, c in found_image_sizes],
+             'last_image': [np.zeros((w, h, c), dtype='uint8') for w, h, c in found_image_sizes]}
 
     vid_frame_size = get_tiled_image_size(found_image_sizes, columns)
     LOGGER.info('Final image size will be (w x h): %i x %i',
                 vid_frame_size[0], vid_frame_size[1])
 
-    output = os.path.expanduser(output)
-
-    output_extension = os.path.splitext(output)
-    if output_extension[1] == '.mp4':
-        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-    elif output_extension[1] == '.avi':
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    else:
-        LOGGER.error(
-            'invalid file extension on output: %s, extension: %s', output, output_extension)
-        raise ValueError('invalid file extension on output arg')
-
-    vid_writer = cv2.VideoWriter(
-        output, fourcc, framerate, (vid_frame_size[0], vid_frame_size[1]))
+    vid_writer = construct_vid_writer(output, framerate, vid_frame_size[0:2])
     bridge = CvBridge()
+
     with logging_redirect_tqdm():
         for bag_fn in tqdm(bag_filenames):
             LOGGER.info('Reading %s', bag_fn)
             bag = rosbag.Bag(bag_fn)
             for topic, msg, msg_time, in bag.read_messages(topics=topics):
                 if topic == audio_topic:
-                    LOGGER.debug('Received new audio message')
-                    if audio_start == -1:
-                        audio_start = msg_time
-                        LOGGER.info(
-                            'Marking start of audio at %f', audio_start)
-                    audio.append(msg.data)
+                    receive_audio_msg(audio, msg, msg_time)
                 else:
-                    LOGGER.debug('Received new image')
-                    img_time = msg.header.stamp.to_sec()
-                    if video_start_time == -1:
-                        video_start_time = img_time
-                        LOGGER.info('Marking start of video at %f',
-                                    video_start_time)
-                    img_idx = int(
-                        round((img_time - video_start_time) * framerate))
-                    LOGGER.debug('Image index: %i', img_idx)
-                    if img_idx < 0:
-                        continue
-                    while img_idx > video_head+buffer_length:
-                        head_idx = video_head % buffer_length
-                        LOGGER.debug('writing out frame %i', head_idx)
-                        img_to_write = [None]*len(found_video_topics)
-                        for k_idx, img_list in enumerate(images):
-                            LOGGER.debug('inserting image for topic %i', k_idx)
-                            if img_list[head_idx] is not None:
-                                img_to_write[k_idx] = img_list[head_idx]
-                                last_image[k_idx] = img_list[head_idx]
-                            else:
-                                img_to_write[k_idx] = last_image[k_idx]
-                            img_list[head_idx] = None
-
-                        video_head += 1
-
-                        num_rows = int(math.ceil(len(img_to_write)/columns))
-                        rows = [None]*num_rows
-                        for r_idx in range(num_rows):
-                            if columns > 1:
-                                rows[r_idx] = cv2.hconcat(img_to_write[
-                                    r_idx*columns:
-                                    min(r_idx*columns+columns, len(img_to_write))
-                                ])
-                            else:
-                                rows[r_idx] = img_to_write[r_idx]
-                        out_img = cv2.vconcat(rows)
-
-                        vid_writer.write(out_img)
-
-                    head_idx = video_head % buffer_length
-                    img_idx = ((img_idx-video_head) + head_idx) % buffer_length
-                    images[topics.index(topic)][img_idx] = bridge.imgmsg_to_cv2(
-                        msg, 'bgr8')
+                    topic_idx = topics.index(topic)
+                    receive_video_msg(video, topic_idx, msg,
+                                      bridge, vid_writer, columns)
 
     vid_writer.release()
     LOGGER.info('finished writing video without audio to: %s', output)
-    audio_video_offset = audio_start_time - video_start_time
-    if audio_video_offset > 0:
-        LOGGER.debug('padding start of audio with silence')
-        audio = [0]*audio_video_offset*audio_sample_rate + audio
-    elif audio_video_offset < 0:
-        LOGGER.debug('trimming start of audio')
-        audio = audio[int(audio_video_offset*audio_sample_rate):len(audio)]
 
-    videoclip = moviepy.video.io.VideoFileClip.VideoFileClip(output)
-    audioclip = moviepy.audio.AudioClip.AudioArrayClip(
-        audio, fps=audio_sample_rate)
-    video_with_audio = videoclip.set_audio(audioclip)
-    video_with_audio.write_videofile(output)
+    add_audio(output, video, audio)
 
 
 if __name__ == '__main__':
