@@ -141,13 +141,11 @@ def bag2video(
     Can extract videos from bag files, including audio. Can extract
     multiple video topics and tile them. 
 
-    Maintains a buffer for two reasons:
-    1. some video topic messages may be delayed. 
-    2. some timestamps might not have a frame from a topic. 
-
-    The buffer will be 2*buffer_length + 1 the middle point is the 
-    point to be saved. The zero index is the oldest currently saved
-    frame and the len(buffer) index is the most recently read timestamp.
+    Maintains 2 buffers:
+    1. A buffer which is <arg: buffer_length> which is meant to handle
+       the potential offset of capture times for different topics.
+    2. A buffer which stores the last image that was removed from the
+       previous buffer.
 
     Uses the timestamp on the image messages to get the right time. 
     For audio, there is no timestamp, so audio is taken in order
@@ -160,8 +158,12 @@ def bag2video(
     index where the image should be pulled from, then the most recent 
     image captured is written. 
 
+    The video can be optionally split anytime no frames have been read 
+    for a specified amount of time.
+
     Args:
-        output:
+        output: The filepath to save the complete videos to. Should have
+                the full path, filename, and extension. 
         audio_topic:
         columns:
         framerate:
@@ -180,8 +182,7 @@ def bag2video(
 
     images = [[np.zeros((w, h, c), dtype='uint8')]*(buffer_length*2+1) for w,
               h, c in found_image_sizes]
-    last_image = [np.zeros((w, h, c), dtype='uint8') for w,
-                  h, c in found_image_sizes]
+    last_image = [None]*len(found_image_sizes)
     audio = []
     audio_start_time = -1
     video_start_time = -1
@@ -234,30 +235,14 @@ def bag2video(
                     while img_idx > video_head+buffer_length:
                         head_idx = video_head % buffer_length
                         LOGGER.debug('writing out frame %i', head_idx)
-                        img_to_write = []
+                        img_to_write = [None]*len(found_video_topics)
                         for k_idx, img_list in enumerate(images):
-                            LOGGER.debug('finding image for topic %i', k_idx)
-                            for back in range(buffer_length):
-                                LOGGER.debug('Looking back by %i', back)
-                                back_idx = (head_idx-back) % buffer_length
-                                if img_list[back_idx]:
-                                    img_list[back_idx] = img_list[back_idx]
-                                    break
-                            if img_list[head_idx]
-                            to_write = img_list[head_idx]
+                            LOGGER.debug('inserting image for topic %i', k_idx)
+                            if img_list[head_idx] is not None:
+                                img_to_write[k_idx] = img_list[head_idx]
+                                last_image[k_idx] = img_list[head_idx]
                             else:
-                                to_write = last_image[k_idx]
-                            img_to_write.append(to_write)
-                            last_image[k_idx] = to_write
-                            if img_list[head_idx] is None:
-                                img_list[head_idx] = np.zeros(
-                                    (
-                                        found_image_sizes[k_idx][1],
-                                        found_image_sizes[k_idx][0],
-                                        3
-                                    ),
-                                    dtype='uint8')
-
+                                img_to_write[k_idx] = last_image[k_idx]
                             img_list[head_idx] = None
 
                         video_head += 1
@@ -319,7 +304,7 @@ if __name__ == '__main__':
     PARSER.add_argument("-z", "--audio_sample_rate", type=int,
                         default=16000, help="The sampling rate (hz) for the audio single " +
                         "(16,000 is the default for ros audio_common)")
-    PARSER.add_argument("-b", "--buffer", type=int, default=10,
+    PARSER.add_argument("-b", "--buffer", type=int, default=100,
                         help="The internal image buffer to maintain to align images. A larger " +
                         "buffer can overcome cameras that are recording far from their capture " +
                         "time. Smaller values will use less memory")
@@ -340,7 +325,7 @@ if __name__ == '__main__':
     # LOGGER.addHandler(CH)
     logging.basicConfig(level=VERBOSITY_OPTIONS[V_IDX])
 
-    main(
+    bag2video(
         ARGS.output,
         ARGS.audio_topic,
         ARGS.columns,
