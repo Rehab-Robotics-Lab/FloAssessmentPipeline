@@ -180,7 +180,7 @@ def receive_audio_msg(audio, msg, msg_time):
     """
     LOGGER.debug('Received new audio message')
     if audio['start'] == -1:
-        audio['start'] = msg_time
+        audio['start'] = msg_time.to_sec()
         LOGGER.info(
             'Marking start of audio at %f', audio['start'])
     audio['data'].append(msg.data)
@@ -224,7 +224,7 @@ def receive_video_msg(video, topic_idx, msg, bridge, vid_writer, columns):
     LOGGER.debug('Image index: %i', img_idx)
     if img_idx < 0:
         return
-    buffer_length = len(video['images'])
+    buffer_length = len(video['images'][0])
     while img_idx > video['head']+buffer_length:
         head_idx = video['head'] % buffer_length
         LOGGER.debug(
@@ -256,9 +256,11 @@ def retrieve_img_to_write(video):
         LOGGER.debug(
             'writing out image for topic %i', k_idx)
         if img_list[head_idx] is not None:
+            LOGGER.debug('found image in buffer')
             img_to_write[k_idx] = img_list[head_idx]
             video["last_image"][k_idx] = img_list[head_idx]
         else:
+            LOGGER.debug('using last image dropped from buffer')
             img_to_write[k_idx] = video['last_image'][k_idx]
         img_list[head_idx] = None
     return img_to_write
@@ -329,7 +331,7 @@ def insert_image(video, msg, topic_idx, img_idx, bridge):
         img_idx: The index of this image (based on its time)
         bridge: Bridge to convert from ros msg to opencv img
     """
-    buffer_length = len(video['images'])
+    buffer_length = len(video['images'][0])
     head_idx = video['head'] % buffer_length
     img_buffer_idx = (
         (img_idx-video['head']) + head_idx) % buffer_length
@@ -395,7 +397,7 @@ def bag2video(
 
     audio = {'start': -1, 'data': [], 'sample_rate': audio_sample_rate}
     video = {'start': -1, 'head': 0, 'framerate': framerate,
-             'images': [[np.zeros((w, h, c), dtype='uint8')]*(buffer_length) for w, h, c in found_image_sizes],
+             'images': [[None]*buffer_length for _ in found_image_sizes],
              'last_image': [np.zeros((w, h, c), dtype='uint8') for w, h, c in found_image_sizes]}
 
     vid_frame_size = get_tiled_image_size(found_image_sizes, columns)
