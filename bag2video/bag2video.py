@@ -11,7 +11,7 @@ import rosbag
 from cv_bridge import CvBridge
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
-import moviepy.editor
+import subprocess
 import pdb
 
 LOGGER = logging.getLogger(__name__)
@@ -183,7 +183,7 @@ def receive_audio_msg(audio, msg, msg_time):
         audio['start'] = msg_time.to_sec()
         LOGGER.info(
             'Marking start of audio at %f', audio['start'])
-    audio['data'].append(msg.data)
+    audio['data'] += msg.data
 
 
 def set_video_start(video, img_time):
@@ -303,21 +303,29 @@ def add_audio(fn, video, audio):
         audio: Audio dictionary with fields `start`, `data`
                and `sample_rate`
     """
-    audio_video_offset = audio['start'] - video['start']
-    if audio_video_offset > 0:
-        LOGGER.debug('padding start of audio with silence')
-        audio['data'] = [0]*audio_video_offset * \
-            audio['sample_rate'] + audio['data']
-    elif audio_video_offset < 0:
-        LOGGER.debug('trimming start of audio')
-        audio['data'] = audio['data'][int(
-            audio_video_offset*audio['sample_rate']):len(audio['data'])]
+    mp3_fn = '{}-tmp.mp3'.format(os.path.splitext(fn)[0])
+    with open(mp3_fn, 'w+') as mp3_file:
+        mp3_file.write(''.join(audio['data']))
 
-    videoclip = moviepy.video.io.VideoFileClip.VideoFileClip(fn)
-    audioclip = moviepy.audio.AudioClip.AudioArrayClip(
-        audio['data'], fps=audio['sample_rate'])
-    video_with_audio = videoclip.set_audio(audioclip)
-    video_with_audio.write_videofile(fn)
+    sp_fn = os.path.splitext(fn)
+    tmp_vid_fn = '{}-tmp{}'.format(sp_fn[0], sp_fn[1])
+
+    audio_video_offset = audio['start'] - video['start']
+    if audio_video_offset >= 0:
+        LOGGER.info('starting video %f seconds before audio',
+                    audio_video_offset)
+        command = 'ffmpeg -i {} -itsoffset {} -i {} -map 0:v -map 1:a -c:v copy {}'.format(
+            tmp_vid_fn, audio_video_offset, mp3_fn, fn)
+    else:
+        LOGGER.info('starting audio %f seconds before video',
+                    abs(audio_video_offset))
+        command = 'ffmpeg -i {} -itsoffset {} -i {} -map 0:a -map 1:v -c:v copy {}'.format(
+            mp3_fn, abs(audio_video_offset), tmp_vid_fn, fn)
+    LOGGER.debug('Combining video and audio with: %s', command)
+    return_code = subprocess.call(command, shell=True)
+    if return_code != 0:
+        raise RuntimeError(
+            'failed at running ffmpeg to combine audio and video')
 
 
 def insert_image(video, msg, topic_idx, img_idx, bridge):
@@ -404,7 +412,10 @@ def bag2video(
     LOGGER.info('Final image size will be (w x h): %i x %i',
                 vid_frame_size[0], vid_frame_size[1])
 
-    vid_writer = construct_vid_writer(output, framerate, vid_frame_size[0:2])
+    sp_fn = os.path.splitext(output)
+    tmp_vid_fn = '{}-tmp{}'.format(sp_fn[0], sp_fn[1])
+    vid_writer = construct_vid_writer(
+        tmp_vid_fn, framerate, vid_frame_size[0:2])
     bridge = CvBridge()
 
     with logging_redirect_tqdm():
@@ -420,7 +431,7 @@ def bag2video(
                                       bridge, vid_writer, columns)
 
     vid_writer.release()
-    LOGGER.info('finished writing video without audio to: %s', output)
+    LOGGER.info('finished writing video without audio to: %s', tmp_vid_fn)
 
     add_audio(output, video, audio)
 
