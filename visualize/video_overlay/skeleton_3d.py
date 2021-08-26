@@ -17,8 +17,8 @@ import copy
 # Inspiration from: https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55
 
 
-def animate(iteration, data, scatters, lines, texts, ax, joint_pairs):
-    for i in range(data.shape[1]):
+def animate(iteration, data, scatters, lines, texts, ax, joint_pairs, keypoints):
+    for i in keypoints:
         scatters[i]._offsets3d = (data[iteration, i, 0:1], data[iteration, i, 1:2], data[iteration, i, 2:])
 
     for i, line in enumerate(lines):
@@ -33,20 +33,21 @@ def animate(iteration, data, scatters, lines, texts, ax, joint_pairs):
     return scatters, lines, texts
 
 
-def skeleton_3d(file_stub, cam, save = False):
+def skeleton_3d(file_stub, cam, save = False, show = False):
     hdf5_video = h5py.File(file_stub+'.hdf5', 'r')
     hdf5_tracking = h5py.File(file_stub+'-novid.hdf5', 'r')
     color_dset = 'vid/color/data/{}/data'.format(cam)
 
     points3d = hdf5_tracking[color_dset + '-3dkeypoints-stereo']
 
+    keypoints = [4, 3, 2, 1, 5, 6, 7, 8, 0]
     joint_pairs = [(0, 1), (4, 3), (3, 2), (2, 1), (1, 5), (5, 6), (6, 7), (1, 8)]
     annotations = ['nose', 'neck', 'lshoulder', 'lelbow', 'lwrist', 'rshoulder', 'relbow', 'rwrists', 'waist']
 
     fig = plt.figure()
     ax = p3.Axes3D(fig)
 
-    scatters = [ ax.scatter(points3d[0, i, 0:1], points3d[0, i, 1:2], points3d[0, i, 2:]) for i in range(points3d.shape[1]) ]
+    scatters = [ ax.scatter(points3d[0, i, 0:1], points3d[0, i, 1:2], points3d[0, i, 2:]) for i in keypoints]
 
     lines = [ ax.plot([points3d[0, joint[0], 0], points3d[0, joint[1], 0]],
                             [points3d[0, joint[0], 1], points3d[0, joint[1], 1]],
@@ -73,15 +74,15 @@ def skeleton_3d(file_stub, cam, save = False):
     ani = animation.FuncAnimation(fig,
                                   animate,
                                   len(points3d),
-                                  fargs=(points3d, scatters, lines, texts, ax, joint_pairs),
+                                  fargs=(points3d, scatters, lines, texts, ax, joint_pairs, keypoints),
                                   interval=50)
 
     if save:
         writervideo = animation.FFMpegWriter(fps=60)
         ani.save(file_stub + '3d-skeleton.avi', writer=writervideo)
 
-    #plt.show()
+    if show:
+        plt.show()
 
     hdf5_video.close()
     hdf5_tracking.close()
-
