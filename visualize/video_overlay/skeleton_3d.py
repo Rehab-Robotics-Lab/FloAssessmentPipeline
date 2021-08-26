@@ -12,6 +12,7 @@ import math
 import sys
 from utils import draw_text
 from utils import colorScale
+import kinematics.extract_profiles as k
 import copy
 
 # Inspiration from: https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55
@@ -58,6 +59,12 @@ def skeleton_3d(file_stub, cam, save = False, show = False):
              '%s' % (annotations[i]),
              size=5,
              zorder=1, color='k') for i in range(len(annotations))]
+
+
+    frames = {}
+
+    r_fixed_frame = k.right_shoulder_fixed_frame(points3d[0])
+    rs_f = [ax.quiver(points3d[0, , 2],) for i in range(3)]
 
     ax.set_xlim3d([-1, 1])
     ax.set_xlabel('X')
