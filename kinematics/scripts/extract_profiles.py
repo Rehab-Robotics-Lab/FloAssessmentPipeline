@@ -81,8 +81,8 @@ def right_shoulder_moving_frame(keypoints):
     
     #Defining moving Frame at Left Shoulder (ls)
     rs_x = normalize(right_shoulder - right_elbow)
-    rs_y = normalize(np.cross(right_elbow - right_wrist, rs_x))
-    rs_z = normalize(np.cross(rs_x, rs_y))
+    rs_z = normalize(np.cross(rs_x, right_elbow - right_wrist))
+    rs_y = normalize(np.cross(rs_z, rs_x))
     rs_moving_frame = np.asarray([rs_x,rs_y,rs_z]).T
 
     return rs_moving_frame
@@ -113,8 +113,8 @@ def left_shoulder_moving_frame(keypoints):
     
     #Defining moving Frame at Left Shoulder (ls)
     ls_x = normalize(left_elbow - left_shoulder)
-    ls_y = normalize(np.cross(left_elbow - left_wrist, ls_x))
-    ls_z = normalize(np.cross(ls_x, ls_y))
+    ls_z = normalize(np.cross(ls_x, left_elbow - left_wrist,))
+    ls_y = normalize(np.cross(ls_z, ls_x))
     ls_moving_frame = np.asarray([ls_x,ls_y,ls_z]).T
 
     return ls_moving_frame
