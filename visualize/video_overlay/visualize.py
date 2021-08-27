@@ -23,6 +23,6 @@ if __name__ == '__main__':
 
     elif func == '3dSkeleton':
         print('creating 3d skeleton GIF')
-        skeleton_3d(file_stub, cam, save = True, show = True)
+        skeleton_3d(file_stub, cam, save = False, show = True)
     else:
         print('Invalid OVERLAY option')
