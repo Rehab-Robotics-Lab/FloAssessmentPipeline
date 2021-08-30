@@ -126,11 +126,14 @@ def shoulder_angular_motion(keypoints):
     '''
     fixed_frame = right_shoulder_fixed_frame(keypoints)
     moving_frame = right_shoulder_moving_frame(keypoints)
-
-    
     R_mat = fixed_frame @ np.linalg.inv(moving_frame)
-    r = R.quaternion_from_matrix(R_mat)
+    r_right_shoulder = R.from_matrix(R_mat)
 
-    return r
+    fixed_frame = left_shoulder_fixed_frame(keypoints)
+    moving_frame = left_shoulder_moving_frame(keypoints)
+    R_mat = fixed_frame @ np.linalg.inv(moving_frame)
+    r_left_shoulder = R.from_matrix(R_mat)
+
+    return r_right_shoulder, r_left_shoulder
 
     

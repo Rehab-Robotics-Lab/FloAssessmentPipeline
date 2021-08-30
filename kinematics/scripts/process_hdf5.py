@@ -3,8 +3,13 @@
 
 import sys
 import numpy as np
+from numpy.linalg import norm
 import extract_profiles as ep
+from scipy.spatial.transform import Rotation as R
+import matplotlib.pyplot as plt
 import h5py
+
+CHUNK_SIZE = 500
 
 def extract_kinematics(pth):
     # pylint: disable= too-many-statements
@@ -17,7 +22,7 @@ def extract_kinematics(pth):
 
     # open hdf5 file
     try:
-        hdf5_tracking = h5py.File(pth, 'r')
+        hdf5_tracking = h5py.File(pth, 'a')
     except:  # pylint: disable=bare-except
         print('HDF5 database could not be read')
         raise
@@ -29,46 +34,73 @@ def extract_kinematics(pth):
                  np.asarray(hdf5_tracking['vid/color/data/lower/nsecs'])
 
     keypoints  = hdf5_tracking[topic_3dkeypoints]
-    print(keypoints.shape)
+    
+    r_right_shoulder, r_left_shoulder = ep.shoulder_angular_motion(keypoints[0])
+    all_right_shoulder = [r_right_shoulder]
+    all_left_shoulder = [r_left_shoulder]
+    threshold = 2
+    
+    diff = []
+    
+    #Outlier rejection
+    for i in range(1, keypoints.shape[0]):
+        r_right_shoulder, r_left_shoulder = ep.shoulder_angular_motion(keypoints[i])
+        
+        if(norm(all_right_shoulder[-1].as_quat() - r_right_shoulder.as_quat()) < threshold):
+            diff.append(norm(all_right_shoulder[-1].as_quat() - r_right_shoulder.as_quat()))
+            all_right_shoulder.append(r_right_shoulder)
+        else:
+            all_right_shoulder.append(all_right_shoulder[-1]) #Copy previous value
 
-    right_wrist_kp = ep.extract_right_wrist_points(keypoints)
-    left_wrist_kp = ep.extract_left_wrist_points(keypoints)
+        if(norm(all_left_shoulder[-1].as_quat() - r_left_shoulder.as_quat()) < threshold):
+            diff.append(norm(all_left_shoulder[-1].as_quat() - r_left_shoulder.as_quat()))
+            all_left_shoulder.append(r_left_shoulder)
+        else:
+            all_left_shoulder.append(all_left_shoulder[-1]) #Copy previous value
+        
+    
+    fig = plt.figure()
+    plt.scatter(np.arange(len(diff)), diff)
+    plt.show()
+   
+    #Moving Average
+    move_avg_ls = all_left_shoulder[0].as_quat()
+    move_avg_rs = all_right_shoulder[0].as_quat()
+    
+    window  = 5 #Window for moving average
 
-    print(right_wrist_kp.shape)
-    print(left_wrist_kp.shape)
+    for i in range(1, window):
+        move_avg_ls = move_avg_ls  + all_left_shoulder[i].as_quat()
+        move_avg_rs = move_avg_rs + all_right_shoulder[i].as_quat()
 
-    rw_vel, timestamps_vel = ep.velocity_profile(right_wrist_kp, timestamps)
-    lw_vel, timestamps_vel = ep.velocity_profile(left_wrist_kp, timestamps)
+    move_avg_ls = move_avg_ls/window
+    move_avg_rs = move_avg_rs/window
 
-    print("rw_vel :", rw_vel.shape)
-    print("lw_vel :", lw_vel.shape)
+    for i in range(window, len(all_left_shoulder)):
+        move_avg_rs = (move_avg_rs * window) - all_right_shoulder[i-window].as_quat() + all_right_shoulder[i].as_quat()
+        move_avg_rs = move_avg_rs/window
+        all_right_shoulder[i] = R.from_quat(move_avg_rs)
 
-    rw_range_mov = ep.range_of_movement(right_wrist_kp)
-    lw_range_mov = ep.range_of_movement(left_wrist_kp)
+        move_avg_ls = (move_avg_ls * window) - all_left_shoulder[i-window].as_quat() + all_left_shoulder[i].as_quat()
+        move_avg_ls = move_avg_ls/window
+        all_left_shoulder[i] = R.from_quat(move_avg_ls)
 
-    print(rw_range_mov.shape)
-    print(lw_range_mov.shape)
+    #Creating and population HDF5 Dataset
+    topics = ['features/ls_z_rot', 'features/ls_x_rot', 'features/ls_y_rot' ,
+                'features/rs_z_rot' ,'features/rs_x_rot' , 'features/rs_y_rot']
 
-    rw_time_to_max = ep.time_to_max_velocity(rw_vel, timestamps_vel)
-    lw_time_to_max = ep.time_to_max_velocity(lw_vel, timestamps_vel)
+    for topic in topics:
+        hdf5_tracking.create_dataset(topic, (len(all_left_shoulder),),
+                                    maxshape=(None,),
+                                    dtype=np.float, chunks=(CHUNK_SIZE,))
 
-    print(rw_time_to_max.shape)
-    print(lw_time_to_max.shape)
-
-    rw_range_motion = ep.range_of_motion(rw_vel, timestamps_vel)
-    lw_range_motion = ep.range_of_motion(lw_vel, timestamps_vel)
-
-    print(rw_range_motion.shape)
-    print(lw_range_motion.shape)
-
-    rw_jerk = ep.jerk(rw_vel, timestamps_vel)
-    lw_jerk = ep.jerk(lw_vel, timestamps_vel)
-
-    print(rw_jerk.shape)
-    print(lw_jerk.shape)
-
-    #Make Feature Vector here (8 Features)
-
+    for i in range(len(all_left_shoulder)):
+        euler_ls = all_left_shoulder[i].as_euler('zxy')
+        euler_rs = all_right_shoulder[i].as_euler('zxy')
+        all_eulers = np.concatenate((euler_ls, euler_rs))
+        for j, topic in enumerate(topics):
+            hdf5_tracking[topic][i] = all_eulers[j]
+     
     print('done processing')
     hdf5_tracking.close()
     print('done closing')
