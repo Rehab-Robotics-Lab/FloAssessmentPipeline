@@ -6,6 +6,7 @@ import numpy as np
 from numpy.linalg import norm
 import extract_profiles as ep
 from scipy.spatial.transform import Rotation as R
+from scipy.signal import convolve
 import matplotlib.pyplot as plt
 import h5py
 
@@ -79,27 +80,8 @@ def extract_kinematics(pth):
     plt.scatter(np.arange(len(diff)), diff)
     plt.show()
    
-    #Moving Average
-    move_avg_ls = all_left_shoulder[0].as_quat()
-    move_avg_rs = all_right_shoulder[0].as_quat()
-    
+    #Moving Average    
     window  = 5 #Window for moving average
-
-    for i in range(1, window):
-        move_avg_ls = move_avg_ls  + all_left_shoulder[i].as_quat()
-        move_avg_rs = move_avg_rs + all_right_shoulder[i].as_quat()
-
-    move_avg_ls = move_avg_ls/window
-    move_avg_rs = move_avg_rs/window
-
-    for i in range(window, len(all_left_shoulder)):
-        move_avg_rs = (move_avg_rs * window) - all_right_shoulder[i-window].as_quat() + all_right_shoulder[i].as_quat()
-        move_avg_rs = move_avg_rs/window
-        all_right_shoulder[i] = R.from_quat(move_avg_rs)
-
-        move_avg_ls = (move_avg_ls * window) - all_left_shoulder[i-window].as_quat() + all_left_shoulder[i].as_quat()
-        move_avg_ls = move_avg_ls/window
-        all_left_shoulder[i] = R.from_quat(move_avg_ls)
 
     for i in range(len(all_left_shoulder)):
         euler_ls = all_left_shoulder[i].as_euler('zxy')
@@ -108,8 +90,11 @@ def extract_kinematics(pth):
         for j, topic in enumerate(topics):
             hdf5_tracking[topic][i] = all_eulers[j]
 
-
     for topic in topics:
+        plt.plot(hdf5_tracking[topic])
+        plt.show()
+        smoothed = convolve(hdf5_tracking[topic], np.ones(window)/window, mode= 'same')
+        hdf5_tracking[topic][:] = smoothed
         plt.plot(hdf5_tracking[topic])
         plt.show()
 
