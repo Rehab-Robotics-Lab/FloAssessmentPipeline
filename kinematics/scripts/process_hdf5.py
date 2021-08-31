@@ -38,22 +38,38 @@ def extract_kinematics(pth):
     r_right_shoulder, r_left_shoulder = ep.shoulder_angular_motion(keypoints[0])
     all_right_shoulder = [r_right_shoulder]
     all_left_shoulder = [r_left_shoulder]
-    threshold = 2
-    
+    threshold = 0.1
+
+    #Creating and population HDF5 Dataset
+    topics = ['features/ls_z_rot', 'features/ls_x_rot', 'features/ls_y_rot' ,
+                'features/rs_z_rot' ,'features/rs_x_rot' , 'features/rs_y_rot']
+
+    for topic in topics:
+        if topic not in hdf5_tracking:
+            hdf5_tracking.create_dataset(topic, (len(all_left_shoulder),),
+                                    maxshape=(None,),
+                                    dtype=np.float, chunks=(CHUNK_SIZE,))
+
     diff = []
-    
     #Outlier rejection
     for i in range(1, keypoints.shape[0]):
         r_right_shoulder, r_left_shoulder = ep.shoulder_angular_motion(keypoints[i])
-        
-        if(norm(all_right_shoulder[-1].as_quat() - r_right_shoulder.as_quat()) < threshold):
-            diff.append(norm(all_right_shoulder[-1].as_quat() - r_right_shoulder.as_quat()))
+
+        angle_right = min(np.arccos(np.dot(all_right_shoulder[-1].as_quat(), r_right_shoulder.as_quat()))/2,
+                      np.arccos(np.dot(all_right_shoulder[-1].as_quat(), -1*r_right_shoulder.as_quat()))/2)
+
+        angle_left = min(np.arccos(np.dot(all_left_shoulder[-1].as_quat(), r_left_shoulder.as_quat()))/2,
+                    np.arccos(np.dot(all_left_shoulder[-1].as_quat(), -1*r_left_shoulder.as_quat()))/2)
+
+        diff.append(angle_right)
+        diff.append(angle_left)
+
+        if(angle_right < threshold):
             all_right_shoulder.append(r_right_shoulder)
         else:
             all_right_shoulder.append(all_right_shoulder[-1]) #Copy previous value
 
-        if(norm(all_left_shoulder[-1].as_quat() - r_left_shoulder.as_quat()) < threshold):
-            diff.append(norm(all_left_shoulder[-1].as_quat() - r_left_shoulder.as_quat()))
+        if(angle_left < threshold):
             all_left_shoulder.append(r_left_shoulder)
         else:
             all_left_shoulder.append(all_left_shoulder[-1]) #Copy previous value
@@ -85,22 +101,18 @@ def extract_kinematics(pth):
         move_avg_ls = move_avg_ls/window
         all_left_shoulder[i] = R.from_quat(move_avg_ls)
 
-    #Creating and population HDF5 Dataset
-    topics = ['features/ls_z_rot', 'features/ls_x_rot', 'features/ls_y_rot' ,
-                'features/rs_z_rot' ,'features/rs_x_rot' , 'features/rs_y_rot']
-
-    for topic in topics:
-        hdf5_tracking.create_dataset(topic, (len(all_left_shoulder),),
-                                    maxshape=(None,),
-                                    dtype=np.float, chunks=(CHUNK_SIZE,))
-
     for i in range(len(all_left_shoulder)):
         euler_ls = all_left_shoulder[i].as_euler('zxy')
         euler_rs = all_right_shoulder[i].as_euler('zxy')
         all_eulers = np.concatenate((euler_ls, euler_rs))
         for j, topic in enumerate(topics):
             hdf5_tracking[topic][i] = all_eulers[j]
-     
+
+
+    for topic in topics:
+        plt.plot(hdf5_tracking[topic])
+        plt.show()
+
     print('done processing')
     hdf5_tracking.close()
     print('done closing')
