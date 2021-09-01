@@ -2,6 +2,7 @@
 """Module to extract kinematic measures from previously processed hdf5 files"""
 
 import sys
+import argparse
 import numpy as np
 from numpy.linalg import norm
 import extract_profiles as ep
@@ -20,7 +21,7 @@ def create_dataset(hdf5_obj, topics, shape, chunks = (CHUNK_SIZE,),
                                     maxshape = maxshape,
                                     dtype = data_type, chunks = chunks)
 
-def extract_kinematics(pth):
+def extract_kinematics(pth, debug):
     # pylint: disable= too-many-statements
     """
     Function to extract kinematics given a dataset
@@ -112,10 +113,11 @@ def extract_kinematics(pth):
         all_eulers = np.concatenate((euler_ls, euler_rs))
         for j, topic in enumerate(rot_topics):
             hdf5_tracking[topic][i] = all_eulers[j]
-
-    fig = plt.figure()
-    plt.scatter(np.arange(len(diff)), diff)
-    plt.show()
+    
+    if debug:
+        fig = plt.figure()
+        plt.scatter(np.arange(len(diff)), diff)
+        plt.show()
    
     #Smoothing and differentials
     for i, rot_topic in enumerate(rot_topics):
@@ -125,11 +127,12 @@ def extract_kinematics(pth):
         hdf5_tracking[vel_topics[i]][:smoothed_signal.shape[0]-1] = ep.diff(smoothed_signal, timestamps)
         hdf5_tracking[acc_topics[i]][:smoothed_signal.shape[0]-2] = ep.diff(ep.diff(smoothed_signal, timestamps), timestamps[1:])
 
-        fig, axs = plt.subplots(ncols = 3)
-        axs[0].plot(hdf5_tracking[rot_topic])
-        axs[1].plot(hdf5_tracking[vel_topics[i]])
-        axs[2].plot(hdf5_tracking[acc_topics[i]])
-        plt.show()
+        if debug:
+            fig, axs = plt.subplots(ncols = 3)
+            axs[0].plot(hdf5_tracking[rot_topic])
+            axs[1].plot(hdf5_tracking[vel_topics[i]])
+            axs[2].plot(hdf5_tracking[acc_topics[i]])
+            plt.show()
 
     print('done processing')
     hdf5_tracking.close()
@@ -137,4 +140,9 @@ def extract_kinematics(pth):
 
 
 if __name__ == '__main__':
-    extract_kinematics(sys.argv[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--infile', type = str, default = '', required = True)
+    parser.add_argument('--debug', type = bool, default = False, required = False)
+    args = parser.parse_args()
+
+    extract_kinematics(args.infile, args.debug)
