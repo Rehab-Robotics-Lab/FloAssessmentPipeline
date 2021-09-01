@@ -6,6 +6,7 @@ import sys
 from overlay_wrists import overlay_wrists
 from skeleton_overlay2d import overlay_2dSkeleton
 from skeleton_3d import  skeleton_3d
+from overlay_angular_motion import overlay_angular_motion
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
@@ -24,5 +25,10 @@ if __name__ == '__main__':
     elif func == '3dSkeleton':
         print('creating 3d skeleton GIF')
         skeleton_3d(file_stub, cam, save = False, show = True)
+    
+    elif func == 'angular_motion':
+        print('Plotting Angular motion at Shoulders')
+        overlay_angular_motion(file_stub, cam, save = False, show = True)
+
     else:
         print('Invalid OVERLAY option')
