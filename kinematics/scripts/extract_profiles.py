@@ -136,4 +136,14 @@ def shoulder_angular_motion(keypoints):
 
     return r_right_shoulder, r_left_shoulder
 
+def diff(signal, timestamps):
+    '''
+    Given a 1D signal and timestamps calculate the differential of the
+    signal
+    '''
+    assert(signal.shape[0] == timestamps.shape[0])
+    dx = np.diff(signal)
+    dt = timestamps[1:] - timestamps[0]
+    gradient = np.divide(dx,dt)
+    return gradient
     
