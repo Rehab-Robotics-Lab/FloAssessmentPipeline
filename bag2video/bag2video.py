@@ -69,9 +69,9 @@ def find_image_sizes(bag_filenames, video_topics):
     bridge = CvBridge()
     for idx, topic in enumerate(video_topics):
         LOGGER.debug('looking for image size for: %s', topic)
-        for bag_fn in bag_filenames:
-            LOGGER.debug('looking in %s', bag_fn)
-            bag = rosbag.Bag(bag_fn)
+        for bag_filename in bag_filenames:
+            LOGGER.debug('looking in %s', bag_filename)
+            bag = rosbag.Bag(bag_filename)
             try:
                 _, msg, _ = next(bag.read_messages([topic]))
                 height, width, channels = bridge.imgmsg_to_cv2(
@@ -135,19 +135,19 @@ def get_fourcc(filename):
     Args:
         filename: the file path/name which should have an extension
     """
-    fn_extension = os.path.splitext(filename)
-    if fn_extension[1] == '.mp4':
+    filename_extension = os.path.splitext(filename)
+    if filename_extension[1] == '.mp4':
         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-    elif fn_extension[1] == '.avi':
+    elif filename_extension[1] == '.avi':
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
     else:
         LOGGER.error(
-            'invalid file extension on: %s, extension: %s', filename, fn_extension)
-        raise ValueError('invalid file extension on fn arg')
+            'invalid file extension on: %s, extension: %s', filename, filename_extension)
+        raise ValueError('invalid file extension on filename arg')
     return fourcc
 
 
-def construct_vid_writer(output, framerate, size, num=None):
+def construct_vid_writer(output, framerate, size):
     """Constructs a video writer object
 
     Can add a number into the path to differentiate multiple files
@@ -158,9 +158,8 @@ def construct_vid_writer(output, framerate, size, num=None):
         output: The path/name to write the video to
         framerate: The framerate for the video
         size: The frame size for the video
-        num: The sub number for the video
     """
-    output = os.path.expanduser(output)  # TODO implement num
+    output = os.path.expanduser(output)
 
     fourcc = get_fourcc(output)
 
@@ -205,6 +204,7 @@ def set_video_start(video, img_time, msg_time):
 
 
 def receive_video_msg(video, topic_idx, msg, msg_time, bridge, vid_writer, columns):
+    # pylint: disable=too-many-arguments
     """Receive a new video msg and store it
 
     Args:
@@ -235,6 +235,13 @@ def receive_video_msg(video, topic_idx, msg, msg_time, bridge, vid_writer, colum
 
 
 def write_image(video, vid_writer, columns):
+    """Write the head image out.
+
+    Args:
+        video: The video dictionary with keys `head` and `images`
+        vid_writer: The cv2 video writer object
+        columns: The number of columns the final image should have
+    """
     buffer_length = len(video['images'][0])
     head_idx = video['head'] % buffer_length
     LOGGER.debug(
@@ -299,7 +306,7 @@ def stitch_image(img_to_write, columns):
     return out_img
 
 
-def add_audio(fn, video, audio):
+def add_audio(filename, video, audio):
     """Add audio track to video
 
     Will take the already written out video file, load it in,
@@ -307,34 +314,46 @@ def add_audio(fn, video, audio):
     start, add the audio, and write back out the video.
 
     Args:
-        fn: The filename of the video to work with
+        filename: The filename of the video to work with
         video: Video dictionary with field `start`
         audio: Audio dictionary with fields `start`, `data`
                and `sample_rate`
     """
-    mp3_fn = '{}-tmp.mp3'.format(os.path.splitext(fn)[0])
-    with open(mp3_fn, 'w+') as mp3_file:
+    mp3_filename = '{}-tmp.mp3'.format(os.path.splitext(filename)[0])
+    with open(mp3_filename, 'w+') as mp3_file:
         mp3_file.write(''.join(audio['data']))
 
-    sp_fn = os.path.splitext(fn)
-    tmp_vid_fn = '{}-tmp{}'.format(sp_fn[0], sp_fn[1])
+    tmp_vid_filename = get_tmp_vid_filename(filename)
 
     audio_video_offset = audio['start'] - video['first_msg_time']
     if audio_video_offset >= 0:
         LOGGER.info('starting video %f seconds before audio',
                     audio_video_offset)
         command = 'ffmpeg -y -i {} -itsoffset {} -i {} -map 0:v -map 1:a -c:v copy {}'.format(
-            tmp_vid_fn, audio_video_offset, mp3_fn, fn)
+            tmp_vid_filename, audio_video_offset, mp3_filename, filename)
     else:
         LOGGER.info('starting audio %f seconds before video',
                     abs(audio_video_offset))
         command = 'ffmpeg -y -i {} -itsoffset {} -i {} -map 0:a -map 1:v -c:v copy {}'.format(
-            mp3_fn, abs(audio_video_offset), tmp_vid_fn, fn)
+            mp3_filename, abs(audio_video_offset), tmp_vid_filename, filename)
     LOGGER.debug('Combining video and audio with: %s', command)
     return_code = subprocess.call(command, shell=True)
     if return_code != 0:
         raise RuntimeError(
             'failed at running ffmpeg to combine audio and video')
+    os.remove(mp3_filename)
+    os.remove(tmp_vid_filename)
+
+
+def get_tmp_vid_filename(filename):
+    """Generate a temporary video filename based on the passed in filename
+
+    Args:
+        filename: The root filename to add temp into
+    """
+    sp_filename = os.path.splitext(filename)
+    tmp_vid_filename = '{}-tmp{}'.format(sp_filename[0], sp_filename[1])
+    return tmp_vid_filename
 
 
 def insert_image(video, msg, topic_idx, img_idx, bridge):
@@ -359,6 +378,7 @@ def insert_image(video, msg, topic_idx, img_idx, bridge):
         msg, 'bgr8')
 
 
+#pyint: disable=too-many-local-variables
 def bag2video(
         output,
         audio_topic,
@@ -418,33 +438,81 @@ def bag2video(
     for topic in topics:
         LOGGER.info('\t%s', topic)
 
-    audio = {'start': -1, 'data': [], 'sample_rate': audio_sample_rate}
-    video = {'start': -1, 'head': 0, 'framerate': framerate,
-             'images': [[None]*buffer_length for _ in found_image_sizes],
-             'last_image': [np.zeros((w, h, c), dtype='uint8') for w, h, c in found_image_sizes]}
+    audio = construct_audio(audio_sample_rate)
+    video = construct_video(framerate, buffer_length, found_image_sizes)
+    last_vid_time = -1
 
     vid_frame_size = get_tiled_image_size(found_image_sizes, columns)
     LOGGER.info('Final image size will be (w x h): %i x %i',
                 vid_frame_size[0], vid_frame_size[1])
 
-    sp_fn = os.path.splitext(output)
-    tmp_vid_fn = '{}-tmp{}'.format(sp_fn[0], sp_fn[1])
+    tmp_vid_filename = get_tmp_vid_filename(output)
     vid_writer = construct_vid_writer(
-        tmp_vid_fn, framerate, vid_frame_size[0:2])
+        tmp_vid_filename, framerate, vid_frame_size[0:2])
     bridge = CvBridge()
 
     with logging_redirect_tqdm():
-        for bag_fn in tqdm(bag_filenames):
-            LOGGER.info('Reading %s', bag_fn)
-            bag = rosbag.Bag(bag_fn)
+        for bag_filename in tqdm(bag_filenames):
+            LOGGER.info('Reading %s', bag_filename)
+            bag = rosbag.Bag(bag_filename)
             for topic, msg, msg_time, in bag.read_messages(topics=topics):
+                if last_vid_time != -1 and (msg_time.to_sec() - last_vid_time) > split_time:
+                    write_out(video, audio, output, vid_writer, columns)
+                    last_vid_time = -1
+                    audio = construct_audio(audio_sample_rate)
+                    video = construct_video(
+                        framerate, buffer_length, found_image_sizes)
+                    vid_writer = construct_vid_writer(
+                        tmp_vid_filename, framerate, vid_frame_size[0:2])
                 if topic == audio_topic:
                     receive_audio_msg(audio, msg, msg_time)
                 else:
                     topic_idx = topics.index(topic)
+                    last_vid_time = msg_time.to_sec()
                     receive_video_msg(video, topic_idx, msg, msg_time,
                                       bridge, vid_writer, columns)
 
+        write_out(video, audio, output, vid_writer, columns)
+
+
+def construct_audio(audio_sample_rate):
+    """Construct the audio dictionary, empty
+
+    Args:
+        audio_sample_rate: The sampling rate for the audio
+    """
+    audio = {'start': -1, 'data': [], 'sample_rate': audio_sample_rate}
+    return audio
+
+
+def construct_video(framerate, buffer_length, image_sizes):
+    """Construct the video dictionary, empty
+
+    Args:
+        framerate: The video framerate
+        buffer_length: The length of the buffer for video to maintain
+        image_sizes: The sizes of the images that will be inserted
+    """
+    video = {'start': -1, 'head': 0, 'framerate': framerate,
+             'images': [[None]*buffer_length for _ in image_sizes],
+             'last_image': [np.zeros((w, h, c), dtype='uint8')
+                            for w, h, c in image_sizes]}
+    return video
+
+
+def write_out(video, audio, filename, vid_writer, columns):
+    """Write out the remaining data, including any un added images
+    and the audio data.
+
+    Will create a intermediate temporary file in the progress.
+
+    Args:
+        video: The video data dictionary
+        audio: The audio data dictionary
+        filename: The target output filename
+        vid_writer: The OpenCV video writer object
+        columns: The number of columns to use when writing out the video
+    """
     while not all(
             all(img is None for img in video['images'][cam])
             for cam in range(len(video['images']))
@@ -452,9 +520,11 @@ def bag2video(
         write_image(video, vid_writer, columns)
 
     vid_writer.release()
-    LOGGER.info('finished writing video without audio to: %s', tmp_vid_fn)
+    tmp_vid_filename = get_tmp_vid_filename(filename)
+    LOGGER.info('finished writing video without audio to: %s',
+                tmp_vid_filename)
 
-    add_audio(output, video, audio)
+    add_audio(filename, video, audio)
 
 
 if __name__ == '__main__':
