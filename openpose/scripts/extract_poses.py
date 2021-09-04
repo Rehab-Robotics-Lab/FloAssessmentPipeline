@@ -46,7 +46,7 @@ The last channel is taken as number of images
     """
     # Params defined here: https://github.com/CMU-Perceptual-Computing-Lab/
     #                      openpose/blob/master/include/openpose/flags.hpp
-    params = dict()
+    params = {}
     params["model_folder"] = "../../models/"
     params["logging_level"] = 5
     params["number_people_max"] = 1
