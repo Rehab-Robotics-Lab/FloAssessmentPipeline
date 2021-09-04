@@ -19,6 +19,7 @@ TODO
     Add additional topics apart from image topics
 """
 
+import io
 import pathlib
 import copy
 #import time
@@ -71,7 +72,7 @@ def match_video_2_data(meta_data):
                          meta_data['bag-mapping'].keys())
     data_topics = filter(lambda x: 'vid' and 'data' in x,
                          meta_data['bag-mapping'].keys())
-    data_info_mapping = dict()
+    data_info_mapping = {}
     for topic in data_topics:
         target_name = topic.replace('data', 'info')
         if target_name in info_topics:
@@ -115,7 +116,7 @@ def load_meta_file(meta_filename):
     Returns: dictionary of parsed meta file
     """
     # Read in meta file
-    with open(meta_filename, 'r') as stream:
+    with io.open(meta_filename, 'r', encoding='utf8') as stream:
         try:
             meta_data = yaml.safe_load(stream)
         except yaml.YAMLError as err:
@@ -149,6 +150,7 @@ def get_topic_info(data_info_mapping, bag_file, meta_data):
         topic_info[vid_topic] = msg
     return topic_info
 
+
 def get_realsense_extrinsics(bag_file):
     """Extracts extrinsics for all realsense cameras
 
@@ -167,7 +169,7 @@ def get_realsense_extrinsics(bag_file):
         lambda val: 'extrinsics' and 'depth_to_color' in val, realsense_topics)
 
     extrinsics = {}
-    with open('/data/extrinsics.yaml', 'r') as stream:
+    with io.open('/data/extrinsics.yaml', 'r', encoding='utf8') as stream:
         try:
             extrinsics = yaml.safe_load(stream)
         except yaml.YAMLError as err:
@@ -284,6 +286,7 @@ def load_hdf_files(record_names, out_dir, data_info_mapping, meta_data, topic_in
             else:
                 rospy.loginfo('\t\tNo meta info')
     return hdf5_files
+
 
 def match_depth(hdf5_files, data_info_mapping):  # pylint: disable=too-many-branches
     """Match the depth to the color topics for videos.
