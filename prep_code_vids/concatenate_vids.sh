@@ -34,16 +34,16 @@ do
         if test -f "$next_fn"
         then
             echo "found next file: $next_fn"
-            let "highest_found++"
+            ((highest_found++))
         else
             echo "no more files in this sequence"
             keep_going=false
         fi
     done
-    let "highest_found--"
+    ((highest_found--))
     echo "highest found: $highest_found"
     fo=$output/$vid_num.MP4
     echo "concatenating to: $fo"
-    ffmpeg -f concat -safe 0 -i <(for f in `seq 1 $highest_found`; do printf "file '$target/GH%02d$vid_num.MP4'\n" "$f"; done) -c copy "$fo"
+    ffmpeg -f concat -safe 0 -i <(for f in $(seq 1 $highest_found); do printf "file '$target/GH%02d$vid_num.MP4'\n" "$f"; done) -c copy "$fo"
     echo "-------------"
 done
