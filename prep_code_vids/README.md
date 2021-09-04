@@ -13,16 +13,7 @@ You can take the standard method of downloading videos via the gui. This is not 
 Alternatively you can create a password on Penn+Box (not your penn password) and then
 mount ftp://ftp.box.com/. Once that is mounted, you can use rsync to bring files locally, ex: `target=003 && mkdir -p ~/Downloads/sdata/$target/gopro/ && rsync -ah --info=progress2 "/run/user/1001/gvfs/ftp:host=ftp.box.com/RRL Studies/Flo Prospective Study/trials/$target/gopro/" ~/Downloads/sdata/$target/gopro/` (your paths will differ) (change the target value to the target subject)
 
-You can also use lftp (faster, only need terminal):
-
-1.  `sudo apt install lftp`
-2.  `lftp <penn username>@upenn.edu@ftp.box.com`
-3.  use `lcd` `!ls` `cd` and `ls` to navigate the remote and local directories
-4.  Get files:
-    *   Use mirror to get an entire directory of files: `mirror <remote source> <local destination>`
-    *   Use pget to get a file via multiple parallel streams: `pget <filename>`
-    *   Use mget to get files. Something like `mget  flo_recording_2020-12-16-15-3* -P 10` might be useful, 10 is saying to download up to 10 files simultaneously.
-    *   Note, you can put an `&` at the end of any command to be able to start the next command. You can recover a command with `wait <command number (shown when you put it in background)>`, you can send it back to the background with ctrl-z. You can view all jobs with `jobs`
+You can also use lftp (faster, only need terminal). Refer to main readme
 
 You could also use a tool like filezilla
 
