@@ -80,3 +80,16 @@ For information look to [visualize/README.md](visualize/README.md)
 
 1.  Setup an ECR repository and push the docker file for the job you want to it
 2.
+
+## Getting files from Penn+Box
+
+During development, testing, etc. It might be good to be able to download data from Penn+Box. The best way to do this with with lftp:
+
+1.  `sudo apt install lftp`
+2.  `lftp <penn username>@upenn.edu@ftp.box.com`
+3.  use `lcd` `!ls` `cd` and `ls` to navigate the remote and local directories
+4.  Get files:
+    *   Use mirror to get an entire directory of files: `mirror <remote source> <local destination>`
+    *   Use pget to get a file via multiple parallel streams: `pget <filename>`
+    *   Use mget to get files. Something like `mget  flo_recording_2020-12-16-15-3* -P 10` might be useful, 10 is saying to download up to 10 files simultaneously.
+    *   Note, you can put an `&` at the end of any command to be able to start the next command. You can recover a command with `wait <command number (shown when you put it in background)>`, you can send it back to the background with ctrl-z. You can view all jobs with `jobs`
