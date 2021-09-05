@@ -42,14 +42,15 @@ def overlay(file_stub, cam):  # pylint: disable=too-many-locals
 
     scales = {}
     scales['rot'] = 20
-    scales['vel'] = 1e8 * 20
-    scales['acc'] = 1e7 * 20
+    scales['vel'] = 1e9 * 10
+    scales['acc'] = 1e17 * 10
+    scales['angle'] = 30
   
     #Relative movement with previous quaternion
-    full_arm_rot_topics = ['features/ls_angle', 'features/rs_angle'] 
-    quaternion_topics = ['left_shoulder_quat', 'right_shoulder_quat']
+    full_arm_rot_ls_topic = ['features/ls_angle']
+    full_arm_rot_rs_topic = ['features/rs_angle']
 
-    all_ls_topics = [ls_rot_topics, ls_vel_topics, ls_acc_topics]
+    all_ls_topics = [ls_rot_topics, ls_vel_topics, ls_acc_topics, full_arm_rot_ls_topic]
     all_ls_vals = []
     for topics in all_ls_topics:
         vals = []
@@ -57,7 +58,7 @@ def overlay(file_stub, cam):  # pylint: disable=too-many-locals
             vals.append(np.ones(500, dtype=np.float64))
         all_ls_vals.append(vals)
 
-    all_rs_topics = [rs_rot_topics, rs_vel_topics, rs_acc_topics]
+    all_rs_topics = [rs_rot_topics, rs_vel_topics, rs_acc_topics, full_arm_rot_rs_topic]
     all_rs_vals = []
     for topics in all_rs_topics:
         vals = []
@@ -93,18 +94,15 @@ def overlay(file_stub, cam):  # pylint: disable=too-many-locals
         adj_time = t_vals - time
         in_range = adj_time > -15
         scaled_time = adj_time * 30 + 450
-        '''
+        
         y_offset = 0
         for i, topics in enumerate(all_ls_topics):
-            y_offset = y_offset + 300
+            y_offset = y_offset + 200
             x_offset = 1500
             for j, topic in enumerate(topics):
-                #plt.plot(hdf5_tracking[topic])
-                #plt.show()
-
                 scale = scales[topic.split('_')[-1]] 
                 all_ls_vals[i][j] = np.roll(all_ls_vals[i][j],1) 
-                if(hdf5_tracking[topic][idx] == np.nan):
+                if(math.isnan(hdf5_tracking[topic][idx])):
                     draw_text(img, 'Outlier ', pos = (x_offset, 100)) 
                     print('here')
                 else:
@@ -113,27 +111,38 @@ def overlay(file_stub, cam):  # pylint: disable=too-many-locals
                 color = np.zeros(3)
                 color[j] = 255
 
+                draw_text(img, topic.split('/')[-1], pos = (x_offset, y_offset - 100 + 30*j),               
+                            font_scale=1,
+                            font_thickness=1,
+                            text_color=color,
+                            text_color_bg=None)
+
                 cv2.polylines(img,
                             [np.int32(
                                 np.transpose(
                                     (x_offset + scaled_time[in_range],
                                     (y_offset + scale * all_ls_vals[i][j][in_range]))))],
                             isClosed=False, color=color, thickness=4)
-        '''
+        
         y_offset = 0
         for i, topics in enumerate(all_rs_topics):
-            y_offset = y_offset + 300
+            y_offset = y_offset + 200
             x_offset = 0
             for j, topic in enumerate(topics):
                 scale = scales[topic.split('_')[-1]] 
                 all_rs_vals[i][j] = np.roll(all_rs_vals[i][j],1) 
-                if(hdf5_tracking[topic][idx] == np.nan):
+                if(math.isnan(hdf5_tracking[topic][idx])):
                     draw_text(img, 'Outlier ', pos = (x_offset, 100)) 
                 else:
                     all_rs_vals[i][j][0] = hdf5_tracking[topic][idx]  
                 
                 color = np.zeros(3)
                 color[j] = 255
+                draw_text(img, topic.split('/')[-1], pos = (x_offset, y_offset - 100 + 30*j),               
+                            font_scale=1,
+                            font_thickness=1,
+                            text_color=color,
+                            text_color_bg=None)
 
                 cv2.polylines(img,
                             [np.int32(

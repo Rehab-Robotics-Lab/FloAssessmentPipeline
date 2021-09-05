@@ -124,8 +124,9 @@ def extract_kinematics(pth, debug):
 
         smoothed_signal = convolve(hdf5_tracking[rot_topic], np.ones(window)/window, mode= 'same')
         hdf5_tracking[rot_topic][:] = smoothed_signal
-        hdf5_tracking[vel_topics[i]][:smoothed_signal.shape[0]-1] = ep.diff(smoothed_signal, timestamps)
-        hdf5_tracking[acc_topics[i]][:smoothed_signal.shape[0]-2] = ep.diff(ep.diff(smoothed_signal, timestamps), timestamps[1:])
+        hdf5_tracking[vel_topics[i]][:smoothed_signal.shape[0]-1] = convolve(ep.diff(smoothed_signal, timestamps), np.ones(window)/window, mode= 'same')
+        hdf5_tracking[acc_topics[i]][:smoothed_signal.shape[0]-2] = convolve(ep.diff(ep.diff(smoothed_signal, timestamps), 
+                                                                                timestamps[1:]), np.ones(window)/window, mode= 'same')
 
         if debug:
             fig, axs = plt.subplots(ncols = 3)
@@ -133,7 +134,12 @@ def extract_kinematics(pth, debug):
             axs[1].plot(hdf5_tracking[vel_topics[i]])
             axs[2].plot(hdf5_tracking[acc_topics[i]])
             plt.show()
-
+    '''
+    #Smoothing Angle signal
+    for topic in full_arm_rot_topics:
+        smoothed_signal = convolve(hdf5_tracking[topic], np.ones(window)/window, mode= 'same')
+        hdf5_tracking[topic][:] = smoothed_signal
+    '''
     print('done processing')
     hdf5_tracking.close()
     print('done closing')

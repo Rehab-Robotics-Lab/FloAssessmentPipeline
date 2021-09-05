@@ -143,7 +143,7 @@ def diff(signal, timestamps):
     '''
     assert(signal.shape[0] == timestamps.shape[0])
     dx = np.diff(signal)
-    dt = timestamps[1:] - timestamps[0]
+    dt = np.diff(timestamps - timestamps[0])
     gradient = np.divide(dx,dt)
     return gradient
     
