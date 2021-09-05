@@ -28,8 +28,7 @@ def draw_text(img, text,
     return text_size
 
 # from: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch09s11.html
-
-def colorScale(mag, cmin, cmax):
+def color_scale(mag, cmin, cmax):
     """ Return a tuple of floats between 0 and 1 for R, G, and B. """
     # Normalize to 0-1
     try:
