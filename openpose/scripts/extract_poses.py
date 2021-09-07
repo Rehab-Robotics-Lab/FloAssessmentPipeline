@@ -52,6 +52,15 @@ The last channel is taken as number of images
     params["number_people_max"] = 1
     params["render_pose"] = 0
     params["display"] = 0
+    # using max accuracy: https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models#body_25b-model---option-1-maximum-accuracy-less-speed
+    params["mode_pose"] = "BODY_25B"
+    params["net_resolution"] = "1712x960"
+    params["scale_number"] = 4
+    params["scale_gap"] = 0.25
+    params["hand"] = True
+    params["hand_scale_number"] = 6
+    params["hand_scale_range"] = 0.4
+
     # tqdm.write("Parameters : ", params)
 
     if len(images.shape) < 4:

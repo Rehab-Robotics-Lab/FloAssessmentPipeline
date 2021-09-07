@@ -21,6 +21,12 @@ ENV PATH="/opt/cmake-3.16.0-Linux-x86_64/bin:${PATH}"
 WORKDIR /openpose
 RUN git clone --depth 1 https://github.com/CMU-Perceptual-Computing-Lab/openpose.git .
 
+#get high accuracy model
+WORKDIR /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/
+RUN wget posefs1.perception.cs.cmu.edu/OpenPose/models/pose/1_25BSuperModel11FullVGG/body_25b/pose_iter_XXXXXX.caffemodel
+WORKDIR /openpose/models/pose/body_25b/
+CMD cp /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/* /openpose/models/pose/body_25b/
+
 #build it
 WORKDIR /openpose/build
 RUN cmake -DBUILD_PYTHON=ON .. && make -j `nproc`
