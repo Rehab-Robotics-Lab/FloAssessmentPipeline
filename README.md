@@ -17,7 +17,7 @@ Everything is done on AWS.
 
 ## Some tools
 
-*   **ViTables:** is really great for being able to explore hdf5 files
+- **ViTables:** is really great for being able to explore hdf5 files
 
 ## Pipeline
 
@@ -79,6 +79,15 @@ For information look to [visualize/README.md](visualize/README.md)
 ## Setting up for AWS Batch Jobs
 
 1.  Setup an ECR repository and push the docker file for the job you want to it
+
+## Pushing stuff to Box
+
+It is sometimes nice to have things stored on Box to access more easily, especially
+output videos and the like. To do this, install lftp. Then connect:
+`lftp -u <pennid>@upenn.edu ftp.box.com` then enter your box (not penn) password.
+Now you can navigate around. For example, use cd to go to where you want to put files
+on box and lcd to where the files are on your "local" machine. Then mirror the "local"
+machine to Box using `mirror --reverse --parallel=<num parallel uploads>`
 2.
 
 ## Getting files from Penn+Box
