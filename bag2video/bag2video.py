@@ -14,6 +14,7 @@ import rosbag
 from cv_bridge import CvBridge
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+import sys
 
 LOGGER = logging.getLogger(__name__)
 VERBOSITY_OPTIONS = [logging.DEBUG, logging.INFO,
@@ -530,6 +531,7 @@ def write_out(video, audio, filename, vid_writer, columns):
 
 
 if __name__ == '__main__':
+    print('got args: {}'.format(sys.argv))
     PARSER = argparse.ArgumentParser()
 
     PARSER.add_argument("-o", "--output", type=str,
@@ -562,6 +564,8 @@ if __name__ == '__main__':
                         help="the video topics which you would like to include in the video")
 
     ARGS = PARSER.parse_args()
+
+    print(ARGS)
 
     V_IDX = ['debug', 'info', 'warning', 'error',
              'critical'].index(ARGS.verbosity)

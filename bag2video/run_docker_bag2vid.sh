@@ -2,7 +2,6 @@
 set -o errexit
 set -o pipefail
 
-params=""
 # parse options
 while (( "$#" )); do
   case "$1" in
@@ -16,15 +15,20 @@ while (( "$#" )); do
       fi
       ;;
     *) # preserve positional arguments
-      params="$params $1"
+        echo "parsing: $1"
+        params+=("$1")
       shift
       ;;
   esac
 done
+
+#set -- "${params[@]}"
+
+echo "${params[@]}"
 
 docker run \
     --mount type=bind,source="$dir",target=/data \
     -it \
     --rm \
     --name=bag2video \
-    bag2video "$params"
+    bag2video -t /data -o /data/extract.mp4 "${params[@]}"
