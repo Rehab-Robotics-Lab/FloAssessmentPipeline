@@ -68,7 +68,7 @@ def find_image_sizes(bag_filenames, video_topics):
     Returns: (list of video topics which were found,
               list of sizes (height, width, channels) for each of the found topics)
     """
-    image_sizes = [[-1, -1]]*len(video_topics)
+    image_sizes = [None]*len(video_topics)
     bridge = CvBridge()
     for idx, topic in enumerate(video_topics):
         LOGGER.debug('looking for image size for: %s', topic)
@@ -87,7 +87,7 @@ def find_image_sizes(bag_filenames, video_topics):
     found_video_topics = []
     found_image_sizes = []
     for idx, _ in enumerate(image_sizes):
-        if not image_sizes[idx] == -1:
+        if not image_sizes[idx] is None:
             found_video_topics.append(video_topics[idx])
             found_image_sizes.append(image_sizes[idx])
     return (found_video_topics, found_image_sizes)
