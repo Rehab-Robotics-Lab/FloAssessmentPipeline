@@ -18,6 +18,7 @@ Temporary:
 2.  Install curl and unzip
 3.  Install aws cli (make sure to get x86 version)
 4.  install lbzip2
+5. install 
 5.  on every start, run `convert_to_hdf5/mount_instance_store.sh`
 6.  build docker file: `docker build . --tag hdf5convert`
 7.  run `./convert_to_hdf5/src/process-in-ec2.sh`
