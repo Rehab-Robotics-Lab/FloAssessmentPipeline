@@ -4,6 +4,5 @@
     <arg name="bag_file" value="/data/in.bag"/>
     <arg name="hdf5_file" value="/data/out.hdf5"/>
     <arg name="mode" value="w"/>
-    <arg name="experiment_metadata" value="Experiment_1"/>
   </include>
 </launch>

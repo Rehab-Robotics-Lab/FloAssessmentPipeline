@@ -31,7 +31,6 @@ out=s3://flo-exp-aim1-hdf5/$subject_padded/
 
 bag_files=$(aws s3 ls "$src"'ros/'| awk '{print $4}' | grep bag.bz2)
 
-aws s3 cp "$src"'meta.yaml' tmp/
 
 prior_pid=-1
 for bag_fn in $bag_files
@@ -41,7 +40,7 @@ do
         wait $prior_pid
     fi
     # have to watch out, the bag filename has the .bgz file ending
-    roslaunch convert_to_hdf5 main.launch target:="/tmp/${$bag_fn:0:-4}" out_dir:="/tmp" meta_file:="tmp/meta.yaml" && rm ${$bag_fn:0:-4} &
+    roslaunch convert_to_hdf5 main.launch target:="/tmp/${$bag_fn:0:-4}" out_dir:="/tmp"  && rm ${$bag_fn:0:-4} &
     prior_pid=$!
 done
 
