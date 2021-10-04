@@ -322,11 +322,14 @@ def add_audio(filename, video, audio):
         audio: Audio dictionary with fields `start`, `data`
                and `sample_rate`
     """
-    mp3_filename = '{}-tmp.mp3'.format(os.path.splitext(filename)[0])
-    with open(mp3_filename, 'w+') as mp3_file:
-        mp3_file.write(''.join(audio['data']))
-
     tmp_vid_filename = get_tmp_vid_filename(filename)
+    mp3_filename = '{}-tmp.mp3'.format(os.path.splitext(filename)[0])
+    if sys.version_info[0] == 3:
+        with open(mp3_filename, 'w+b') as mp3_file:
+            mp3_file.write(bytes(audio['data']))
+    else:
+        with open(mp3_filename, 'w+') as mp3_file:
+            mp3_file.write(''.join(audio['data']))
 
     audio_video_offset = audio['start'] - video['first_msg_time']
     if audio_video_offset >= 0:
