@@ -309,7 +309,7 @@ def stitch_image(img_to_write, columns):
     return out_img
 
 
-def add_audio(filename, video, audio):
+def add_audio(filename, video, audio, idx):
     """Add audio track to video
 
     Will take the already written out video file, load it in,
@@ -321,8 +321,14 @@ def add_audio(filename, video, audio):
         video: Video dictionary with field `start`
         audio: Audio dictionary with fields `start`, `data`
                and `sample_rate`
+        idx: which number video is being written
     """
     tmp_vid_filename = get_tmp_vid_filename(filename)
+    if audio['start'] == -1:
+        LOGGER.warn('no audio found')
+        os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
+        return
+
     mp3_filename = '{}-tmp.mp3'.format(os.path.splitext(filename)[0])
     if sys.version_info[0] == 3:
         with open(mp3_filename, 'w+b') as mp3_file:
@@ -336,12 +342,12 @@ def add_audio(filename, video, audio):
         LOGGER.info('starting video %f seconds before audio',
                     audio_video_offset)
         command = 'ffmpeg -y -i {} -itsoffset {} -i {} -map 0:v -map 1:a -c:v copy {}'.format(
-            tmp_vid_filename, audio_video_offset, mp3_filename, filename)
+            tmp_vid_filename, audio_video_offset, mp3_filename, get_idx_vid_filename(filename, idx))
     else:
         LOGGER.info('starting audio %f seconds before video',
                     abs(audio_video_offset))
         command = 'ffmpeg -y -i {} -itsoffset {} -i {} -map 0:a -map 1:v -c:v copy {}'.format(
-            mp3_filename, abs(audio_video_offset), tmp_vid_filename, filename)
+            mp3_filename, abs(audio_video_offset), tmp_vid_filename, get_idx_vid_filename(filename, idx))
     LOGGER.debug('Combining video and audio with: %s', command)
     return_code = subprocess.call(command, shell=True)
     if return_code != 0:
@@ -360,6 +366,18 @@ def get_tmp_vid_filename(filename):
     sp_filename = os.path.splitext(filename)
     tmp_vid_filename = '{}-tmp{}'.format(sp_filename[0], sp_filename[1])
     return tmp_vid_filename
+
+
+def get_idx_vid_filename(filename, idx):
+    """Generate a numbered video filename based on the passed in filename
+
+    Args:
+        filename: The root filename to add temp into
+        idx: the index to add into the filename
+    """
+    sp_filename = os.path.splitext(filename)
+    idx_filename = '{}-{}{}'.format(sp_filename[0], idx, sp_filename[1])
+    return idx_filename
 
 
 def insert_image(video, msg, topic_idx, img_idx, bridge):
@@ -457,13 +475,17 @@ def bag2video(
         tmp_vid_filename, framerate, vid_frame_size[0:2])
     bridge = CvBridge()
 
+    idx = 0
+
     with logging_redirect_tqdm():
         for bag_filename in tqdm(bag_filenames):
             LOGGER.info('Reading %s', bag_filename)
             bag = rosbag.Bag(bag_filename)
             for topic, msg, msg_time, in bag.read_messages(topics=topics):
                 if last_vid_time != -1 and (msg_time.to_sec() - last_vid_time) > split_time:
-                    write_out(video, audio, output, vid_writer, columns)
+                    LOGGER.info('splitting video')
+                    write_out(video, audio, output, vid_writer, columns, idx)
+                    idx += 1
                     last_vid_time = -1
                     audio = construct_audio(audio_sample_rate)
                     video = construct_video(
@@ -478,7 +500,7 @@ def bag2video(
                     receive_video_msg(video, topic_idx, msg, msg_time,
                                       bridge, vid_writer, columns)
 
-        write_out(video, audio, output, vid_writer, columns)
+        write_out(video, audio, output, vid_writer, columns, idx)
 
 
 def construct_audio(audio_sample_rate):
@@ -506,7 +528,7 @@ def construct_video(framerate, buffer_length, image_sizes):
     return video
 
 
-def write_out(video, audio, filename, vid_writer, columns):
+def write_out(video, audio, filename, vid_writer, columns, idx):
     """Write out the remaining data, including any un added images
     and the audio data.
 
@@ -518,6 +540,7 @@ def write_out(video, audio, filename, vid_writer, columns):
         filename: The target output filename
         vid_writer: The OpenCV video writer object
         columns: The number of columns to use when writing out the video
+        idx: the index to add into the filename
     """
     while not all(
             all(img is None for img in video['images'][cam])
@@ -530,7 +553,7 @@ def write_out(video, audio, filename, vid_writer, columns):
     LOGGER.info('finished writing video without audio to: %s',
                 tmp_vid_filename)
 
-    add_audio(filename, video, audio)
+    add_audio(filename, video, audio, idx)
 
 
 if __name__ == '__main__':
