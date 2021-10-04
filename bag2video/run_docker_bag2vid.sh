@@ -31,4 +31,7 @@ docker run \
     -it \
     --rm \
     --name=bag2video \
-    bag2video -t /data -o /data/extract.mp4 "${params[@]}"
+    bag2video \
+    --target /data \
+    --output /data/extract.mp4 \
+    "${params[@]}"
