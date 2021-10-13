@@ -402,7 +402,7 @@ def insert_image(video, msg, topic_idx, img_idx, bridge):
         msg, 'bgr8')
 
 
-#pyint: disable=too-many-local-variables
+# pyint: disable=too-many-local-variables
 def bag2video(
         output,
         audio_topic,
