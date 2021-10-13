@@ -174,6 +174,9 @@ def construct_vid_writer(output, framerate, size):
 def receive_audio_msg(audio, msg, msg_time):
     """Receive a new audio msg and store it
 
+    TODO: Handle messages that are dropped by placing audio into an array
+          based on the time of receipt
+
     Args:
         audio: The dictionary holding the audio data in field
                `data`, if need set start in `start` field. Will
