@@ -587,7 +587,15 @@ if __name__ == '__main__':
                                  'warning', 'error', 'critical'],
                         default='warning', help='Verbosity level for logging')
     PARSER.add_argument("video_topics", type=str, nargs='+',
-                        help="the video topics which you would like to include in the video")
+                        help="the video topics which you would like to include in the video, " +
+                        "this can come in as just the name of the topic in which case the video " +
+                        "size will be checked or can [not yet implemented: ] come in as " +
+                        "`<video topic>:<widhth>x<height>` " +
+                        "for example: `/lower_realsense/color/image_raw_relay:1920x1080` " +
+                        "The benefit of passing the size in manually is that any necessary " +
+                        "scaling will be handled and if no images are found, then a black " +
+                        "space will be left for the missing image")
+    # TODO: implement direct passing of width and height of video
 
     ARGS = PARSER.parse_args()
 
