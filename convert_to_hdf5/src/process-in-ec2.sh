@@ -26,7 +26,6 @@ subject_padded=$(printf '%03d' "$subject")
 echo "Processing for subj: $subject_padded"
 
 src=s3://flo-exp-aim1-data-raw/$subject_padded/
-meta=s3://flo-exp-aim1-data-meta/$subject_padded/meta.yaml
 hdf5=s3://flo-exp-aim1-data-hdf5/$subject_padded/
 #src=/media/mjsobrep/flo-external/008/ # <- this should get pulled in from batch job
 # copy from s3 into local storage
@@ -38,7 +37,6 @@ bag_files=$(aws s3 ls "$src"'ros/'| awk '{print $4}' | grep bag.bz2)
 
 mkdir /data/ros/
 
-aws s3 cp "$meta" /data/ros/
 
 done_first=false
 previous_bag_fn=''
@@ -60,7 +58,7 @@ do
         --rm \
         --name=hdf5-converter \
         hdf5convert \
-        roslaunch convert_to_hdf5 convert_to_hdf5.launch bag_file:="/data/${bag_fn%.*}" out_dir:="/data" meta_file:="/data/meta.yaml"
+        roslaunch convert_to_hdf5 convert_to_hdf5.launch bag_file:="/data/${bag_fn%.*}" out_dir:="/data"
 
     previous_bag_fn=$bag_fn
     done_first=true
@@ -71,8 +69,6 @@ if [ $done_first = true ] ; then
     rm "/data/ros/${previous_bag_fn%.*}"
 fi
 
-
-rm /data/ros/meta.yaml
 
 prior=$(pwd)
 cd /data/ros
