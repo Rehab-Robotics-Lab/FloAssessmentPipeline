@@ -333,6 +333,86 @@ def stitch_image(img_to_write, columns):
     return out_img
 
 
+def construct_pcm(audio):
+    """Construct PCM data, appropriately spaced in time, given the provided
+    audio object.
+
+    Args:
+        audio: A dictionary with fields 'data' (mp3 data received) and
+               'data2time' (which maps the time of message receipt and
+               data messages to each other)
+
+    """
+    # find headers to be sure that a header is valid, one must check
+    # the rest of the frame. OMG, who designed MP3? why is there no
+    # reserved word? Like limit the data to only allow 0x1*bit_depth at
+    # the start of the header. Dumb
+    data_arr = np.array(audio['data'])
+    headers = np.where((data_arr[0:-3] == 255) *
+                       (data_arr[1:-2] == 243) *
+                       (np.right_shift(data_arr[2:-1], 4) != 0x0F) *
+                       (np.bitwise_and(data_arr[2:-1], 0x0C) == 0x08) *
+                       (data_arr[3:] == 196))[0]
+    padding = (data_arr[headers+2] & 0b10)
+    data2time = np.array(audio['data2time'])
+    if not np.isin(data2time[:, 0], headers).all():
+        raise RuntimeError(
+            'Some messages did not start with well formed headers')
+        # TODO: handle messed up messages gracefully
+        # TODO: check frame lengths
+    frame_size = ((576 / 8 * (BITRATES[data_arr[headers+2] >> 4]))/16)+padding
+    # always 576 samples/frame for V2 Layer III stereo and 1152 for mono?
+
+    # PyDub
+    # For whatever reason FFMPEG expects frames of framesize + header size.
+    # I think it should just be frame size, I could pad it or something, but
+    # that would change the underlying compression output:
+    # ipdb> AudioSegment.from_file(io.BytesIO(bytes(audio['data'][0:432+4])))
+
+    # streamp3
+    # creates chunks of 16 bit PCM, but ends up missing two chunks?
+    # trying to read with only first frame or only last frame just gives nothing back.
+    padding = audio['data'][headers[0]:headers[0]+4]+[0]*int(frame_size[0]-4)
+    # padding is needed to make the underlying stuff works. Here is an idea
+    # as to why that might be: https://thebreakfastpost.com/2016/11/26/
+    #                          mp3-decoding-with-the-mad-library-weve-all-been-doing-it-wrong/
+    mp3_decoder = MP3Decoder(bytes(padding+audio['data']+padding))
+    all_chunks = list(mp3_decoder)
+    # the first frame will just be the padding coming back (doesn't make sense to me either..)
+    all_chunks = all_chunks[1:]
+    #
+
+    # int_chunks = [[(chunks_arr_elem[idx*2] << 8) | chunks_arr_elem[idx*2+1]
+    #                for idx in range(int(len(chunks_arr_elem)/2))]
+    #               for chunks_arr_elem in all_chunks]
+    assert mp3_decoder.sample_rate == 16000
+    assert mp3_decoder.num_channels == 1
+    # assert (~(np.array([len(chunk) for chunk in int_chunks]) != 576)).all()
+    LOGGER.info(
+        'bit rate: %i, sample rate: %i, num channels: %i',
+        mp3_decoder.bit_rate, mp3_decoder.sample_rate, mp3_decoder.num_channels)
+    LOGGER.info(
+        '%i valid headers found, but LAME only reads %i chunks', len(headers), len(all_chunks))
+    filled_data = []
+    end_time = audio['start']
+    for frame_idx, this_chunk in enumerate(all_chunks):
+        data2time = audio['data2time'][frame_idx]
+        diff = data2time[1] - end_time
+        if diff > 0:
+            add_samples = int(diff*16000)
+            end_time += add_samples/16000
+            filled_data += (bytes([0, 0]*add_samples))
+
+        filled_data += (this_chunk)
+        end_time += 576/16000
+
+    # length = len(filled_data)/mp3_decoder.sample_rate
+
+    return [int.from_bytes(bytes(filled_data[idx*2:idx*2+2]),
+                           byteorder='little', signed=True)
+            for idx in range(int(len(filled_data)/2))]
+
+
 def add_audio(filename, video, audio, idx):
     """Add audio track to video
 
@@ -351,76 +431,7 @@ def add_audio(filename, video, audio, idx):
                and `sample_rate`
         idx: which number video is being written
     """
-
-    # find headers to be sure that a header is valid, one must check
-    # the rest of the frame. OMG, who designed MP3? why is there no
-    # reserved word? Like limit the data to only allow 0x1*bit_depth at
-    # the start of the header. Dumb
-    data_arr = np.array(audio['data'])
-    headers = np.where((data_arr[0:-3] == 255) *
-                       (data_arr[1:-2] == 243) *
-                       (np.right_shift(data_arr[2:-1], 4) != 0x0F) *
-                       (np.bitwise_and(data_arr[2:-1], 0x0C) == 0x08) *
-                       (data_arr[3:] == 196))[0]
-    padding = (data_arr[headers+2] & 0b10)
-    bitrate = BITRATES[data_arr[headers+2] >> 4]
-    data2time = np.array(audio['data2time'])
-    if not np.isin(data2time[:, 0], headers).all():
-        raise RuntimeError(
-            'Some messages did not start with well formed headers')
-        # TODO: handle messed up messages gracefully
-        # TODO: check frame lengths
-    frame_size = ((576 / 8 * bitrate)/16)+padding
-    # always 576 samples/frame for V2 Layer III stereo and 1152 for mono?
-
-    # PyDub
-    # For whatever reason FFMPEG expects frames of framesize + header size.
-    # I think it should just be frame size, I could pad it or something, but
-    # that would change the underlying compression output:
-    # ipdb> AudioSegment.from_file(io.BytesIO(bytes(audio['data'][0:432+4])))
-
-    # streamp3
-    # creates chunks of 16 bit PCM, but ends up missing two chunks?
-    # trying to read with only first frame or only last frame just gives nothing back.
-    padding = audio['data'][headers[0]:headers[0]+4]+[0]*int(frame_size[0]-4)
-    # padding is needed to make the underlying stuff works. Here is an idea
-    # as to why that might be: https://thebreakfastpost.com/2016/11/26/
-    #                          mp3-decoding-with-the-mad-library-weve-all-been-doing-it-wrong/
-    mp3_decoder = MP3Decoder(bytes(padding+audio['data']+padding))
-    all_chunks = [chunk for chunk in mp3_decoder]
-    # the first frame will just be the padding coming back (doesn't make sense to me either..)
-    all_chunks = all_chunks[1:]
-    #
-
-    # int_chunks = [[(chunks_arr_elem[idx*2] << 8) | chunks_arr_elem[idx*2+1]
-    #                for idx in range(int(len(chunks_arr_elem)/2))]
-    #               for chunks_arr_elem in all_chunks]
-    assert mp3_decoder.sample_rate == 16000
-    assert mp3_decoder.num_channels == 1
-    # assert (~(np.array([len(chunk) for chunk in int_chunks]) != 576)).all()
-    LOGGER.info(
-        'bit rate: %i, sample rate: %i, num channels: %i',
-        mp3_decoder.bit_rate, mp3_decoder.sample_rate, mp3_decoder.num_channels)
-    LOGGER.info(
-        '%i valid headers found, but LAME only reads %i chunks', len(headers), len(all_chunks))
-    filled_data = []
-    end_time = audio['start']
-    for frame_idx in range(len(all_chunks)):
-        data2time = audio['data2time'][frame_idx]
-        diff = data2time[1] - end_time
-        if diff > 0:
-            add_samples = int(diff*16000)
-            end_time += add_samples/16000
-            filled_data += (bytes([0, 0]*add_samples))
-
-        filled_data += (all_chunks[frame_idx])
-        end_time += 576/16000
-
-    # length = len(filled_data)/mp3_decoder.sample_rate
-
-    little_endian = [int.from_bytes(bytes(filled_data[idx*2:idx*2+2]),
-                                    byteorder='little', signed=True)
-                     for idx in range(int(len(filled_data)/2))]
+    pcm_data = construct_pcm(audio)
 
     tmp_vid_filename = get_tmp_vid_filename(filename)
     if audio['start'] == -1:
@@ -436,7 +447,7 @@ def add_audio(filename, video, audio, idx):
     #     with open(audio_filename, 'w+') as mp3_file:
     #         mp3_file.write(''.join(audio['data']))
     scipy.io.wavfile.write(audio_filename, 16000,
-                           np.asarray(little_endian, dtype='int16'))
+                           np.asarray(pcm_data, dtype='int16'))
 
     audio_video_offset = audio['start'] - video['first_msg_time']
     if audio_video_offset >= 0:
@@ -505,7 +516,8 @@ def insert_image(video, msg, topic_idx, img_idx, bridge):
         msg, 'bgr8')
 
 
-# pyint: disable=too-many-local-variables
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-arguments
 def bag2video(
         output,
         audio_topic,
@@ -634,6 +646,7 @@ def construct_video(framerate, buffer_length, image_sizes):
     return video
 
 
+# pylint: disable=too-many-arguments
 def write_out(video, audio, filename, vid_writer, columns, idx):
     """Write out the remaining data, including any un added images
     and the audio data.
@@ -661,7 +674,7 @@ def write_out(video, audio, filename, vid_writer, columns, idx):
 
     try:
         add_audio(filename, video, audio, idx)
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-except
         os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
         LOGGER.error('There was an exception while adding audio: %s', exc)
 
