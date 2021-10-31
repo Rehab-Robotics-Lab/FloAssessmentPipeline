@@ -3,7 +3,7 @@ set -o errexit
 set -o pipefail
 
 # parse options
-while getopts :t:o: flag
+while getopts :t: flag
 do
     case "${flag}" in
         t) target=${OPTARG};;
