@@ -6,7 +6,7 @@ set -o pipefail
 while (( "$#" )); do
   case "$1" in
     -d|--dir)
-      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+      if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
         dir=$2
         shift 2
       else
@@ -30,7 +30,6 @@ docker run \
     --mount type=bind,source="$dir",target=/data \
     -it \
     --rm \
-    --name=bag2video \
     bag2video \
     --target /data \
     --output /data/extract.mp4 \
