@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""A module for exporting video with audio from ROS bag files
+
+Primarily designed to be used as a command line tool. It should
+come with a bash script and dockerfile to make that easy."""
 
 from __future__ import division, print_function
 import argparse
@@ -7,18 +11,25 @@ import glob
 import os
 import logging
 import subprocess
+import sys
 import cv2
-# import time
 import numpy as np
 import rosbag
 from cv_bridge import CvBridge
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
-import sys
+# from pydub import AudioSegment
+# import io
+from streamp3 import MP3Decoder
+import scipy.io.wavfile
 
 LOGGER = logging.getLogger(__name__)
 VERBOSITY_OPTIONS = [logging.DEBUG, logging.INFO,
                      logging.WARNING, logging.ERROR, logging.CRITICAL]
+
+# kilobits/sec for MPEG 2 Layer III
+BITRATES = np.array([0, 8, 16, 24, 32, 40, 48, 56,
+                     64, 80, 96, 112, 128, 144, 160])
 
 
 def get_bag_filenames(target):
@@ -184,11 +195,21 @@ def receive_audio_msg(audio, msg, msg_time):
         msg: The message to process
         msg_time: The time the message was received.
     """
+    # ipdb.set_trace()
+    # crazy mp3 decoders need some nonesense
+    # out2=AudioSegment.from_file(io.BytesIO(msg.data+msg.data))
+    # len(out2.raw_data)=2304
+    # mp3_decoder = MP3Decoder(msg.data+msg.data+msg.data)
+    # out=[chunk for chunk in mp3_decoder]
+    # len(out[0])=1152
+    # out2 and out 1 are almost (but not quite) identical
+
     LOGGER.debug('Received new audio message')
     if audio['start'] == -1:
         audio['start'] = msg_time.to_sec()
         LOGGER.info(
             'Marking start of audio at %f', audio['start'])
+    audio['data2time'].append([len(audio['data']), msg_time.to_sec()])
     audio['data'] += msg.data
 
 
@@ -319,6 +340,10 @@ def add_audio(filename, video, audio, idx):
     pad or trim the start of the audio to match the video
     start, add the audio, and write back out the video.
 
+    Good sources on MP3 file format:
+    - https://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header#ModeExt
+    - http://www.mp3-tech.org/programmer/frame_header.html
+
     Args:
         filename: The filename of the video to work with
         video: Video dictionary with field `start`
@@ -326,37 +351,112 @@ def add_audio(filename, video, audio, idx):
                and `sample_rate`
         idx: which number video is being written
     """
+
+    # find headers to be sure that a header is valid, one must check
+    # the rest of the frame. OMG, who designed MP3? why is there no
+    # reserved word? Like limit the data to only allow 0x1*bit_depth at
+    # the start of the header. Dumb
+    data_arr = np.array(audio['data'])
+    headers = np.where((data_arr[0:-3] == 255) *
+                       (data_arr[1:-2] == 243) *
+                       (np.right_shift(data_arr[2:-1], 4) != 0x0F) *
+                       (np.bitwise_and(data_arr[2:-1], 0x0C) == 0x08) *
+                       (data_arr[3:] == 196))[0]
+    padding = (data_arr[headers+2] & 0b10)
+    bitrate = BITRATES[data_arr[headers+2] >> 4]
+    data2time = np.array(audio['data2time'])
+    if not np.isin(data2time[:, 0], headers).all():
+        raise RuntimeError(
+            'Some messages did not start with well formed headers')
+        # TODO: handle messed up messages gracefully
+        # TODO: check frame lengths
+    frame_size = ((576 / 8 * bitrate)/16)+padding
+    # always 576 samples/frame for V2 Layer III stereo and 1152 for mono?
+
+    # PyDub
+    # For whatever reason FFMPEG expects frames of framesize + header size.
+    # I think it should just be frame size, I could pad it or something, but
+    # that would change the underlying compression output:
+    # ipdb> AudioSegment.from_file(io.BytesIO(bytes(audio['data'][0:432+4])))
+
+    # streamp3
+    # creates chunks of 16 bit PCM, but ends up missing two chunks?
+    # trying to read with only first frame or only last frame just gives nothing back.
+    padding = audio['data'][headers[0]:headers[0]+4]+[0]*int(frame_size[0]-4)
+    # padding is needed to make the underlying stuff works. Here is an idea
+    # as to why that might be: https://thebreakfastpost.com/2016/11/26/
+    #                          mp3-decoding-with-the-mad-library-weve-all-been-doing-it-wrong/
+    mp3_decoder = MP3Decoder(bytes(padding+audio['data']+padding))
+    all_chunks = [chunk for chunk in mp3_decoder]
+    # the first frame will just be the padding coming back (doesn't make sense to me either..)
+    all_chunks = all_chunks[1:]
+    #
+
+    # int_chunks = [[(chunks_arr_elem[idx*2] << 8) | chunks_arr_elem[idx*2+1]
+    #                for idx in range(int(len(chunks_arr_elem)/2))]
+    #               for chunks_arr_elem in all_chunks]
+    assert mp3_decoder.sample_rate == 16000
+    assert mp3_decoder.num_channels == 1
+    # assert (~(np.array([len(chunk) for chunk in int_chunks]) != 576)).all()
+    LOGGER.info(
+        'bit rate: %i, sample rate: %i, num channels: %i',
+        mp3_decoder.bit_rate, mp3_decoder.sample_rate, mp3_decoder.num_channels)
+    LOGGER.info(
+        '%i valid headers found, but LAME only reads %i chunks', len(headers), len(all_chunks))
+    filled_data = []
+    end_time = audio['start']
+    for frame_idx in range(len(all_chunks)):
+        data2time = audio['data2time'][frame_idx]
+        diff = data2time[1] - end_time
+        if diff > 0:
+            add_samples = int(diff*16000)
+            end_time += add_samples/16000
+            filled_data += (bytes([0, 0]*add_samples))
+
+        filled_data += (all_chunks[frame_idx])
+        end_time += 576/16000
+
+    # length = len(filled_data)/mp3_decoder.sample_rate
+
+    little_endian = [int.from_bytes(bytes(filled_data[idx*2:idx*2+2]),
+                                    byteorder='little', signed=True)
+                     for idx in range(int(len(filled_data)/2))]
+
     tmp_vid_filename = get_tmp_vid_filename(filename)
     if audio['start'] == -1:
-        LOGGER.warn('no audio found')
+        LOGGER.warning('no audio found')
         os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
         return
 
-    mp3_filename = '{}-tmp.mp3'.format(os.path.splitext(filename)[0])
-    if sys.version_info[0] == 3:
-        with open(mp3_filename, 'w+b') as mp3_file:
-            mp3_file.write(bytes(audio['data']))
-    else:
-        with open(mp3_filename, 'w+') as mp3_file:
-            mp3_file.write(''.join(audio['data']))
+    audio_filename = '{}-tmp.mp3'.format(os.path.splitext(filename)[0])
+    # if sys.version_info[0] == 3:
+    #     with open(audio_filename, 'w+b') as mp3_file:
+    #         mp3_file.write(bytes(audio['data']))
+    # else:
+    #     with open(audio_filename, 'w+') as mp3_file:
+    #         mp3_file.write(''.join(audio['data']))
+    scipy.io.wavfile.write(audio_filename, 16000,
+                           np.asarray(little_endian, dtype='int16'))
 
     audio_video_offset = audio['start'] - video['first_msg_time']
     if audio_video_offset >= 0:
         LOGGER.info('starting video %f seconds before audio',
                     audio_video_offset)
-        command = 'ffmpeg -y -i {} -itsoffset {} -i {} -map 0:v -map 1:a -c:v copy {}'.format(
-            tmp_vid_filename, audio_video_offset, mp3_filename, get_idx_vid_filename(filename, idx))
+        command = (f'ffmpeg -y -i {tmp_vid_filename} -itsoffset {audio_video_offset} ' +
+                   f'-i {audio_filename} -map 0:v -map 1:a -c:v copy ' +
+                   f'{get_idx_vid_filename(filename, idx)}')
     else:
         LOGGER.info('starting audio %f seconds before video',
                     abs(audio_video_offset))
-        command = 'ffmpeg -y -i {} -itsoffset {} -i {} -map 0:a -map 1:v -c:v copy {}'.format(
-            mp3_filename, abs(audio_video_offset), tmp_vid_filename, get_idx_vid_filename(filename, idx))
+        command = (f'ffmpeg -y -i {audio_filename} -itsoffset {abs(audio_video_offset)} ' +
+                   f'-i {tmp_vid_filename} -map 0:a -map 1:v -c:v copy ' +
+                   f'{get_idx_vid_filename(filename, idx)}')
     LOGGER.debug('Combining video and audio with: %s', command)
     return_code = subprocess.call(command, shell=True)
     if return_code != 0:
         raise RuntimeError(
             'failed at running ffmpeg to combine audio and video')
-    os.remove(mp3_filename)
+    os.remove(audio_filename)
     os.remove(tmp_vid_filename)
 
 
@@ -512,7 +612,10 @@ def construct_audio(audio_sample_rate):
     Args:
         audio_sample_rate: The sampling rate for the audio
     """
-    audio = {'start': -1, 'data': [], 'sample_rate': audio_sample_rate}
+    audio = {'start': -1,
+             'data': [],
+             'data2time': [],
+             'sample_rate': audio_sample_rate}
     return audio
 
 
@@ -556,7 +659,11 @@ def write_out(video, audio, filename, vid_writer, columns, idx):
     LOGGER.info('finished writing video without audio to: %s',
                 tmp_vid_filename)
 
-    add_audio(filename, video, audio, idx)
+    try:
+        add_audio(filename, video, audio, idx)
+    except Exception as exc:
+        os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
+        LOGGER.error('There was an exception while adding audio: %s', exc)
 
 
 if __name__ == '__main__':
