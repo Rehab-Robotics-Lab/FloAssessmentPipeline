@@ -191,7 +191,7 @@ mv /mnt/subj-data/raw/*/* /mnt/subj-data/raw
 rm "/mnt/subj-data/raw/$to_remove" -r
 
 echo "uncompressing files"
-find /mnt/subj-data -name '*.bz2' -exec lbzip2 -d {} \;
+find /mnt/subj-data -name '*.bz2' -exec lbzip2 -d -n 48 {} \;
 echo "untarring files"
 find /mnt/subj-data -name '*.tar' -exec tar -xvf {} \;
 
