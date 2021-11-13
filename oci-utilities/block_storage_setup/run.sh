@@ -5,10 +5,12 @@ set -o pipefail
 echo "checking version"
 echo "version: $(cat /etc/oracle-release)"
 
+echo "installing extended yum repos"
+sudo dnf install -y -q oracle-epel-release-el8
 echo "enabling extended yum repos"
-sudo dnf install -y oracle-epel-release-el8
+sudo dnf config-manager -q --set-enabled ol8_developer_EPEL
 echo "installing lbzip2"
-sudo dnf install -y lbzip2
+sudo dnf install -y -q lbzip2
 
 # set to use principal auth using dynamic group permissions
 echo "setting permissions"
@@ -28,7 +30,7 @@ echo "Processing for subj: $subject_padded"
 # Get some info about where we are running
 echo "getting run instance information"
 #instance_ocid=$(oci-metadata --get id --value-only)
-instance_ocid=$(curl -L http://169.254.169.254/opc/v1/instance/ | jq '.id' -r)
+instance_ocid=$(curl -s -L http://169.254.169.254/opc/v1/instance/ | jq '.id' -r)
 
 echo "instance ocid: $instance_ocid"
 availability_domain=$(
@@ -67,8 +69,33 @@ then
     echo "new volume ocid: $volume_id"
 fi
 
+# Safely exit if something goes wrong
+volume_mounted=false
+
+disconnect_volume(){
+    # detach block volume
+    echo '------------------------'
+    echo "disconnecting from volume in OS"
+    $volume_mounted && \
+        (sudo umount /mnt/subj-data && \
+        echo "unmounted drive")
+    [ -z "$volume_iqn" ] || [ -z "$volume_ip" ] || [ -z "$volume_port" ] || \
+        (sudo iscsiadm -m node -T "$volume_iqn" -p "$volume_ip:$volume_port" -u && \
+        sudo iscsiadm -m node -o delete -T "$volume_iqn" -p "$volume_ip:$volume_port" && \
+        echo "disconnected iscsi")
+
+    echo "removing block storage attachment in OCI"
+    [ -z "$attachment_id" ] || \
+        (oci compute volume-attachment detach \
+            --volume-attachment-id "$attachment_id"\
+            --force\
+            --wait-for-state DETACHED && \
+            echo "removed block storage volume attachment")
+}
+trap disconnect_volume ERR EXIT
+
 # attach to the block volume
-echo "attaching to block storagae"
+echo "attaching to block storage"
 attachment_id=$(oci compute volume-attachment attach-iscsi-volume \
     --instance-id "$instance_ocid" \
     --volume-id "$volume_id" \
@@ -76,7 +103,6 @@ attachment_id=$(oci compute volume-attachment attach-iscsi-volume \
     --is-shareable false \
     --wait-for-state ATTACHED \
     --use-chap true \
-    --device "/dev/oracleoci/oraclevdaa" \
     --query data.id \
     --raw-output)
 echo "attachment ocid: $attachment_id"
@@ -116,18 +142,27 @@ sudo iscsiadm -m node -T "$volume_iqn" -p "$volume_ip:$volume_port" -o update -n
 sudo iscsiadm -m node -T "$volume_iqn" -p "$volume_ip:$volume_port" -o update -n node.session.auth.password -v "$volume_chap_secret"
 sudo iscsiadm -m node -T "$volume_iqn" -p "$volume_ip:$volume_port" -l
 
-cannonical_disk=$(readlink /dev/oracleoci/oraclevdaa -f)
+
+#cannonical_disk=$(readlink /dev/oracleoci/oraclevdaa -f)
+# TODO: there has to be a better way to do this
+sleep 5
+echo "iscsiadmn disks:"
+sudo iscsiadm -m session -P 3 | grep 'Target\|disk'
+
+cannonical_disk="/dev/$(sudo iscsiadm -m session -P 3 | grep "$volume_iqn\|disk" | grep "$volume_iqn" -A1 | tail -1 | cut -f4 -d ' ' | cut -f1)"
+echo "found block storage at: $cannonical_disk"
 
 echo "creating mount point"
-mkdir -p /mnt/subj-data
+sudo mkdir -p /mnt/subj-data
 
 # if not formatted make a partition and format
 echo "checking if formatted"
-if [ "$(sudo sfdisk -d '/dev/oracleoci/oraclevdaa' 2>&1)" == "" ]
+#if [ "$(sudo sfdisk -d '/dev/oracleoci/oraclevdaa' 2>&1)" == "" ]
+if [ "$(lsblk -f | grep "$cannonical_disk"1)" == "" ]
 then
     echo "not formatted"
     echo "creating new partitiion"
-    sudo parted --script '/dev/oracleoci/oraclevdaa' \
+    sudo parted --script "$cannonical_disk" \
         'mklabel gpt' \
         'mkpart primary ext4 1 -1'
     echo "creating new file system"
@@ -136,7 +171,7 @@ fi
 
 # mount and setup permissions
 echo "mounting drive"
-sudo mount "$cannonical_disk"1 /mnt/subj-data
+sudo mount "$cannonical_disk"1 /mnt/subj-data && volume_mounted=true
 echo "setting drive permissions"
 sudo chmod -R a+rwX /mnt/subj-data
 
@@ -153,23 +188,12 @@ oci os object bulk-download \
 echo "removing subject number prefix from directories"
 to_remove=$(ls /mnt/subj-data/raw)
 mv /mnt/subj-data/raw/*/* /mnt/subj-data/raw
-rm "$to_remove" -r
+rm "/mnt/subj-data/raw/$to_remove" -r
 
 echo "uncompressing files"
 find /mnt/subj-data -name '*.bz2' -exec lbzip2 -d {} \;
 echo "untarring files"
 find /mnt/subj-data -name '*.tar' -exec tar -xvf {} \;
 
-# detach block volume
-echo "disconnecting from volume in OS"
-sudo umount /mnt/subj-data
-sudo iscsiadm -m node -T "$volume_iqn" -p "$volume_ip:$volume_port" -u
-sudo iscsiadm -m node -o delete -T "$volume_iqn" -p "$volume_ip:$volume_port"
-
-echo "removing block storage attachment in OCI"
-oci compute volume-attachment detach \
-    --volume-attachment-id "$attachment_id"\
-    --force\
-    --wait-for-state DETACHED
 
 echo "job complete"
