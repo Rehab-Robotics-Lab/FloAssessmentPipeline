@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # pass in the subject number
 echo "parsing input"
 echo "Passed: $1"

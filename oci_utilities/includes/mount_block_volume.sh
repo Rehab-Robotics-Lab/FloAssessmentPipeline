@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # mount and setup permissions
 echo "mounting drive"
 sudo mount "/dev/$cannonical_disk"1 /mnt/subj-data && volume_mounted=true

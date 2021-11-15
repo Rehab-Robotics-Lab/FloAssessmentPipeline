@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 echo "getting block volume id"
 
 compartment=''
