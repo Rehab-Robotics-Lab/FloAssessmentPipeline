@@ -15,3 +15,5 @@ oci os object get -bn 'rrl-flo-run' --file 'manual_jobs/run.sh' --name 'manual_j
 oci-token os object put -bn 'rrl-flo-run' --file 'run.sh' --name 'manual_jobs/run.sh'
 
 oci-token os object put -bn 'rrl-flo-run' --file 'run.sh' --name 'manual_jobs/run.sh'
+
+oci os object bulk-download -bn 'rrl-flo-run' --download-dir '.'
