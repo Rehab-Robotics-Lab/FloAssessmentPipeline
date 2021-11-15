@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Safely exit if something goes wrong
 volume_mounted=false
 

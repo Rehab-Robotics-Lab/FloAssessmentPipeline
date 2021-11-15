@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Get some info about where we are running
 echo "getting run instance information"
 #instance_ocid=$(oci-metadata --get id --value-only)
