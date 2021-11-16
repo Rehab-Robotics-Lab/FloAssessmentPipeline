@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# Designed to be sourced from another script
+# Attaches to a block volume, with disconnect on script end
+# will set a variable $volume_mounted that goes true once mounted
+# Requires $instance_ocid and $volume_id to be defined
+
+# WARNING!!! If something else sets the trap for EXIT, uh oh..
+
 # Safely exit if something goes wrong
 volume_mounted=false
 
@@ -27,6 +34,7 @@ trap disconnect_volume EXIT
 
 # attach to the block volume
 echo "attaching to block storage"
+# shellcheck disable=SC2154
 attachment_id=$(oci compute volume-attachment attach-iscsi-volume \
     --instance-id "$instance_ocid" \
     --volume-id "$volume_id" \
