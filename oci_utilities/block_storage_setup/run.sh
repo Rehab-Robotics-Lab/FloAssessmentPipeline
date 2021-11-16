@@ -8,11 +8,13 @@ scriptpath="$(dirname "$script")"
 # shellcheck source=../includes/check_version.sh
 source "$scriptpath/check_version.sh"
 
-# shellcheck source=../includes/add_extended_repos.sh
-source "$scriptpath/add_extended_repos.sh"
-
-echo "installing lbzip2"
-sudo dnf install -y -q lbzip2
+if [ -z "$(lbzip2 --version)" ]
+then
+    # shellcheck source=../includes/add_extended_repos.sh
+    source "$scriptpath/add_extended_repos.sh"
+    echo "installing lbzip2"
+    sudo dnf install -y -q lbzip2
+fi
 
 # shellcheck source=../includes/set_permissions.sh
 source "$scriptpath/set_permissions.sh"
