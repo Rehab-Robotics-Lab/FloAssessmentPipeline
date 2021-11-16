@@ -20,3 +20,5 @@ oci-token os object put -bn 'rrl-flo-run' --file 'run.sh' --name 'manual_jobs/ru
 oci-token os object put -bn 'rrl-flo-run' --file 'run.sh' --name 'manual_jobs/run.sh'
 
 oci os object bulk-download -bn 'rrl-flo-run' --download-dir '.'
+
+# https://docs.docker.com/engine/install/centos/
