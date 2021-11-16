@@ -1,3 +1,6 @@
+#!/bin/bash
+
+## Not meant to be run. just some snippets that are useful for running code
 sudo dnf install -y tmux
 
 OCI_CLI_AUTH=instance_principal

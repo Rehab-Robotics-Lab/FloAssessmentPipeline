@@ -25,6 +25,8 @@ source "$scriptpath/get_instance_info.sh"
 
 # check if the relevant block storage vol exists, if not create it
 echo "checking if block storage volume exists"
+# shellcheck disable=SC2154,SC2016
+# Dont want to have shell expend this stuff (SC2016)
 volume_id=$(
     oci bv volume list \
         --compartment-id "$compartment" \

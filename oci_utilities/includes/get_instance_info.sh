@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# Intended to be sourced from another script
+# Will find out the instances ocid and store that in $instance_ocid
+# Will figure out the instance compartment id, store it in $instance_compartment_id
+# Will check if $PROJECT_COMPARTMENT_OCID is defined (should be defined in data
+#   science jobs), and define $compartment as the value of $PROJECT_COMPARTMENT_OCID
+#   if it is not defined, then $compartment is set as $instance_compartment_id
+
 # Get some info about where we are running
 echo "getting run instance information"
 #instance_ocid=$(oci-metadata --get id --value-only)
@@ -34,5 +41,6 @@ then
     fi
 else
     echo 'using the project ocid'
+    # shellcheck disable=SC2034
     compartment=$PROJECT_COMPARTMENT_OCID
 fi

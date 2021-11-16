@@ -23,4 +23,4 @@ jobs:
       - name: Lint with Shell Check
         run: |-
           cd $GITHUB_WORKSPACE/LilFloAssessmentPipeline
-          git ls-files | grep 'sh$' | xargs shellcheck -x
+          git ls-files | grep 'sh$' | xargs shellcheck -x --source-path=SCRIPTDIR
