@@ -92,7 +92,7 @@ cp -rlf "/mnt/subj-data/raw/$subject_padded/"* /mnt/subj-data/raw
 rm "/mnt/subj-data/raw/$subject_padded" -r
 
 echo "uncompressing files"
-find /mnt/subj-data -name '*.bz2' -exec lbzip2 -d -n 48 {} \;
+find /mnt/subj-data -name '*.bz2' -exec lbzip2 -d -f -n 48 {} \;
 echo "untarring files"
 find /mnt/subj-data -name '*.tar' -exec bash -c 'tar -xf "$1" --directory "$(dirname "$1")"' shell {} \;
 
