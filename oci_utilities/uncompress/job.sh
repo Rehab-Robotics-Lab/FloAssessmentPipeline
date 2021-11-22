@@ -33,24 +33,26 @@ source "$scriptpath/parse_input_subj_no.sh"
 echo "creating raw data folder"
 mkdir -p './data'
 echo "downloading files from object storage"
-#oci os object bulk-download \
-#    -bn 'rrl-flo-raw' \
-#    --download-dir './data' \
-#    --prefix "$subject_padded" \
-#    --parallel-operations-count 500 \
-#    --overwrite
-errors=1
-while (( errors > 0 ))
-do
-    echo "Starting sync"
-    errors=$(oci os object sync \
-        -bn 'rrl-flo-raw' \
-        --dest-dir './data' \
-        --prefix "$subject_padded" \
-        --parallel-operations-count 500 \
-        | jq '."download-failures" | length')
-    echo "sync finished with $errors failures to download"
-done
+download_result=$(oci os object bulk-download \
+    -bn 'rrl-flo-raw' \
+    --download-dir './data' \
+    --prefix "$subject_padded" \
+    --parallel-operations-count 500 \
+    --overwrite)
+echo "download result: $download_result"
+
+#errors=1
+#while (( errors > 0 ))
+#do
+#    echo "Starting sync"
+#    errors=$(oci os object sync \
+#        -bn 'rrl-flo-raw' \
+#        --dest-dir './data' \
+#        --prefix "$subject_padded" \
+#        --parallel-operations-count 500 \
+#        | jq '."download-failures" | length')
+#    echo "sync finished with $errors failures to download"
+#done
 
 #echo "removing subject number prefix from directories"
 ##rsync -a "/mnt/subj-data/raw/$subject_padded/"* /mnt/subj-data/raw
@@ -63,21 +65,24 @@ echo "untarring files"
 find ./data -name '*.tar' -exec bash -c 'tar -xf "$1" --directory "$(dirname "$1")"' shell {} \;
 
 # push back to os
-#oci os object bulk-upload \
-#    -bn 'rrl-flo-uncompressed' \
-#    --src-dir ./data \
-#    --overwrite \
-#    --parallel-upload-count 500
-errors=1
-while (( errors > 0 ))
-do
-    echo "starting sync"
-    errors=$(oci os object sync \
-        -bn 'rrl-flo-uncompressed' \
-        --src-dir './data' \
-        --parallel-operations-count 500 \
-        | jq '."upload-failures" | length')
-    echo "sync finished with $errors failures to upload"
-done
+echo 'uploading uncompressed files'
+upload_result=$(oci os object bulk-upload \
+    -bn 'rrl-flo-uncompressed' \
+    --src-dir ./data \
+    --overwrite \
+    --parallel-upload-count 500)
+echo "upload result: $upload_result"
+
+#errors=1
+#while (( errors > 0 ))
+#do
+#    echo "starting sync"
+#    errors=$(oci os object sync \
+#        -bn 'rrl-flo-uncompressed' \
+#        --src-dir './data' \
+#        --parallel-operations-count 500 \
+#        | jq '."upload-failures" | length')
+#    echo "sync finished with $errors failures to upload"
+#done
 
 echo "job complete"
