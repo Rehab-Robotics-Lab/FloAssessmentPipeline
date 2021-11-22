@@ -5,11 +5,11 @@ set -o pipefail
 script="$(realpath "$0")"
 scriptpath="$(dirname "$script")"
 
-oci os object put \
+oci os object bulk-upload \
     -bn 'rrl-flo-run' \
-    --file "$scriptpath/run.sh" \
-    --name 'video_prep/run.sh' \
-    --force \
+    --src-dir "$scriptpath/" \
+    --prefix 'video_prep/' \
+    --overwrite \
     --config-file "$HOME/.oci/config"\
     --profile 'token-oci-profile'\
     --auth security_token
