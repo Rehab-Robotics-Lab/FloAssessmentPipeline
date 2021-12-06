@@ -19,7 +19,7 @@ mkdir -p "$output"
 
 echo "putting videos in $output"
 
-readarray -t files <<<"$(find "$target" -type f -iname '*MP4')"
+readarray -t files < <(find "$target" -type f -iname '*MP4')
 for fn in "${files[@]}"
 do
     fn_base=${fn#"$target/"}
