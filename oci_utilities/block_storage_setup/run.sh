@@ -16,8 +16,8 @@ then
     sudo dnf install -y -q lbzip2
 fi
 
-# shellcheck source=../includes/set_permissions.sh
-source "$scriptpath/set_permissions.sh"
+# shellcheck source=../includes/set_permissions_job.sh
+source "$scriptpath/set_permissions_job.sh"
 
 # shellcheck source=../includes/parse_input_subj_no.sh
 source "$scriptpath/parse_input_subj_no.sh"

@@ -8,8 +8,8 @@ scriptpath="$(dirname "$script")"
 # shellcheck source=../includes/check_version.sh
 source "$scriptpath/check_version.sh"
 
-# shellcheck source=../includes/set_permissions.sh
-source "$scriptpath/set_permissions.sh"
+# shellcheck source=../includes/set_permissions_job.sh
+source "$scriptpath/set_permissions_job.sh"
 
 # shellcheck source=../includes/parse_input_subj_no.sh
 source "$scriptpath/parse_input_subj_no.sh"
