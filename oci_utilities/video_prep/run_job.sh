@@ -25,6 +25,8 @@ else
     subjects="$subject_padded"
 fi
 
+# shellcheck disable=SC2016
+# should not expand query string
 job=$(oci data-science job list \
     --config-file "$HOME/.oci/config" \
     --profile 'token-oci-profile' \
