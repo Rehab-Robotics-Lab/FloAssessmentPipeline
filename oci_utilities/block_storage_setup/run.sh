@@ -16,8 +16,8 @@ then
     sudo dnf install -y -q lbzip2
 fi
 
-# shellcheck source=../includes/set_permissions.sh
-source "$scriptpath/set_permissions.sh"
+# shellcheck source=../includes/set_permissions_job.sh
+source "$scriptpath/set_permissions_job.sh"
 
 # shellcheck source=../includes/parse_input_subj_no.sh
 source "$scriptpath/parse_input_subj_no.sh"
@@ -92,7 +92,7 @@ cp -rlf "/mnt/subj-data/raw/$subject_padded/"* /mnt/subj-data/raw
 rm "/mnt/subj-data/raw/$subject_padded" -r
 
 echo "uncompressing files"
-find /mnt/subj-data -name '*.bz2' -exec lbzip2 -d -n 48 {} \;
+find /mnt/subj-data -name '*.bz2' -exec lbzip2 -d -f -n 48 {} \;
 echo "untarring files"
 find /mnt/subj-data -name '*.tar' -exec bash -c 'tar -xf "$1" --directory "$(dirname "$1")"' shell {} \;
 
