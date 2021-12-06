@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 
 echo "checking version"
-echo "version: $(cat /etc/oracle-release)"
+echo "OS version: $(cat /etc/oracle-release)"
+
+echo "CLI Version: $(oci -v)"
