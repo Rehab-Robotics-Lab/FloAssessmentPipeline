@@ -2,7 +2,7 @@
 set -o errexit
 set -o pipefail
 
-BUCKET_NAME='sandbox'
+BUCKET_NAME='rrl-flo-raw'
 
 while getopts :p:t: flag
 do
