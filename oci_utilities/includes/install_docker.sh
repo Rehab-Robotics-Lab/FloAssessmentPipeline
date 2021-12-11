@@ -16,11 +16,14 @@ sudo systemctl enable docker.service
 echo "staart docker service"
 sudo systemctl start docker.service
 echo "add docker group"
-sudo groupadd docker
+getent group docker || sudo groupadd docker
 echo "add docker user"
-sudo usermod -aG docker "$USER"
-echo "init docker group"
-newgrp docker
+groups "$USER" | grep -q '\bdocker\b' || sudo usermod -aG docker "$USER"
+#echo "init docker group"
+#newgrp docker || true I don't think this is needed. If permissions issues pop up, it may be this
+
+
+
 # useradd docker_user
 # echo "docker_user  ALL=(ALL)  NOPASSWD: /usr/bin/docker" >> /etc/sudoers
 # echo "alias docker=\"sudo /usr/bin/docker\"" >> /home/docker_user/.bash_profile

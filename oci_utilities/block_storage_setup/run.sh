@@ -17,13 +17,13 @@ then
 fi
 
 # shellcheck source=../includes/set_permissions_job.sh
-source "$scriptpath/set_permissions_job.sh"
+source "$scriptpath/../includes/set_permissions_job.sh"
 
 # shellcheck source=../includes/parse_input_subj_no.sh
-source "$scriptpath/parse_input_subj_no.sh"
+source "$scriptpath/../includes/parse_input_subj_no.sh"
 
 # shellcheck source=../includes/get_instance_info.sh
-source "$scriptpath/get_instance_info.sh"
+source "$scriptpath/../includes/get_instance_info.sh"
 
 # check if the relevant block storage vol exists, if not create it
 echo "checking if block storage volume exists"
@@ -55,7 +55,7 @@ then
 fi
 
 # shellcheck source=../includes/attach_block_volume.sh
-source "$scriptpath/attach_block_volume.sh"
+source "$scriptpath/../includes/attach_block_volume.sh"
 
 # if not formatted make a partition and format
 echo "checking if formatted"
@@ -73,7 +73,7 @@ then
 fi
 
 # shellcheck source=../includes/mount_block_volume.sh
-source "$scriptpath/mount_block_volume.sh"
+source "$scriptpath/../includes/mount_block_volume.sh"
 
 # copy and decompress data
 echo "creating raw data folder"
