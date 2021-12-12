@@ -26,6 +26,24 @@ Everything can be run locally, but is really meant to run on Oracle Cloud Infras
 *   `dockerfiles` for dockerfiles to run the various tools
 *   `oci_utilities` scripts to help run the pipeline on OCI
 
+## Getting Set with OCI
+
+Start by [installing the OCI CLI](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm).
+
+There are a few different ways to authenticate yourself to work with
+resources on OCI. The only secure one is to use tokens. To do this,
+run [the authentication script](https://github.com/Rehab-Robotics-Lab/oci-cli-helpers/blob/main/auth/token-alive.sh)
+and export the following variables into your shell (easiest to do this
+from your bashrc/zshrc):
+
+```{bash}
+export OCI_CLI_PROFILE='token-oci-profile'
+export OCI_CLI_CONFIG_FILE="$HOME/.oci/config"
+export OCI_CLI_AUTH='security_token'
+```
+
+Any commands from the oci cli should now work.
+
 ## Pipeline
 
 ### Uploading data
