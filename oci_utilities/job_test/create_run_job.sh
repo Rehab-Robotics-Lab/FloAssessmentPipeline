@@ -11,9 +11,6 @@ subnet='ocid1.subnet.oc1.iad.aaaaaaaalvfmp226glz3pt4wbxn5rfnwpsnwriyjrrdmg3xocjh
 project='ocid1.datascienceproject.oc1.iad.amaaaaaachblvpya4rjbrewjek7rrwor7qhiigpzkmptfnddjkexxcui4mca'
 
 job_id=$(oci data-science job create \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     --compartment-id "$flo_compartment" \
     --display-name "$1" \
     --project-id "$project" \
@@ -49,9 +46,6 @@ echo "created new job: $job_id"
 
 
 oci data-science job create-job-artifact \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     --job-id "$job_id" \
     --job-artifact-file "$scriptpath"/min.sh \
     --content-disposition 'attachment; filename=min.sh'
@@ -64,9 +58,6 @@ lifecycle_state="unknown"
 until [ "$lifecycle_state" = 'ACTIVE' ]
 do
     lifecycle_state=$(oci data-science job get \
-        --config-file "$HOME/.oci/config" \
-        --profile 'token-oci-profile' \
-        --auth security_token \
         --job-id "$job_id" \
         --query 'data."lifecycle-state"' \
         --raw-output)
@@ -77,9 +68,6 @@ done
 echo 'running job'
 
 job_run=$(oci data-science job-run create \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     --compartment-id "$flo_compartment" \
     --job-id "$job_id" \
     --project-id "$project" \

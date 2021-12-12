@@ -11,9 +11,6 @@ subnet='ocid1.subnet.oc1.iad.aaaaaaaalvfmp226glz3pt4wbxn5rfnwpsnwriyjrrdmg3xocjh
 project='ocid1.datascienceproject.oc1.iad.amaaaaaachblvpya4rjbrewjek7rrwor7qhiigpzkmptfnddjkexxcui4mca'
 
 job_id=$(oci data-science job create \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     --compartment-id "$flo_compartment" \
     --display-name 'flo-uncompress' \
     --project-id "$project" \
@@ -52,9 +49,6 @@ zip -j job.zip "$scriptpath/job.sh" "$scriptpath/../includes/"*
 echo 'done zipping'
 
 oci data-science job create-job-artifact \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     --job-id "$job_id" \
     --job-artifact-file job.zip \
     --content-disposition 'attachment; filename=job.zip'

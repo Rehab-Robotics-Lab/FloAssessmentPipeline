@@ -12,9 +12,6 @@ if [ "$1" == 'all' ]
 then
     # shellcheck source=../includes/get_all_subj.sh
     subjects=$(oci os object list \
-        --config-file "$HOME/.oci/config" \
-        --profile 'token-oci-profile' \
-        --auth security_token \
         -bn 'rrl-flo-uncompressed' \
         --all \
         --query 'data[].name' \
@@ -28,9 +25,6 @@ fi
 # shellcheck disable=SC2016
 # should not expand query string
 job=$(oci data-science job list \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     --compartment-id "$flo_compartment" \
     --display-name 'flo-video-prep' \
     --all \
@@ -42,9 +36,6 @@ echo "posting runs to job: $job"
 while read -r subject
 do
     job_run=$(oci data-science job-run create \
-        --config-file "$HOME/.oci/config" \
-        --profile 'token-oci-profile' \
-        --auth security_token \
         --compartment-id "$flo_compartment" \
         --job-id "$job" \
         --project-id "$project" \

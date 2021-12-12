@@ -9,9 +9,6 @@ flo_compartment='ocid1.compartment.oc1..aaaaaaaadznuoh3ntsva2jsj453wwmemd4t2k5rn
 # shellcheck disable=SC2016
 # should not expand query string
 for job in $(oci data-science job list \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     --compartment-id "$flo_compartment" \
     --display-name 'flo-uncompress' \
     --all \
@@ -20,9 +17,6 @@ for job in $(oci data-science job list \
     jq -r '.[]')
 do
     oci data-science job delete \
-        --config-file "$HOME/.oci/config" \
-        --profile 'token-oci-profile' \
-        --auth security_token \
         --job-id "$job" \
         --force \
         --wait-for-state ACCEPTED \
