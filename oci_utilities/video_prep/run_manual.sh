@@ -25,40 +25,40 @@ if [ -d "$HOME/data/$subject_padded/ros/podium/" ]
 then
 echo 'processing podium files'
 # shellcheck source=../../bag2video/run_docker_bag2vid.sh
-. "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/podium" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
+bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/podium" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-. "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh"  -t "$HOME/data/$subject_padded/ros/podium"
+bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh"  -t "$HOME/data/$subject_padded/ros/podium"
 fi
 
 ### If robot
 if [ -d "$HOME/data/$subject_padded/ros/robot/" ]
 then
 # shellcheck source=../../bag2video/run_docker_bag2vid.sh
-. "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/robot" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
+bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/robot" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-. "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros/robot"
+bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros/robot"
 fi
 
 ### If all together
 if ls "$HOME/data/$subject_padded/ros/"*.bag &> /dev/null
 then
 # shellcheck source=../../bag2video/run_docker_bag2vid.sh
-. "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
+bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-. "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros"
+bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros"
 fi
 
 ### For gopro
 # shellcheck source=../../prep_code_vids/concatenate_vids.sh
-. "$scriptpath/../../prep_code_vids/concatenate_vids.sh" -t "$HOME/data/$subject_padded/gopro"
+bash "$scriptpath/../../prep_code_vids/concatenate_vids.sh" -t "$HOME/data/$subject_padded/gopro"
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-. "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/gopro/concatenated"
+bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/gopro/concatenated"
 
 ### For 3rd-person
 # shellcheck source=../../prep_code_vids/concatenate_vids.sh
-. "$scriptpath/../../prep_code_vids/concatenate_vids.sh" -t "$HOME/data/$subject_padded/3rd-person"
+bash "$scriptpath/../../prep_code_vids/concatenate_vids.sh" -t "$HOME/data/$subject_padded/3rd-person"
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-. "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/3rd-person/concatenated"
+bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/3rd-person/concatenated"
 
 ### upload data
 oci os object bulk-upload -bn 'rrl-flo-vids' --src-dir "$HOME/data/$subject_padded" --include '*.mov' --include '*.MOV' --include '*.mp4' --include '*.MP4' --include '*.avi' --include '*.AVI' --prefix "$subject_padded/" --overwrite

@@ -50,7 +50,7 @@ sudo chmod u+x "$scriptpath/../../prep_code_vids/"*.sh
 
 echo 'install docker'
 # shellcheck source=../includes/install_docker.sh
-. "$scriptpath/../includes/install_docker.sh"
+source "$scriptpath/../includes/install_docker.sh"
 
 echo 'done installing docker'
 
