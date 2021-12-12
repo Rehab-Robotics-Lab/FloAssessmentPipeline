@@ -17,8 +17,7 @@ RUN echo '#!/bin/bash' >> /entrypoint.sh && \
     echo 'set -e' >> /entrypoint.sh && \
     echo 'source /opt/ros/$ROS_DISTRO/setup.bash' >> /entrypoint.sh && \
     echo 'echo "passed: $@"' >> /entrypoint.sh && \
-    echo 'bag2video/bag2video.py "$@"' >> /entrypoint.sh && \
+    echo 'python -m bag2video.bag2video "$@"' >> /entrypoint.sh && \
     chmod u+x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-#ENTRYPOINT ["/ros_install_entry.sh","python -m bag2video/bag2video.py","-t","/data"]
