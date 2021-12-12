@@ -20,9 +20,6 @@ oci os object sync \
     --delete \
     --exclude '.git*' \
     "${exclude_opts[@]}" \
-    --src-dir "$scriptpath/../" \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token
+    --src-dir "$scriptpath/../"
 
 echo 'done syncing data'
