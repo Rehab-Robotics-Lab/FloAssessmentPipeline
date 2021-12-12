@@ -26,6 +26,11 @@ Everything can be run locally, but is really meant to run on Oracle Cloud Infras
 *   `dockerfiles` for dockerfiles to run the various tools
 *   `oci_utilities` scripts to help run the pipeline on OCI
 
+## Other dependencies:
+
+*   [yq](https://github.com/mikefarah/yq/#install)
+*   [jq](https://stedolan.github.io/jq/)
+
 ## Getting Set with OCI
 
 Start by [installing the OCI CLI](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm).
