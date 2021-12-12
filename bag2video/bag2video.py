@@ -282,6 +282,12 @@ def write_image(video, vid_writer, columns):
 
 
 def add_timestamp(img, video):
+    """Add a timestamp to the output video
+
+    Args:
+        img: the image to draw over
+        video: the video data structure used to figure out the time
+    """
     img_overlays.draw_text(img, str(video['first_msg_time'] +
                                     (video['head']*(1/video['framerate']))))
 
