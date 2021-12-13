@@ -12,27 +12,18 @@ source "$scriptpath/../includes/parse_input_subj_no.sh"
 
 mkdir -p "$HOME/Downloads/$subject_padded/3rd-person/"
 oci os object bulk-download \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     -bn rrl-flo-vids \
     --prefix "$subject_padded/3rd-person/" \
     --download-dir "$HOME/Downloads"
 
 mkdir -p "$HOME/Downloads/$subject_padded/gopro/"
 oci os object bulk-download \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     -bn rrl-flo-vids \
     --prefix "$subject_padded/gopro/concatenated/transcoded/" \
     --download-dir "$HOME/Downloads"
 
 mkdir -p "$HOME/Downloads/$subject_padded/ros/"
 oci os object bulk-download \
-    --config-file "$HOME/.oci/config" \
-    --profile 'token-oci-profile' \
-    --auth security_token \
     -bn rrl-flo-vids \
     --prefix "$subject_padded/ros/transcoded/" \
     --download-dir "$HOME/Downloads"
