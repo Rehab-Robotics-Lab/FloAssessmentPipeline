@@ -13,12 +13,24 @@ source "$scriptpath/../includes/parse_input_subj_no.sh"
 
 #Get the ros files of interest
 echo 'looking for mixed files (old style)'
+# Don't waant the query string expanded
+# shellcheck disable=SC2016
+# will be expanded using declare below
+# shellcheck disable=SC2034
 mixed=$(oci os object list --bucket-name "$bucket_raw" --fields name --prefix "$subject_padded" --query 'data[? ends_with("name",`"bag.bz2"`) && ! contains("name",`"podium"`) && ! contains("name",`"robot"`)] | [].name' --raw-output --all | jq '.[]' -r)
 
 echo 'looking for podium files'
+# Don't waant the query string expanded
+# shellcheck disable=SC2016
+# will be expanded using declare below
+# shellcheck disable=SC2034
 podium=$(oci os object list --bucket-name "$bucket_raw" --fields name --prefix "$subject_padded" --query 'data[? ends_with("name",`"bag.bz2"`) && contains("name",`"podium"`)] | [].name' --raw-output --all | jq '.[]' -r)
 
 echo 'looking for robot files'
+# Don't waant the query string expanded
+# shellcheck disable=SC2016
+# will be expanded using declare below
+# shellcheck disable=SC2034
 robot=$(oci os object list --bucket-name "$bucket_raw" --fields name --prefix "$subject_padded" --query 'data[? ends_with("name",`"bag.bz2"`) && contains("name",`"robot"`)] | [].name' --raw-output --all | jq '.[]' -r)
 
 [ "$(docker container ls --all --filter name=hdf5-converter -q)" ] && docker rm /hdf5-converter
