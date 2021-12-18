@@ -17,10 +17,10 @@ jobs:
 
       - name: Setup Shell Check
         run: |
-            sudo apt-get update
-            sudo apt-get install shellcheck
+          sudo apt-get update
+          sudo apt-get install shellcheck
 
       - name: Lint with Shell Check
-        run: |
+        run: |-
           cd $GITHUB_WORKSPACE/LilFloAssessmentPipeline
-          git ls-files | grep 'sh$' | xargs shellcheck
+          git ls-files | grep 'sh$' | xargs shellcheck -x --source-path=SCRIPTDIR
