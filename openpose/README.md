@@ -2,6 +2,42 @@
 
 To do this, we run in a docker image, openpose is just easier that way.
 
+We run openpose at maximum accuracy. This requires a GPU with at least 16GB of memory.
+If multiple GPUs are available, they will all be used.
+
+## On OCI
+
+1.  push the code files to OCI by running `./oci_utilities/push_code.sh`
+1.  Provision instance of:
+    - Image: Oracle Linux 8 GPU Build, [supported version](https://nvidia.github.io/nvidia-docker/)
+    - Shape: VM.GPU3.2
+    - vcn: flo vcn
+    - subnet: private
+    - SSH Keys: None
+    - Boot Volume: 2000GB
+1.  Enable Bastion Service on the instance
+1.  Remote into that instance. Ex:
+    `oci-cli-helpers/utilities/oci-ssh.sh $(oci-cli-helpers/utilities/ocid.sh instance flo-hdf5-1)`
+1.  Check if the nvidia drivers are working: `nvidia-smi`
+1.  Setup permissions: `OCI_CLI_AUTH=instance_principal && export OCI_CLI_AUTH`
+1.  Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
+1.  Pull down code onto the remote instance:
+    `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
+1.  Run setup script: `chmod u+x "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" && mkdir -p "$HOME/logs/install/" && bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" 2>&1 | tee -a "$HOME/logs/install/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)"`
+1.  Test that nvidia docker installed properly:
+1.  Run screen: `screen`. If you disconnect, reconect: `screen -r`. You could also use tmux.
+1.  Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
+
+If you want to run a bunch of subjects at once, you can do that with something like:
+
+```{bash}
+for sn in 3
+do
+log="$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_$sn"
+bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" "$sn" 2>&1 | tee -a $log
+done
+```
+
 ## on AWS
 
 1.  provision instance with Ubuntu 20
@@ -11,12 +47,7 @@ To do this, we run in a docker image, openpose is just easier that way.
 5.  Edit `/etc/docker/daemon.json` to have `"default-runtime": "nvidia",` as the second line, [like this](https://docs.nvidia.com/dgx/nvidia-container-runtime-upgrade/index.html#using-nv-container-runtime)
 6.  build dockerfile: `docker build . --tag openpose`
 7.  attach ssd: `./mount_instance_store.sh`
-8.  Run script: ` ./scripts/process-in-ec2.sh -s <subj> -c <cond: augmented-telepresence, classical-telepresence, in-person> -a <activity: simon-says, target-touch>
-     `
-
-### permission denied error
-
-you can get permission denied errors if you haven't properly run the mount_instance_store.sh file
+8.  Run script: `./scripts/process-in-ec2.sh -s <subj> -c <cond: augmented-telepresence, classical-telepresence, in-person> -a <activity: simon-says, target-touch>`
 
 ### Running Locally
 
@@ -24,7 +55,7 @@ you can get permission denied errors if you haven't properly run the mount_insta
 2. Build openpose using: build dockerfile: `docker build . --tag openpose`
 3. Run script: ./scripts/run_local.sh -d <"Location to data directory">
 
-You might get a common GPU architecture not supported error. In that case, make sure to restart docker with : 
+You might get a common GPU architecture not supported error. In that case, make sure to restart docker with :
 
 sudo systemctl restart docker
 
