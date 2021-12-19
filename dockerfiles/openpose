@@ -46,4 +46,5 @@ COPY ./openpose/scripts/extract_poses.py ./
 COPY ./openpose/scripts/process_hdf5.py ./
 COPY ./openpose/scripts/extract_depth.py ./
 
-CMD /bin/bash -c "cd /openpose/build/scripts && find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
+WORKDIR /openpose/build/scripts
+CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
