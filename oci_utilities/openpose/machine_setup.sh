@@ -54,8 +54,14 @@ curl -s -L "https://nvidia.github.io/nvidia-docker/rhel$distribution/nvidia-dock
 
 sudo dnf install -y nvidia-docker2
 
-sudo cp /etc/docker/daemon.json /etc/docker/daemon.json.old
-jq '. + {"default-runtime": "nvidia"}' /etc/docker/daemon.json.old | sudo tee /etc/docker/daemon.json
+if [ "$(jq '."default-runtime"' /etc/docker/daemon.json -r)" == 'nvidia' ]
+then
+    echo 'docker daemon default runtime already set to nvidia'
+else
+    sudo cp /etc/docker/daemon.json /etc/docker/daemon.json.old
+    jq '. + {"default-runtime": "nvidia"}' /etc/docker/daemon.json.old | sudo tee /etc/docker/daemon.json
+    echo 'changed default docker daemon runtime to nvidia'
+fi
 
 sudo systemctl restart docker
 

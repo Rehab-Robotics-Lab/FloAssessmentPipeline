@@ -25,16 +25,16 @@ If multiple GPUs are available, they will all be used.
     `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
 1.  Run setup script: `chmod u+x "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" && mkdir -p "$HOME/logs/install/" && bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" 2>&1 | tee -a "$HOME/logs/install/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)"`
 1.  Test that nvidia docker installed properly:
-1.  Run screen: `screen`. If you disconnect, reconect: `screen -r`. You could also use tmux.
-1.  Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
+1.  Run screen: `screen -R`. If you disconnect, reconect: `screen -R`. You could also use tmux.
+1.  Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
 
 If you want to run a bunch of subjects at once, you can do that with something like:
 
 ```{bash}
-for sn in 3
+for sn in 35
 do
 log="$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_$sn"
-bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" "$sn" 2>&1 | tee -a $log
+bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" "$sn" 2>&1 | tee -a $log
 done
 ```
 
