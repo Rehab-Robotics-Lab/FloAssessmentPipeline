@@ -50,11 +50,17 @@ def convert(pth):
         if 'color' in dset and 'lower' in dset and isinstance(hdf5_in[dset], h5py.Dataset):
             tqdm.write('\t\tVideo, starting processing')
 
-            keypoints_dset = hdf5_in.create_dataset(
-                dset+'-keypoints', (hdf5_in[dset].len(), 25, 2), dtype=np.float32)
+            if dset+'-keypoints' not in hdf5_in:
+                keypoints_dset = hdf5_in.create_dataset(
+                    dset+'-keypoints', (hdf5_in[dset].len(), 25, 2), dtype=np.float32)
+            else:
+                keypoints_dset = hdf5_in[dset+'-keypoints']
 
-            confidence_dset = hdf5_in.create_dataset(
-                dset+'-confidence', (hdf5_in[dset].len(), 25), dtype=np.float32)
+            if dset+'-confidence' not in hdf5_in:
+                confidence_dset = hdf5_in.create_dataset(
+                    dset+'-confidence', (hdf5_in[dset].len(), 25), dtype=np.float32)
+            else:
+                confidence_dset = hdf5_in[dset+'-confidence']
 
             for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks'):
                 color_arr = hdf5_in[dset][chunk]
