@@ -26,7 +26,7 @@ If multiple GPUs are available, they will all be used.
     `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
 10. Run setup script: `chmod u+x "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" && mkdir -p "$HOME/logs/install/" && bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" 2>&1 | tee -a "$HOME/logs/install/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)"`
 11. Test that nvidia docker installed properly:
-12. Run screen: `screen -R`. If you disconnect, reconect: `screen -R`. You could also use tmux.
+12. Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
 13. Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
 
 If you want to run a bunch of subjects at once, you can do that with something like:
