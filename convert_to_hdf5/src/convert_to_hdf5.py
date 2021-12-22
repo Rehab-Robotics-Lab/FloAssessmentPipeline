@@ -261,7 +261,7 @@ def load_hdf_file(out_dir):
 
     Returns: The HDF5 File data object
     """
-    hdf5_fn_full = pathlib.Path(out_dir, 'full_data').with_suffix('.hdf5')
+    hdf5_fn_full = pathlib.Path(out_dir, 'full_data-vid').with_suffix('.hdf5')
     pth = pathlib.Path(hdf5_fn_full)
     pth.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -1213,7 +1213,7 @@ def add_realsense_extrinsics(bag_file, hdf5_file):
         rospy.loginfo('adding %s', topic_name)
 
         add_dataset(hdf5_file, mapped_name, REALSENSE_EXTRINSICS_DTYPE)
-        for _, msg, _ in bag_file.read_messages([topic_name]):
+        for _, msg, msg_time in bag_file.read_messages([topic_name]):
             add_to_dataset(
                 mapped_name,
                 hdf5_file,
@@ -1221,7 +1221,7 @@ def add_realsense_extrinsics(bag_file, hdf5_file):
                     msg.rotation,
                     msg.translation
                 ),
-                msg.header.stamp.to_sec()
+                msg_time.to_sec()
             )
 
 
