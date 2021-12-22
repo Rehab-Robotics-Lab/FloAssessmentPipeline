@@ -137,29 +137,20 @@ Some of the trials don't have all of the data they need for the extrinsics for t
 rgb. Luckily, this doesn't change too much over time. So we can grab data from other trials.
 To do that, do this:
 
-1. Create a new instane:
-   - VM.Standard.E4.Flex with 16 cores and 32 GB of RAM
-   - Oracle Linux 8
-   - Private VCN
-   - No SSH Keys
-   - 3000 GB boot volume
-   - Enable Bastion Service
-   - Enable Block Volume Management
-   - Edit boot volume to have 20 VPUs and auto tune
-2. Push the code files to OCI by running `./oci_utilities/push_code.sh`
-3. Remote into that instance. Ex:
-   `oci-cli-helpers/utilities/oci-ssh.sh $(oci-cli-helpers/utilities/ocid.sh instance rrl-flo-blocksetup_0)`
-4. Setup permissions: `OCI_CLI_AUTH=instance_principal && export OCI_CLI_AUTH`
-5. Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
-7. Pull down code onto the remote instance:
-   `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
-6. Install python/pip: `sudo dnf -y install python3`
-7. extract from:
-```{python}
-import h5py
-f=h5py.File(file)
-f
-```
+1.  Create a new instane:
+
+*   Literally any computer (you can even do this locally, but these instruction assume you are in the cloud)
+
+2.  Push the code files to OCI by running `./oci_utilities/push_code.sh`
+3.  Remote into that instance. Ex:
+    `oci-cli-helpers/utilities/oci-ssh.sh $(oci-cli-helpers/utilities/ocid.sh instance rrl-flo-blocksetup_0)`
+4.  Setup permissions: `OCI_CLI_AUTH=instance_principal && export OCI_CLI_AUTH`
+5.  Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
+6.  Pull down code onto the remote instance:
+    `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
+7.  Install python/pip: `sudo dnf -y install python3`
+8.  Install h5py: `pip3 install --user h5py`
+9.  Run: `./oci_utilities/get_transforms/run.sh`
 
 ### Pose Detection
 
