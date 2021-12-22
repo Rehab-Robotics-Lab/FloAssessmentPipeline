@@ -2,6 +2,9 @@
 set -o errexit
 set -o pipefail
 
+script="$(realpath "$0")"
+scriptpath="$(dirname "$script")"
+
 # parse options
 while getopts :hd: flag
 do
@@ -46,6 +49,9 @@ do
     echo "done with file"
 
 done
+
+# This must be run after all of the other hdf5 work is done
+python3 "$scriptpath/extract_novid.py" -t "$dir"
 
 
 echo "--------------------------------------"

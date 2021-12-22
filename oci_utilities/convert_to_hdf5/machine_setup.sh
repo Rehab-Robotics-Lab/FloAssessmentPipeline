@@ -33,6 +33,10 @@ sudo dnf install -y lbzip2
 echo 'install screen'
 sudo dnf -y install screen
 
+echo 'setup python'
+sudo dnf -y install python3
+pip3 install --user h5py
+
 echo 'make scripts executable'
 sudo chmod u+x "$scriptpath/"*.sh
 sudo chmod u+x "$scriptpath/../../convert_to_hdf5/"*.sh
