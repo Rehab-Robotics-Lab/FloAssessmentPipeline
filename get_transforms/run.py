@@ -3,7 +3,6 @@ import pathlib
 import argparse
 import json
 import h5py
-import ipdb
 
 
 def get_transforms(out_dir):
@@ -32,17 +31,13 @@ def get_transforms(out_dir):
             if (f'vid/depth_to_color/{cam}/time' in hdf5_database and
                     f'vid/depth_to_color/{cam}/data' in hdf5_database):
                 print('found transforms')
-                # ipdb.set_trace()
                 for time, data in zip(
                         hdf5_database[f'vid/depth_to_color/{cam}/time'],
                         hdf5_database[f'vid/depth_to_color/{cam}/data']):
                     transforms[source][cam][time] = {
-                        'rotataion': data[0].tolist(),
+                        'rotation': data[0].tolist(),
                         'translation': data[1].tolist()}
 
-        # if '045' in hdf5_fn.as_posix():
-        #     import ipdb
-        #     ipdb.set_trace()
         hdf5_database.close()
     with open(path / 'transforms.json', 'w') as file_obj:
         json.dump(transforms, file_obj)

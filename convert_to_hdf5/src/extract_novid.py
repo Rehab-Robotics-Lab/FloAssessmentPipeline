@@ -5,6 +5,14 @@ import argparse
 import h5py
 
 
+VIDEO_TOPICS = [
+    'vid/color/lower/data',
+    'vid/color/upper/data',
+    'vid/depth/lower/data',
+    'vid/depth/upper/data'
+]
+
+
 def load_hdf_file(out_dir, appendix, mode):
     """Load HDF file, creating it if needed
 
@@ -41,7 +49,7 @@ def copy_vid_to_novid(out_dir):
     def place_dset(dset_name, dset_data):
         if not isinstance(dset_data, h5py.Dataset):
             return
-        if (not 'vid' in dset_name) or (not dset_name.split('/')[-1] == 'data'):
+        if dset_name not in VIDEO_TOPICS:
             group = '/'.join(dset_name.split('/')[0:-1])
             hdf5_file_novid.require_group(group)
             hdf5_file.copy(dset_data, hdf5_file_novid[group])
