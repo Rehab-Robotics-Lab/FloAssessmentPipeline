@@ -8,6 +8,7 @@ import sys
 import numpy as np
 from utils import draw_text
 from utils import colorScale
+from common import img_overlays
 
 def overlay_wrists(file_stub, cam):
     hdf5_video = h5py.File(file_stub+'.hdf5')
@@ -24,9 +25,10 @@ def overlay_wrists(file_stub, cam):
         nsec = hdf5_tracking['vid/color/data/{}/nsecs'.format(cam)][idx]
         time = sec+nsec*1e-9
 
-        draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
-        draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
-        draw_text(img, 'view: {} realsense'.format(cam), pos=(900, 3))
+        img_overlays.draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
+        img_overlays.draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
+        img_overlays.draw_text(
+            img, 'view: {} realsense'.format(cam), pos=(900, 3))
 
         # Joints listed here: https://github.com/CMU-Perceptual-Computing-Lab/openpose/
         # blob/master/doc/02_output.md#keypoints-in-cpython
