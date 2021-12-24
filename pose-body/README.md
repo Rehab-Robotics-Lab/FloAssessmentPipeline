@@ -1,20 +1,24 @@
-# OpenPose for Pose Detection
+# Pose Detection
 
 To do this, we run in a docker image, openpose is just easier that way.
 
 We run openpose at maximum accuracy. This requires a GPU with at least 16GB of memory.
 If multiple GPUs are available, they will all be used.
 
+One of the steps here is finding the depth of the detected poses.
+Sometimes this is avaialable in the HDF5 file directly, other times
+it has to be read from the transforms.json file that is
+
 ## On OCI
 
 1.  push the code files to OCI by running `./oci_utilities/push_code.sh`
 2.  Provision instance of:
-    - Image: Oracle Linux 8 GPU Build, [supported version](https://nvidia.github.io/nvidia-docker/)
-    - Shape: VM.GPU3.2 (for higher resolution use a GPU4 instance)
-    - vcn: flo vcn
-    - subnet: private
-    - SSH Keys: None
-    - Boot Volume: 2000GB
+    *   Image: Oracle Linux 8 GPU Build, [supported version](https://nvidia.github.io/nvidia-docker/)
+    *   Shape: VM.GPU3.2 (for higher resolution use a GPU4 instance)
+    *   vcn: flo vcn
+    *   subnet: private
+    *   SSH Keys: None
+    *   Boot Volume: 2000GB
 3.  Modify the performance level of the boot volume to higher performance
 4.  Enable Bastion Service on the instance
 5.  Remote into that instance. Ex:
@@ -52,9 +56,9 @@ done
 
 ### Running Locally
 
-1. Run script: ./setup_local.sh
-2. Build openpose using: build dockerfile: `docker build . --tag openpose`
-3. Run script: ./scripts/run_local.sh -d <"Location to data directory">
+1.  Run script: ./setup_local.sh
+2.  Build openpose using: build dockerfile: `docker build . --tag openpose`
+3.  Run script: ./scripts/run_local.sh -d <"Location to data directory">
 
 You might get a common GPU architecture not supported error. In that case, make sure to restart docker with :
 

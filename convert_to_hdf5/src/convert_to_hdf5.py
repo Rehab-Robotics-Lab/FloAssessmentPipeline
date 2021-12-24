@@ -107,7 +107,7 @@ TRANSFORM_STAMPED_DTYPE = np.dtype([
     ('parent_frame_id', h5py.string_dtype())
 ])
 REALSENSE_EXTRINSICS_DTYPE = np.dtype([
-    ('roatation', np.double, 9),
+    ('rotation', np.double, 9),
     ('translation', np.double, 3)
 ])
 TTS_STATE_DTYPE = np.dtype([

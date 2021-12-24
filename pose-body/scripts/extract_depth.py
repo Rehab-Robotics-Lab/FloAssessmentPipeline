@@ -40,44 +40,54 @@ def extract_depth(depth_img, keypoints, params, window_size=3):  # pylint: disab
     return keypoints_with_depth
 
 
-def add_stereo_depth(hdf5_file, color_dset):  # pylint: disable= too-many-locals
+def add_stereo_depth(hdf5_in, hdf5_out, color_dset, transforms=None):  # pylint: disable= too-many-locals
     '''
     Function to create datasets in hdf5_tracking(hdf5_out) and add 3d keypoints
     '''
     dset_components = color_dset.split('/')
+    if dset_components[0] == '':
+        dset_components = dset_components[1:]
     depth_match_dset = f"{'/'.join(dset_components[:-1])}/matched_depth_index"
+    time_dset = f"{'/'.join(dset_components[:-1])}/time"
     depth_dset = '/'.join([dset_components[0], 'depth',
-                           'data', dset_components[3], 'data'])
+                           dset_components[2], 'data'])
     stereo_depth_dset = color_dset + '-3dkeypoints-stereo'
-
     keypoints3d_dset = None
 
-    if stereo_depth_dset not in hdf5_file:
-        keypoints3d_dset = hdf5_file.create_dataset(
-            stereo_depth_dset, (hdf5_file[color_dset].len(), 25, 3), dtype=np.float32)
+    if stereo_depth_dset not in hdf5_out:
+        keypoints3d_dset = hdf5_out.create_dataset(
+            stereo_depth_dset, (hdf5_in[color_dset].len(), 25, 3), dtype=np.float32)
     else:
-        keypoints3d_dset = hdf5_file[stereo_depth_dset]
+        keypoints3d_dset = hdf5_out[stereo_depth_dset]
         print('You might be running the Stereo depth extraction twice')
 
-    k_c = hdf5_file[color_dset].attrs['K'].reshape(3, 3)
-    r_cd = hdf5_file[color_dset].attrs['depth_to_color-rotation'].reshape(
-        3, 3)
-    t_cd = hdf5_file[color_dset].attrs['depth_to_color-translation'].reshape(
-        3, 1)
+    k_c = hdf5_in[color_dset].attrs['K'].reshape(3, 3)
+
+    if ('depth_to_color-rotation' in hdf5_in[color_dset].attrs and
+            'depth_to_color-translation' in hdf5_in[color_dset].attrs):
+        r_cd_raw = hdf5_in[color_dset].attrs['depth_to_color-rotation']
+        t_cd_raw = hdf5_in[color_dset].attrs['depth_to_color-translation']
+    else:
+        # transforms is already the
+        time_target = hdf5_in[time_dset][0] + \
+            (hdf5_in[time_dset][-1] - hdf5_in[time_dset][0])/2
+        transform_idx = np.argmin(
+            np.abs(np.asarray([float(v) for v in transforms.keys()])-time_target))
+        best_transform = transforms[[*transforms][transform_idx]]
+        r_cd_raw = best_transform['rotation']
+        t_cd_raw = best_transform['translation']
+
+    r_cd = np.asarray(r_cd_raw).reshape(3, 3)
+    t_cd = np.asarray(t_cd_raw).reshape(3, 1)
 
     inv_kc = np.linalg.inv(k_c)
 
-    k_d = hdf5_file[depth_dset].attrs['K'].reshape(3, 3)
+    k_d = hdf5_in[depth_dset].attrs['K'].reshape(3, 3)
 
-    for idx in trange(hdf5_file[color_dset].shape[0]):
-        matched_index = hdf5_file[depth_match_dset][idx]
-        depth_img = hdf5_file[depth_dset][matched_index]
-        keypoints = hdf5_file[color_dset + '-keypoints'][idx]
-        color_img = hdf5_file[color_dset][idx]
-        keypoints3d_dset[idx, :, :] = extract_depth(depth_img,
-                                                    keypoints,
-                                                    (inv_kc,
-                                                     k_d,
-                                                     color_img,
-                                                     r_cd,
-                                                     t_cd))
+    for idx in trange(hdf5_in[color_dset].shape[0]):
+        matched_index = hdf5_in[depth_match_dset][idx]
+        depth_img = hdf5_in[depth_dset][matched_index]
+        keypoints = hdf5_out[color_dset + '-keypoints'][idx]
+        keypoints3d_dset[idx, :, :] = \
+            extract_depth(depth_img, keypoints,
+                          (inv_kc, k_d, r_cd, t_cd))
