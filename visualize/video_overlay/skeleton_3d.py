@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
@@ -13,6 +14,7 @@ import sys
 from common import img_overlays
 import kinematics.scripts.extract_profiles as k
 import copy
+import ipdb
 
 # Inspiration from: https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55
 
@@ -63,11 +65,13 @@ def animate(iteration, data, scatters, lines, texts, ax, joint_pairs, keypoints,
     return scatters, lines, texts, frames, all_quivers
 
 
-def skeleton_3d(file_stub, cam, save=False, show=False):
-    hdf5_video = h5py.File(file_stub+'-vid.hdf5', 'r')
-    hdf5_tracking = h5py.File(file_stub+'-novid.hdf5', 'r')
-    color_dset = 'vid/color/data/{}/data'.format(cam)
+def skeleton_3d(directory, cam, save=False, show=False):
+    directory = pathlib.Path(directory)
+    hdf5_video = h5py.File(directory/'full_data-vid.hdf5', 'r')
+    hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
+    color_dset = 'vid/color/{}/data'.format(cam)
 
+    ipdb.set_trace()
     points3d = hdf5_tracking[color_dset + '-3dkeypoints-stereo']
 
     keypoints = [4, 3, 2, 1, 5, 6, 7, 8, 0]
@@ -138,7 +142,7 @@ def skeleton_3d(file_stub, cam, save=False, show=False):
 
     if save:
         writervideo = animation.FFMpegWriter(fps=60)
-        ani.save(file_stub + '3d-skeleton.avi', writer=writervideo)
+        ani.save(directory / f'viz-{cam}-3dSkeleton.avi', writer=writervideo)
 
     if show:
         plt.show()
