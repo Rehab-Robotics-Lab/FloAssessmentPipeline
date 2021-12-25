@@ -39,6 +39,8 @@ for group in mixed podium robot
 do
     echo "working on $group"
     declare -n group_files="$group"
+    echo "The group contains files:"
+    echo "$group_files"
 
     done_first=false
     previous_bag_fn=''
@@ -94,7 +96,10 @@ do
             exit "$hdf_exit_code"
         fi
         rm "$HOME/data/$group/${previous_bag_fn%.*}"
+        echo 'done making first round of hdf5 file, making no-vid file'
+        python3 "$scriptpath/../../convert_to_hdf5/src/extract_novid.py" -t "$HOME/data/$group"
     fi
+
 
     echo 'done with HDF File creation, begining upload'
 

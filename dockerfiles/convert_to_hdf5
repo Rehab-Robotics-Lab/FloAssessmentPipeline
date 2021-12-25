@@ -5,7 +5,6 @@ FROM ros:noetic
 RUN apt-get update  -y
 RUN apt-get install -y python3-venv python3-pip lbzip2 curl unzip libhdf5-serial-dev hdf5-tools libhdf5-dev python3-opencv python3-dev python3-numpy ros-noetic-cv-bridge ros-noetic-rospy-message-converter
 RUN pip3 install h5py tqdm
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install
 
 RUN mkdir -p catkin_ws/src/convert_to_hdf5
 RUN mkdir -p /data
