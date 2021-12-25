@@ -1,3 +1,6 @@
+"""
+Module for splitting out an HDF5 file with all of the data except the video
+"""
 
 #!/usr/bin/env python3
 import pathlib

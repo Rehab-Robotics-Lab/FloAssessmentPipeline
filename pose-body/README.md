@@ -43,17 +43,6 @@ bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" "$sn"
 done
 ```
 
-## on AWS
-
-1.  provision instance with Ubuntu 20
-2.  type g4dn.2xlarge 20GB of disk space
-3.  Push over code, ex: `scp -rp -i ~/.aws/keys/flo-exp-aim1-openpose-key.pem ~/Documents/git/LilFloAssessmentPipeline/openpose ubuntu@10.128.253.74:/home/ubuntu`
-4.  run setup script
-5.  Edit `/etc/docker/daemon.json` to have `"default-runtime": "nvidia",` as the second line, [like this](https://docs.nvidia.com/dgx/nvidia-container-runtime-upgrade/index.html#using-nv-container-runtime)
-6.  build dockerfile: `docker build . --tag openpose`
-7.  attach ssd: `./mount_instance_store.sh`
-8.  Run script: `./scripts/process-in-ec2.sh -s <subj> -c <cond: augmented-telepresence, classical-telepresence, in-person> -a <activity: simon-says, target-touch>`
-
 ### Running Locally
 
 1.  Run script: ./setup_local.sh

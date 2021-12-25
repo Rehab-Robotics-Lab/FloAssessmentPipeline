@@ -24,6 +24,8 @@ def allkeys(obj):
 
 def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun):
     # pylint: disable= too-many-statements
+    # pylint: disable= too-many-arguments
+    # pylint: disable= too-many-locals
     """Extract poses from video in hdf5 file and build new hdf
     file with poses, confidences, and other non-video data.
 
@@ -53,7 +55,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun):
 
     transforms = None
     try:
-        with open(transforms_pth) as json_file:
+        with open(transforms_pth, encoding='utf-8') as json_file:
             transforms = json.load(json_file)
         print('got transforms file')
     except:  # pylint: disable=bare-except

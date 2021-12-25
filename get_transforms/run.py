@@ -1,3 +1,7 @@
+"""
+A module for going through all of the hdf5 files and getting all 
+of the available transformations between the epth aand color imagers. 
+"""
 #!/usr/bin/env python3
 import pathlib
 import argparse
@@ -39,7 +43,7 @@ def get_transforms(out_dir):
                         'translation': data[1].tolist()}
 
         hdf5_database.close()
-    with open(path / 'transforms.json', 'w') as file_obj:
+    with open(path / 'transforms.json', 'w', encoding="utf8") as file_obj:
         json.dump(transforms, file_obj)
 
 
