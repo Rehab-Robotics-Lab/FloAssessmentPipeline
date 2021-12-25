@@ -27,30 +27,14 @@ source "$scriptpath/../includes/add_extended_repos.sh"
 echo 'install tmux'
 sudo dnf install -y tmux
 
-echo 'install lbzip2'
-sudo dnf install -y lbzip2
-
 echo 'install screen'
 sudo dnf -y install screen
 
-echo 'setup python'
-sudo dnf -y install python3
-pip3 install --user h5py
+echo 'install jq'
+sudo dnf -y install jq
 
 echo 'make scripts executable'
 sudo chmod u+x "$scriptpath/"*.sh
-sudo chmod u+x "$scriptpath/../../convert_to_hdf5/"*.sh
-sudo chmod u+x "$scriptpath/../../convert_to_hdf5/src/"*.sh
-sudo chmod u+x "$scriptpath/../../convert_to_hdf5/src/"*.py
-
-echo 'install docker'
-# shellcheck source=../includes/install_docker.sh
-source "$scriptpath/../includes/install_docker.sh"
-
-echo 'done installing docker'
-
-echo 'build docker'
-docker build -t hdf5convert -f "$scriptpath/../../dockerfiles/convert_to_hdf5" "$scriptpath/../../"
 
 echo 'create log folder for runs'
 mkdir -p "$HOME/logs/runs/"
