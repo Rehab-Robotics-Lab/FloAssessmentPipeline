@@ -6,12 +6,11 @@ import cv2
 import math
 import sys
 import numpy as np
-from utils import draw_text
-from utils import colorScale
 from common import img_overlays
 
+
 def overlay_wrists(file_stub, cam):
-    hdf5_video = h5py.File(file_stub+'.hdf5')
+    hdf5_video = h5py.File(file_stub+'-vid.hdf5')
     hdf5_tracking = h5py.File(file_stub+'-novid.hdf5')
 
     dset = 'vid/color/data/{}/data'.format(cam)
@@ -36,7 +35,7 @@ def overlay_wrists(file_stub, cam):
             x = int(keypoints[joint][0])
             y = int(keypoints[joint][1])
             cv2.circle(img, (x, y), 20,
-                       colorScale(confidence[4], 0, 1), 8)
+                       img_overlays.colorScale(confidence[4], 0, 1), 8)
 
         video_writer.write(img)
     video_writer.release()
