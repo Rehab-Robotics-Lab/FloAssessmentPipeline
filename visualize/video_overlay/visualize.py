@@ -3,10 +3,10 @@
 # <file stub>.hdf5 and <filestub>-novid.hdf5 and create <file stub>-wrists.avi
 
 import argparse
-from overlay_wrists import overlay_wrists
-from skeleton_overlay2d import overlay_2dSkeleton
-from skeleton_3d import skeleton_3d
-from overlay_angular_motion import overlay_angular_motion
+from visualize.video_overlay.overlay_wrists import overlay_wrists
+from visualize.video_overlay.skeleton_overlay2d import overlay_2dSkeleton
+from visualize.video_overlay.skeleton_3d import skeleton_3d
+from visualize.video_overlay.overlay_angular_motion import overlay_angular_motion
 
 
 def visualize(file_stub, cam, func):
@@ -33,15 +33,18 @@ def visualize(file_stub, cam, func):
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser()
 
-    PARSER.add_argument('--file_stub', type=str,
-                        help='root for both the <file_stub>-vid.hdf5 and ' +
-                        '<file_stub>-novid.hdf5' +
-                        ' files. Will generate <file_stub>-viz.avi')
+    PARSER.add_argument('--dir', type=str, required=True,
+                        help='The directory to find the files to process ' +
+                        'Two HDF5 files are expected: <dir>/full_data-vid.hdf5 ' +
+                        'and <dir>/full_data-novid.hdf5. The result will be ' +
+                        'generated in the same directory with filename: ' +
+                        '<dir>/viz-<cam>-<function>.avi')
     PARSER.add_argument('--cam', type=str, choices=['upper', 'lower'],
+                        required=True,
                         help='which camera to use')
-    PARSER.add_argument('--function', type=str,
+    PARSER.add_argument('--function', type=str, required=True,
                         choices=['wrists', '2dSkeleton',
                                  '3dSkeleton', 'angular_motion'],
                         help='which visualization function to use')
     ARGS = PARSER.parse_args()
-    visualize(ARGS.file_stub, ARGS.cam, ARGS.function)
+    visualize(ARGS.dir, ARGS.cam, ARGS.function)

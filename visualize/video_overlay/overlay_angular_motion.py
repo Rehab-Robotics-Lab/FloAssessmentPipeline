@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import pathlib
 from typing import Counter
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,19 +17,20 @@ from tqdm import trange
 import copy
 
 
-def overlay_angular_motion(file_stub, cam):  # pylint: disable=too-many-locals
+def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
     """overlay data from hdf5 file onto images from hdf file.
     Requires both the no video and video hdf5 files.
     Args:
-        file_stub: The common file stub for the two hdf5 files
+        directory: The common file stub for the two hdf5 files
         cam: The camera to use (upper or lower)
     """
-    hdf5_video = h5py.File(file_stub+'-vid.hdf5')
-    hdf5_tracking = h5py.File(file_stub+'-novid.hdf5')
+    directory = pathlib.Path(directory)
+    hdf5_video = h5py.File(directory/'full_data-vid.hdf5')
+    hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5')
 
-    dset = 'vid/color/data/{}/data'.format(cam)
+    dset = f'vid/color/data/{cam}/data'
     video_writer = cv2.VideoWriter(
-        file_stub+'-'+cam+'-shoulders.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
+        directory/f'viz-{cam}-angular_motion.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
     t_vals = np.zeros(500, dtype=np.float64)
 
     ls_rot_topics = ['features/ls_z_rot',

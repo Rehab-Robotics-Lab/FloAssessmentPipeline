@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import pathlib
 import h5py
 from tqdm import tqdm, trange
 import cv2
@@ -9,13 +10,14 @@ import numpy as np
 from common import img_overlays
 
 
-def overlay_wrists(file_stub, cam):
-    hdf5_video = h5py.File(file_stub+'-vid.hdf5')
-    hdf5_tracking = h5py.File(file_stub+'-novid.hdf5')
+def overlay_wrists(directory, cam):
+    directory = pathlib.Path(directory)
+    hdf5_video = h5py.File(directory/'full_data-vid.hdf5')
+    hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5')
 
     dset = 'vid/color/data/{}/data'.format(cam)
     video_writer = cv2.VideoWriter(
-        file_stub+'-'+cam+'-wrist.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
+        directory/f'viz-{cam}-wrists.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
     for idx in trange(hdf5_video[dset].shape[0]):
         img = hdf5_video[dset][idx]
         keypoints = hdf5_tracking[dset+'-keypoints'][idx]
