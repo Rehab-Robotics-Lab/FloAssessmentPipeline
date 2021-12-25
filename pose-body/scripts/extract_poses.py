@@ -52,7 +52,23 @@ The last channel is taken as number of images
     params["number_people_max"] = 1
     params["render_pose"] = 0
     params["display"] = 0
-    # tqdm.write("Parameters : ", params)
+    # using max accuracy:
+    # https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models#body_25b-model---option-1-maximum-accuracy-less-speed
+    params["model_pose"] = "BODY_25B"
+    # params["net_resolution"] = "1712x960"
+    # params["scale_number"] = 4
+    # params["scale_gap"] = 0.25
+    # params["hand"] = False
+    # params["hand_scale_number"] = 6
+    # params["hand_scale_range"] = 0.4
+    # params["face"] = False
+    # params["num_gpu"] = 1
+    # ^^ these parameters with hand on cause an out of memory error on Tesla V100 (16 GB RAM)
+    params["net_resolution"] = "-1x480"
+    params["hand"] = True
+    params["hand_scale_number"] = 6
+    params["hand_scale_range"] = 0.4
+    params["face"] = False
 
     if len(images.shape) < 4:
         tqdm.write("Adding Extra Dimension")
@@ -65,9 +81,7 @@ The last channel is taken as number of images
     except:  # pylint: disable=bare-except
         pass
 
-    # TODO figure out how to run at [higher accuracy](https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models#body_25b-model---option-1-maximum-accuracy-less-speed) pylint: disable=line-too-long
     output_keypoints = np.zeros((num_images, 25, 3))
-    #OutputPoseKeypoints = []
     op_wrapper = op.WrapperPython()
     op_wrapper.configure(params)
     op_wrapper.start()
