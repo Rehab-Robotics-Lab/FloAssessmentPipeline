@@ -1,6 +1,6 @@
 """
-A module for going through all of the hdf5 files and getting all 
-of the available transformations between the epth aand color imagers. 
+A module for going through all of the hdf5 files and getting all
+of the available transformations between the epth aand color imagers.
 """
 #!/usr/bin/env python3
 import pathlib
