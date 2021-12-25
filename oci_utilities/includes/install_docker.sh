@@ -17,10 +17,10 @@ echo "staart docker service"
 sudo systemctl start docker.service
 echo "add docker group"
 getent group docker || sudo groupadd docker
-echo "add docker user"
-groups "$USER" | grep -q '\bdocker\b' || sudo usermod -aG docker "$USER"
-#echo "init docker group"
-#newgrp docker || true I don't think this is needed. If permissions issues pop up, it may be this
+echo "add docker user (If this is your first time running this script, will hang)"
+echo "press ctrl+c and re-run. Sorry"
+groups "$USER" | grep -q '\bdocker\b' || (sudo usermod -aG docker "$USER" && newgrp docker)
+echo "done initializing docker group"
 
 
 

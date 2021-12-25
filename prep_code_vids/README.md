@@ -15,7 +15,7 @@ and re-uploaded.
 7.  Pull down code onto the remote instance:
     `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
 8.  Run setup script: `chmod u+x "$HOME/LilFloAssessmentPipeline/oci_utilities/video_prep/machine_setup.sh" && mkdir -p "$HOME/logs/install/" && bash "$HOME/LilFloAssessmentPipeline/oci_utilities/video_prep/machine_setup.sh" >> "$HOME/logs/install/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)"`
-9.  Run screen: `screen`. If you disconnect, reconect: `screen -r`. You could also use tmux.
+9.  Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
 10. Run Script: ` bash "$HOME/LilFloAssessmentPipeline/oci_utilities/video_prep/run_manual.sh" <subj number> >> "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"  `
 
 If you want to run a bunch of subjects at once, you can do that with something like:

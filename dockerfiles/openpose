@@ -25,9 +25,17 @@ RUN git clone --depth 1 https://github.com/CMU-Perceptual-Computing-Lab/openpose
 WORKDIR /openpose/build
 RUN cmake -DBUILD_PYTHON=ON .. && make -j `nproc`
 
+#get high accuracy model
+WORKDIR /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/
+RUN wget posefs1.perception.cs.cmu.edu/OpenPose/models/pose/1_25BSuperModel11FullVGG/body_25b/pose_iter_XXXXXX.caffemodel
+RUN wget https://raw.githubusercontent.com/CMU-Perceptual-Computing-Lab/openpose_train/master/experimental_models/1_25BSuperModel11FullVGG/body_25b/pose_deploy.prototxt
+WORKDIR /openpose/models/pose/body_25b/
+RUN cp /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/pose_deploy.prototxt /openpose/models/pose/body_25b/
+RUN cp /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/pose_iter_XXXXXX.caffemodel /openpose/models/pose/body_25b/
+
 WORKDIR /openpose/build
 
-CMD mkdir scripts
+#CMD mkdir scripts
 #CMD mkdir scripts/output
 
 WORKDIR /openpose
@@ -36,8 +44,11 @@ RUN pip3 install h5py
 
 WORKDIR /openpose/build/scripts
 
-COPY ./scripts/extract_poses.py ./
-COPY ./scripts/process-hdf5.py ./
-COPY ./scripts/extract_depth.py ./
+COPY ./pose-body/scripts/extract_poses.py ./
+COPY ./pose-body/scripts/process_hdf5.py ./
+COPY ./pose-body/scripts/extract_depth.py ./
 
-CMD /bin/bash -c "cd /openpose/build/scripts && find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
+RUN pip3 install ipdb
+
+WORKDIR /openpose/build/scripts
+CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
