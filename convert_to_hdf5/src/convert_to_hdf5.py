@@ -1207,8 +1207,8 @@ def add_realsense_extrinsics(bag_file, hdf5_file):
             '/upper_realsense/extrinsics/depth_to_color',
             '/lower_realsense/extrinsics/depth_to_color'
     ), (
-        '/vid/depth_to_color/upper',
-        '/vid/depth_to_color/lower'
+        '/vid/upper/depth_to_color',
+        '/vid/lower/depth_to_color'
     )):
         rospy.loginfo('adding %s', topic_name)
 
@@ -1605,14 +1605,14 @@ def add_realsense_topics(bag_file, hdf5_file):
     """
     meta_data = {
         'bag-mapping': {
-            'vid/color/upper/data': '/upper_realsense/color/image_raw_relay',
-            'vid/color/upper/info': '/upper_realsense/color/camera_info',
-            'vid/depth/upper/data': '/upper_realsense/depth/image_rect_raw_relay',
-            'vid/depth/upper/info': '/upper_realsense/depth/camera_info',
-            'vid/color/lower/data': '/lower_realsense/color/image_raw_relay',
-            'vid/color/lower/info': '/lower_realsense/color/camera_info',
-            'vid/depth/lower/data': '/lower_realsense/depth/image_rect_raw_relay',
-            'vid/depth/lower/info': '/lower_realsense/depth/camera_info'
+            'vid/upper/color/data': '/upper_realsense/color/image_raw_relay',
+            'vid/upper/color/info': '/upper_realsense/color/camera_info',
+            'vid/upper/depth/data': '/upper_realsense/depth/image_rect_raw_relay',
+            'vid/upper/depth/info': '/upper_realsense/depth/camera_info',
+            'vid/lower/color/data': '/lower_realsense/color/image_raw_relay',
+            'vid/lower/color/info': '/lower_realsense/color/camera_info',
+            'vid/lower/depth/data': '/lower_realsense/depth/image_rect_raw_relay',
+            'vid/lower/depth/info': '/lower_realsense/depth/camera_info'
         }}
     add_realsense_video_data(bag_file, hdf5_file, meta_data)
     add_realsense_extrinsics(bag_file, hdf5_file)
