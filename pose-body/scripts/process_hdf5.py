@@ -61,23 +61,24 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun):
     except:  # pylint: disable=bare-except
         print('cannot open transforms file')
 
-    dset = f'/vid/color/{cam}/data'
+    cam_root = f'/vid/{cam}'
+    dset = f'{cam_root}/color/data'
 
     preexisting_keypoints = False
-    if dset+'-keypoints' not in hdf5_out:
+    if f'{cam_root}/openpose/keypoints' not in hdf5_out:
         keypoints_dset = hdf5_out.create_dataset(
-            dset+'-keypoints', (hdf5_in[dset].len(), 25, 2), dtype=np.float32)
+            f'{cam_root}/openpose/keypoints', (hdf5_in[dset].len(), 25, 2), dtype=np.float32)
     else:
-        keypoints_dset = hdf5_out[dset+'-keypoints']
+        keypoints_dset = hdf5_out[f'{cam_root}/openpose/keypoints']
         preexisting_keypoints = True
         print('keypoints already exist')
 
     preexisting_confidence = False
-    if dset+'-confidence' not in hdf5_out:
+    if f'{cam_root}/openpose/confidence' not in hdf5_out:
         confidence_dset = hdf5_out.create_dataset(
-            dset+'-confidence', (hdf5_in[dset].len(), 25), dtype=np.float32)
+            f'{cam_root}/openpose/confidence', (hdf5_in[dset].len(), 25), dtype=np.float32)
     else:
-        confidence_dset = hdf5_out[dset+'-confidence']
+        confidence_dset = hdf5_out[f'{cam_root}/openpose/confidence']
         preexisting_confidence = True
         print('confidences already exist')
 
@@ -91,7 +92,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun):
 
     print('Adding Stereo Depth')
     add_stereo_depth(
-        hdf5_in, hdf5_out, dset,
+        hdf5_in, hdf5_out, cam_root,
         transforms[source][cam] if (source in transforms and
                                     cam in transforms[source]) else None)
     print('Done Adding Stereo Depth')
