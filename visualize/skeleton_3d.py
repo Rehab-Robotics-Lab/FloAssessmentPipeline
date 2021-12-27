@@ -7,17 +7,20 @@ import matplotlib.animation as animation
 import mpl_toolkits.mplot3d.axes3d as p3
 from mpl_toolkits.mplot3d import proj3d
 import h5py
-from common import img_overlays
-import kinematics.scripts.extract_profiles as k
-
+import kinematics.scripts.extract_profiles as kinematics
+from pose_body.scripts.openpose_joints import openpose_joints
 # Inspiration from:
 # https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55
 
+JNTS = openpose_joints()
+
 
 def animate(iteration, data, scatters, lines, texts, axes, joint_pairs, keypoints, frames):
-    for i in keypoints:
-        scatters[i]._offsets3d = (
-            data[iteration, i, 0:1], data[iteration, i, 1:2], data[iteration, i, 2:])
+    if iteration % 100 == 0:
+        print(f'iteration: {iteration}\t/\t{len(data)}')
+    for idx, key in enumerate(keypoints):
+        scatters[idx]._offsets3d = (
+            data[iteration, key, 0:1], data[iteration, key, 1:2], data[iteration, key, 2:])
 
     for i, line in enumerate(lines):
         line.set_data([data[iteration, joint_pairs[i][0], 0],
@@ -36,17 +39,18 @@ def animate(iteration, data, scatters, lines, texts, axes, joint_pairs, keypoint
     all_quivers = []
     for frame, quivers in frames.items():
         if frame == "right_shoulder_fixed":
-            origin = data[iteration, 2, :]
-            dirs = k.right_shoulder_fixed_frame(data[iteration, :, :])
+            origin = data[iteration, JNTS.index('RShoulder'), :]
+            dirs = kinematics.right_shoulder_fixed_frame(data[iteration, :, :])
         elif frame == "right_shoulder_moving":
-            origin = data[iteration, 2, :]
-            dirs = k.right_shoulder_moving_frame(data[iteration, :, :])
+            origin = data[iteration, JNTS.index('RShoulder'), :]
+            dirs = kinematics.right_shoulder_moving_frame(
+                data[iteration, :, :])
         elif frame == "left_shoulder_fixed":
-            origin = data[iteration, 5, :]
-            dirs = k.left_shoulder_fixed_frame(data[iteration, :, :])
+            origin = data[iteration, JNTS.index('LShoulder'), :]
+            dirs = kinematics.left_shoulder_fixed_frame(data[iteration, :, :])
         elif frame == "left_shoulder_moving":
-            origin = data[iteration, 5, :]
-            dirs = k.left_shoulder_moving_frame(data[iteration, :, :])
+            origin = data[iteration, JNTS.index('LShoulder'), :]
+            dirs = kinematics.left_shoulder_moving_frame(data[iteration, :, :])
 
         new_quivers = []
         for i, quiver in enumerate(quivers):
@@ -72,49 +76,64 @@ def skeleton_3d(directory, cam, save=False, show=False):
 
     points3d = hdf5_tracking[f'{cam_root}/openpose/keypoints-3d']
 
-    keypoints = [4, 3, 2, 1, 5, 6, 7, 8, 0]
-    joint_pairs = [(0, 1), (4, 3), (3, 2), (2, 1),
-                   (1, 5), (5, 6), (6, 7), (1, 8)]
-    annotations = ['nose', 'neck', 'lshoulder', 'lelbow',
-                   'lwrist', 'rshoulder', 'relbow', 'rwrists', 'waist']
+    annotations = ['Nose', 'UpperNeck', 'LShoulder', 'LElbow',
+                   'LWrist', 'RShoulder', 'RElbow', 'RWrist', 'LHip', 'RHip']
+    keypoints = [JNTS.index(ann) for ann in annotations]
+    joint_pairs = [
+        (JNTS.index('Nose'), JNTS.index('UpperNeck')),
+        (JNTS.index('UpperNeck'), JNTS.index('RShoulder')),
+        (JNTS.index('UpperNeck'), JNTS.index('LShoulder')),
+        (JNTS.index('LShoulder'), JNTS.index('LElbow')),
+        (JNTS.index('RShoulder'), JNTS.index('RElbow')),
+        (JNTS.index('LElbow'), JNTS.index('LWrist')),
+        (JNTS.index('RElbow'), JNTS.index('RWrist')),
+        (JNTS.index('UpperNeck'), JNTS.index('LHip')),
+        (JNTS.index('UpperNeck'), JNTS.index('RHip'))
+    ]
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 10))
     axes = p3.Axes3D(fig)
 
-    scatters = [axes.scatter(
-        points3d[0, i, 0:1], points3d[0, i, 1:2], points3d[0, i, 2:])
+    # set up the points for the first frame
+    scatters = [
+        axes.scatter(points3d[0, i, 0:1],
+                     points3d[0, i, 1:2],
+                     points3d[0, i, 2:])
         for i in keypoints]
 
     lines = [axes.plot([points3d[0, joint[0], 0], points3d[0, joint[1], 0]],
                        [points3d[0, joint[0], 1], points3d[0, joint[1], 1]],
                        [points3d[0, joint[0], 2], points3d[0, joint[1], 2]],
-                       'black')[0] for joint in joint_pairs]
+                       'black')[0]
+             for joint in joint_pairs]
 
-    texts = [axes.text2D(points3d[0][i, 0], points3d[0][i, 1],
+    texts = [axes.text2D(points3d[0][i, 0],
+                         points3d[0][i, 1],
                          '%s' % (annotations[i]),
                          size=5,
-                         zorder=1, color='k') for i in range(len(annotations))]
+                         zorder=1, color='k')
+             for i in range(len(annotations))]
 
-    # Making frames using quivers to attack to shoulders
+    # Making frames using quivers to attach to shoulders
     frames = {}
     axis_color = ['r', 'g', 'b']
 
-    rsf = k.right_shoulder_fixed_frame(points3d[0])
+    rsf = kinematics.right_shoulder_fixed_frame(points3d[0])
     rsf_quivers = [axes.quiver(points3d[0, 2, 0], points3d[0, 2, 1], points3d[0, 2, 2],
                                rsf[0, i], rsf[1, i], rsf[2, i],
                                length=0.1, normalize=True, color=axis_color[i]) for i in range(3)]
 
-    rs = k.right_shoulder_moving_frame(points3d[0])
+    rs = kinematics.right_shoulder_moving_frame(points3d[0])
     rs_quivers = [axes.quiver(points3d[0, 2, 0], points3d[0, 2, 1], points3d[0, 2, 2],
                               rs[0, i], rs[1, i], rs[2, i], length=0.1,
                               normalize=True, color=axis_color[i]) for i in range(3)]
 
-    lsf = k.left_shoulder_fixed_frame(points3d[0])
+    lsf = kinematics.left_shoulder_fixed_frame(points3d[0])
     lsf_quivers = [axes.quiver(points3d[0, 5, 0], points3d[0, 5, 1], points3d[0, 5, 2],
                                lsf[0, i], lsf[1, i], lsf[2, i],
                                length=0.1, normalize=True, color=axis_color[i]) for i in range(3)]
 
-    ls = k.left_shoulder_moving_frame(points3d[0])
+    ls = kinematics.left_shoulder_moving_frame(points3d[0])
     ls_quivers = [axes.quiver(points3d[0, 5, 0], points3d[0, 5, 1], points3d[0, 5, 2],
                               ls[0, i], ls[1, i], ls[2, i],
                               length=0.1, normalize=True, color=axis_color[i]) for i in range(3)]
@@ -134,14 +153,14 @@ def skeleton_3d(directory, cam, save=False, show=False):
     axes.set_zlabel('Z')
 
     axes.set_title('3D Skeleton')
-    axes.view_init(-90, -86)
+    axes.view_init(-75, -86)
 
     ani = animation.FuncAnimation(fig,
                                   animate,
                                   len(points3d),
                                   fargs=(points3d, scatters, lines, texts,
                                          axes, joint_pairs, keypoints, frames),
-                                  interval=50)
+                                  interval=1, blit=False)
 
     if save:
         writervideo = animation.FFMpegWriter(fps=60)

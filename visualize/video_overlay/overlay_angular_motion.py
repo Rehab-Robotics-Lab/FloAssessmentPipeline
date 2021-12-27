@@ -28,9 +28,11 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
     hdf5_video = h5py.File(directory/'full_data-vid.hdf5')
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5')
 
-    dset = f'vid/color/data/{cam}/data'
+    cam_root = f'vid/{cam}'
+    color_dset_name = f'{cam_root}/color/data'
     video_writer = cv2.VideoWriter(
-        directory/f'viz-{cam}-angular_motion.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
+        str(directory/f'viz-{cam}-angular_motion.avi'),
+        cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
     t_vals = np.zeros(500, dtype=np.float64)
 
     ls_rot_topics = ['features/ls_z_rot',
@@ -76,13 +78,11 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
             vals.append(np.ones(500, dtype=np.float64))
         all_rs_vals.append(vals)
 
-    for idx in trange(hdf5_video[dset].shape[0]-2):
-        img = hdf5_video[dset][idx]
-        keypoints = hdf5_tracking[dset+'-keypoints'][idx]
-        confidence = hdf5_tracking[dset+'-confidence'][idx]
-        sec = hdf5_tracking['vid/color/data/{}/secs'.format(cam)][idx]
-        nsec = hdf5_tracking['vid/color/data/{}/nsecs'.format(cam)][idx]
-        time = sec+nsec*1e-9
+    for idx in trange(hdf5_video[color_dset_name].shape[0]-2):
+        img = hdf5_video[color_dset_name][idx]
+        keypoints = hdf5_tracking[f'{cam_root}/openpose/keypoints'][idx]
+        confidence = hdf5_tracking[f'{cam_root}/openpose/confidence'][idx]
+        time = hdf5_tracking[f'{cam_root}/color/time'][idx]
 
         img_overlays.draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
         img_overlays.draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
