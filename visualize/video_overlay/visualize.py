@@ -20,7 +20,7 @@ def visualize(file_stub, cam, func):
 
     elif func == '3dSkeleton':
         print('creating 3d skeleton GIF')
-        skeleton_3d(file_stub, cam, save=False, show=True)
+        skeleton_3d(file_stub, cam, save=True, show=False)
 
     elif func == 'angular_motion':
         print('Plotting Angular motion at Shoulders')
