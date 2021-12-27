@@ -5,7 +5,7 @@
 import argparse
 from visualize.video_overlay.overlay_wrists import overlay_wrists
 from visualize.video_overlay.skeleton_overlay2d import overlay_2dSkeleton
-from visualize.video_overlay.skeleton_3d import skeleton_3d
+from visualize.skeleton_3d import skeleton_3d
 from visualize.video_overlay.overlay_angular_motion import overlay_angular_motion
 
 
