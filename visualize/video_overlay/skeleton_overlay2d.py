@@ -2,7 +2,7 @@
 
 import pathlib
 import h5py
-from tqdm import tqdm, trange
+from tqdm import trange
 import cv2
 import math
 import sys
