@@ -132,6 +132,19 @@ imperfect.
 
 OpenPose provides 2D pose of subjects. You can view more information at [openpose/README.md](openpose/README.md).
 
+### Visualization
+
+It is helpful to be able to visualize data. To do this:
+
+1.  [Install pipenv](https://pipenv.pypa.io/en/latest/install/)
+2.  Setup environment: `pipenv install` (from the root of this repository)
+3.  Run: `pipenv run python -m visualize.visualize --function <func name> --dir <data directory> --cam <camera to use>`
+
+Available functions:
+
+*   `3dSkeleton`: 3d plots of skeleton
+*   `2dSkeleton`:
+
 ## Bag File Review
 
 View `inspect/README.md`
