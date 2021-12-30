@@ -119,9 +119,13 @@ def skeleton_3d(directory, cam, save=False, show=False):
         (JNTS.index('UpperNeck'), JNTS.index('RHip'))
     ]
 
-    x_percentiles = np.percentile(points3d[:, :, 0], [1, 99])
-    y_percentiles = np.percentile(points3d[:, :, 1], [1, 99])
-    z_percentiles = np.percentile(points3d[:, :, 2], [1, 99])
+    x_percentiles = np.nanpercentile(points3d[:, :, 0], [1, 50, 99])
+    x_diff = x_percentiles[-1]-x_percentiles[0]
+    y_percentiles = np.nanpercentile(points3d[:, :, 1], [1, 50, 99])
+    y_diff = y_percentiles[-1]-y_percentiles[0]
+    z_percentiles = np.nanpercentile(points3d[:, :, 2], [1, 50, 99])
+    z_diff = z_percentiles[-1]-z_percentiles[0]
+    plot_radius = 1.2*0.5*np.max((x_diff, y_diff, z_diff))
 
     print('creating figure containers')
     fig = plt.figure(figsize=(20, 10))
@@ -137,9 +141,9 @@ def skeleton_3d(directory, cam, save=False, show=False):
 
     views = (
         (0, 0, 'y'),
-        (0, 0, 'x'),
-        (0, 0, 'z'),
-        (15, 35, 'y'),
+        (0, 90, 'y'),
+        (0, -90, 'z'),
+        (15, -125, 'y'),
     )
 
     scatters = [None for _ in range(len(axis_list))]
@@ -214,19 +218,26 @@ def skeleton_3d(directory, cam, save=False, show=False):
         frames[idx]["left_shoulder_fixed"] = left_shoulder_fixed_quivers
         frames[idx]["left_shoulder_moving"] = left_shoulder_quivers
 
-        axes.set_xlim3d(x_percentiles)
+        axes.set_xlim3d(x_percentiles[1]-plot_radius,
+                        x_percentiles[1]+plot_radius)
         axes.set_xlabel('X')
 
-        axes.set_ylim3d(y_percentiles[::-1])
+        axes.set_ylim3d(y_percentiles[1]+plot_radius,
+                        y_percentiles[1]-plot_radius)
         axes.set_ylabel('Y')
 
-        axes.set_zlim3d(z_percentiles)
+        axes.set_zlim3d(z_percentiles[1]-plot_radius,
+                        z_percentiles[1]+plot_radius)
         axes.set_zlabel('Z')
 
         axes.view_init(views[idx][0], views[idx][1],
                        vertical_axis=views[idx][2])
 
     fig.suptitle('3D Skeleton')
+    # ax1.title.set_text('Front')
+    # ax2.title.set_text('Left')
+    # ax3.title.set_text('Top')
+    # ax4.title.set_text('Iso')
     fig.subplots_adjust(left=0, right=1, bottom=0,
                         top=1, wspace=-.1, hspace=-.1)
     ani = animation.FuncAnimation(fig,
