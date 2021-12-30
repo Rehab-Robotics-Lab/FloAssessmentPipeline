@@ -71,10 +71,20 @@ def overlay_2dSkeleton(directory, cam):
     depth_dset_name = f'{cam_root}/depth/data'
     depth_mapping_dset_name = f'{cam_root}/color/matched_depth_index'
 
+    points3d = hdf5_tracking[f'{cam_root}/openpose/keypoints-3d']
+    x_percentiles = np.nanpercentile(points3d[:, :, 0], [1, 50, 99])
+    x_diff = x_percentiles[-1]-x_percentiles[0]
+    y_percentiles = np.nanpercentile(points3d[:, :, 1], [1, 50, 99])
+    y_diff = y_percentiles[-1]-y_percentiles[0]
+    z_percentiles = np.nanpercentile(points3d[:, :, 2], [1, 50, 99])
+    z_diff = z_percentiles[-1]-z_percentiles[0]
+    plot_range = 1.2*np.max((x_diff, y_diff, z_diff))
+    plot_scale = 320/plot_range
+
     # note, video writer can only take unsigned 8 bit integer images
     video_writer = cv2.VideoWriter(
-        str(directory/f'viz-{cam}-2dSkeleton.avi'),
-        cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 2*1080))
+        str(directory/f'viz-{cam}-2dSkeleton.mkv'),
+        cv2.VideoWriter_fourcc(*'mp4v'), 30, (1920, 1080 + 720))
 
     # by default vridis only has 0xFF steps, so lets take that out
     # to a full 16 bits.
@@ -100,6 +110,7 @@ def overlay_2dSkeleton(directory, cam):
 
         color_keypoints = hdf5_tracking[f'{cam_root}/openpose/keypoints'][idx]
         depth_keypoints = hdf5_tracking[f'{cam_root}/openpose/keypoints-depth'][idx]
+        keypoints_3d = hdf5_tracking[f'{cam_root}/openpose/keypoints-3d'][idx]
         confidence = hdf5_tracking[f'{cam_root}/openpose/confidence'][idx]
         color_time = hdf5_tracking[f'{cam_root}/color/time'][idx]
         depth_time = hdf5_tracking[f'{cam_root}/depth/time'][depth_idx]
@@ -109,11 +120,13 @@ def overlay_2dSkeleton(directory, cam):
         img_overlays.draw_text(
             color_img, 'time: {:.2f}'.format(color_time), pos=(500, 3))
         img_overlays.draw_text(
-            color_img, 'view: {} realsense'.format(cam), pos=(900, 3))
+            color_img, f'view: {cam} realsense color', pos=(900, 3))
         img_overlays.draw_text(
             depth_img, 'frame: {}'.format(depth_idx), pos=(100, 3))
         img_overlays.draw_text(
-            depth_img, 'time: {:.2f}'.format(depth_time), pos=(500, 3))
+            depth_img, 'time: {:.2f}'.format(depth_time), pos=(400, 3))
+        img_overlays.draw_text(
+            depth_img, f'view: {cam} realsense depth', pos=(800, 3))
 
         # Joints listed here: https://github.com/CMU-Perceptual-Computing-Lab/openpose/
         # blob/master/doc/02_output.md#keypoints-in-cpython
@@ -139,11 +152,39 @@ def overlay_2dSkeleton(directory, cam):
                     cv2.line(img, (x_0, y_0), (x_1, y_1), color.color_scale(
                         confidence[joint[0]] + confidence[joint[1]], 0, 1))
 
-        w_padding = int((color_img.shape[0]-depth_img.shape[0])/2)
-        h_padding = int((color_img.shape[1]-depth_img.shape[1])/2)
+        w_padding = int((color_img.shape[1]-depth_img.shape[1]))
         depth_img = cv2.copyMakeBorder(
-            depth_img, w_padding, w_padding, h_padding, h_padding, cv2.BORDER_CONSTANT)
+            depth_img, 0, 0, w_padding, 0, cv2.BORDER_CONSTANT)
         img = cv2.vconcat([color_img, depth_img])
+
+        # add top skeleton view
+        # w=1920-1280 = 640
+        # h=720
+        # overhead, so draw x and z
+        for limb in PAIRS:
+            if ((not np.any(np.isnan(
+                [keypoints_3d[limb[jidx]][0:2] for jidx in (0, 1)]
+            )))
+                    and np.all(
+                        [confidence[limb[jidx]] >
+                            MIN_CONFIDENCE for jidx in (0, 1)]
+            )):
+                x_0 = int(320 +
+                          (keypoints_3d[limb[0]][0]-x_percentiles[1])*plot_scale)
+                z_0 = int(1080 + 360 -
+                          (keypoints_3d[limb[0]][2]-z_percentiles[1])*plot_scale)
+
+                x_1 = int(320 +
+                          (keypoints_3d[limb[1]][0]-x_percentiles[1])*plot_scale)
+                z_1 = int(1080 + 360 -
+                          (keypoints_3d[limb[1]][2]-z_percentiles[1])*plot_scale)
+
+                cv2.line(img, (x_0, z_0), (x_1, z_1), color.color_scale(
+                    confidence[limb[0]] + confidence[limb[1]], 0, 3))
+
+        img_overlays.draw_text(
+            img, 'view: top (synced to depth)', pos=(20, 1083))
+
         video_writer.write(img)
 
     video_writer.release()
