@@ -7,6 +7,7 @@ from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import DEPTH_KERNEL_SIZE
 from common.tracking_params import MAX_TIME_DISPARITY
+import ipdb
 
 assert DEPTH_KERNEL_SIZE % 2 == 1
 MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
@@ -26,7 +27,9 @@ def extract_depth(depth_img, keypoints, params):  # pylint: disable= too-many-lo
 
     keypoints_in_depth = (
         # x pixel pos in depth, y pixel pos in depth, ~1 this is homogenous in camera
-        k_d @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) - t_cd))).T
+        # k_d @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) + t_cd))).T
+        # It seems that part of using the rectified image is that the transform is alreaady done:
+        k_d @ (((inv_kc @ keypoints_with_depth.T)))).T
     keypoints_with_depth = (inv_kc @ keypoints_with_depth.T).T
 
     for i in range(keypoints_with_depth.shape[0]):
