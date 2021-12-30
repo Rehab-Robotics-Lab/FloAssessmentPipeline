@@ -1,0 +1,1 @@
+MIN_CONFIDENCE = 0
