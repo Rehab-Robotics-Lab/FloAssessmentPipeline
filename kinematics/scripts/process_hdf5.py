@@ -40,22 +40,31 @@ def extract_kinematics(pth, debug):
     window = 20  # Window for moving average
     threshold = 0.5
 
-    rot_topics = ['features/ls_z_rot', 'features/ls_x_rot', 'features/ls_y_rot',
-                  'features/rs_z_rot', 'features/rs_x_rot', 'features/rs_y_rot']
+    cam_root = 'vid/lower'
+    tracking_root = f'{cam_root}/openpose'
+    3dkeypoints_dset_name = f'{tracking_root}/keypoints-3d'
+    timestamps = hdf5_tracking[f'{cam_root}/color/time']
 
-    vel_topics = ['features/ls_z_vel', 'features/ls_x_vel', 'features/ls_y_vel',
-                  'features/rs_z_vel', 'features/rs_x_vel', 'features/rs_y_vel']
+    rot_topics_suffix = ['features/ls_z_rot', 'features/ls_x_rot', 'features/ls_y_rot',
+                         'features/rs_z_rot', 'features/rs_x_rot', 'features/rs_y_rot']
 
-    acc_topics = ['features/ls_z_acc', 'features/ls_x_acc', 'features/ls_y_acc',
-                  'features/rs_z_acc', 'features/rs_x_acc', 'features/rs_y_acc']
+    vel_topics_suffix = ['features/ls_z_vel', 'features/ls_x_vel', 'features/ls_y_vel',
+                         'features/rs_z_vel', 'features/rs_x_vel', 'features/rs_y_vel']
+
+    acc_topics_suffix = ['features/ls_z_acc', 'features/ls_x_acc', 'features/ls_y_acc',
+                         'features/rs_z_acc', 'features/rs_x_acc', 'features/rs_y_acc']
 
     # Relative movement with previous quaternion
-    full_arm_rot_topics = ['features/ls_angle', 'features/rs_angle']
-    quaternion_topics = ['left_shoulder_quat', 'right_shoulder_quat']
+    full_arm_rot_topics_suffix = ['features/ls_angle', 'features/rs_angle']
+    quaternion_topics_suffix = ['left_shoulder_quat', 'right_shoulder_quat']
 
-    3dkeypoints_dset_name = 'vid/lower/openpose/keypoints-3d'
-
-    timestamps = hdf5_tracking['vid/lower/color/time']
+    rot_topics = [f'{tracking_root}/{topic}' for topic in rot_topics_suffix]
+    vel_topics = [f'{tracking_root}/{topic}' for topic in vel_topics_suffix]
+    acc_topics = [f'{tracking_root}/{topic}' for topic in acc_topics_suffix]
+    full_arm_rot_topics = [
+        f'{tracking_root}/{topic}' for topic in full_arm_rot_topics_suffix]
+    quaternion_topics = [
+        f'{tracking_root}/{topic}' for topic in quaternion_topics_suffix]
 
     keypoints = hdf5_tracking[3dkeypoints_dset_name]
 
@@ -77,13 +86,26 @@ def extract_kinematics(pth, debug):
         r_right_shoulder, r_left_shoulder = ep.shoulder_angular_motion(
             keypoints[i])
 
-        angle_right = min(np.arccos(np.dot(prev_r_right_shoulder.as_quat(),
-                                           r_right_shoulder.as_quat()))/2,
-                          np.arccos(np.dot(prev_r_right_shoulder.as_quat(),
-                                           -1*r_right_shoulder.as_quat()))/2)
+        angle_right = min(
+            np.arccos(
+                np.dot(prev_r_right_shoulder.as_quat(),
+                       r_right_shoulder.as_quat())
+            )/2,
+            np.arccos(
+                np.dot(prev_r_right_shoulder.as_quat(),
+                       -1*r_right_shoulder.as_quat())
+            )/2
+        )
 
-        angle_left = min(np.arccos(np.dot(prev_r_left_shoulder.as_quat(), r_left_shoulder.as_quat()))/2,
-                         np.arccos(np.dot(prev_r_left_shoulder.as_quat(), -1*r_left_shoulder.as_quat()))/2)
+        angle_left = min(
+            np.arccos(
+                np.dot(prev_r_left_shoulder.as_quat(),
+                       r_left_shoulder.as_quat())
+            )/2,
+            np.arccos(
+                np.dot(prev_r_left_shoulder.as_quat(), -
+                       1*r_left_shoulder.as_quat())
+            )/2)
 
         diff.append(angle_right)
         diff.append(angle_left)
