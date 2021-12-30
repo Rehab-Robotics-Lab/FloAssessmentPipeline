@@ -5,8 +5,8 @@ import argparse
 import json
 import numpy as np
 import h5py
-from extract_poses import process_frames
-from extract_depth import add_stereo_depth
+from pose_body.scripts.extract_poses import process_frames
+from pose_body.scripts.extract_depth import add_stereo_depth
 from tqdm import tqdm
 
 
