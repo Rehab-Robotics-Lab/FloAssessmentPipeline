@@ -30,7 +30,7 @@ if [[ "${subject_padded::1}" == 5 ]]
 then
     echo "Working with an Aim 5 dataset"
 
-    if [ -d "$HOME/data/$subject_padded/ros/robot/" ]
+    if [ -d "$HOME/data/$subject_padded/ros/" ]
     then
     # shellcheck source=../../bag2video/run_docker_bag2vid.sh
     bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay /remote_video_clean_relay
