@@ -288,8 +288,10 @@ def add_timestamp(img, video):
         img: the image to draw over
         video: the video data structure used to figure out the time
     """
-    img_overlays.draw_text(img, str(video['first_msg_time'] +
-                                    (video['head']*(1/video['framerate']))))
+    time_str = str(video['first_msg_time'] +
+                   (video['head']*(1/video['framerate'])))
+    LOGGER.debug('writing time on frame: %s', time_str)
+    img_overlays.draw_text(img, time_str)
 
 
 def retrieve_img_to_write(video):
@@ -322,7 +324,6 @@ def retrieve_img_to_write(video):
     return img_to_write
 
 
-# TODO: implement support for variable shaped images
 def stitch_image(img_to_write, columns):
     """Stitch list of images into a cohesive image
 
@@ -332,16 +333,32 @@ def stitch_image(img_to_write, columns):
         img_to_write: The list of images to write
         columns: The number of columns
     """
+    LOGGER.debug('Stitching images with sizes: %s', str(
+        [np.shape(img) for img in img_to_write]))
     num_rows = int(math.ceil(len(img_to_write)/columns))
     rows = [None]*num_rows
     for r_idx in range(num_rows):
         if columns > 1:
+            # TODO: make sure that images that are being horizontally concatenated have the same height
             rows[r_idx] = cv2.hconcat(img_to_write[
                 r_idx*columns:
                 min(r_idx*columns+columns, len(img_to_write))
             ])
         else:
             rows[r_idx] = img_to_write[r_idx]
+    # Need to make sure that every row has the same width.
+    # find max width and
+    max_w = np.max([row.shape[1] for row in rows])
+    for row_idx in range(len(rows)):
+        left_padding = int(np.floor((max_w - np.shape(rows[row_idx])[1])/2))
+        right_padding = int(np.ceil((max_w - np.shape(rows[row_idx])[1])/2))
+        if left_padding > 0 or right_padding > 0:
+            rows[row_idx] = cv2.copyMakeBorder(
+                rows[row_idx],
+                0, 0,
+                left_padding, right_padding,
+                cv2.BORDER_CONSTANT
+            )
     out_img = cv2.vconcat(rows)
     return out_img
 
@@ -525,8 +542,8 @@ def insert_image(video, msg, topic_idx, img_idx, bridge):
     LOGGER.debug('received image from topic %i', topic_idx)
     if video['images'][topic_idx][img_buffer_idx] is not None:
         LOGGER.warning('overwriting an existing image')
-    video['images'][topic_idx][img_buffer_idx] = bridge.imgmsg_to_cv2(
-        msg, 'bgr8')
+    video['images'][topic_idx][img_buffer_idx] = cv2.resize(bridge.imgmsg_to_cv2(
+        msg, 'bgr8'), tuple(video["sizes"][topic_idx][1:None:-1]))
 
 
 # pylint: disable=too-many-locals
@@ -581,8 +598,19 @@ def bag2video(
     """
     bag_filenames = get_bag_filenames(target)
 
+    video_sizes = [vt.split(':')[1] if len(vt.split(':'))
+                   > 1 else None for vt in video_topics]
+    video_topics = [vt.split(':')[0] for vt in video_topics]
+
     found_video_topics, found_image_sizes = find_image_sizes(
         bag_filenames, video_topics)
+
+    for idx, video_size in enumerate(video_sizes):
+        if video_size is not None:
+            # (height, width, channels)
+            height, width = video_size.split('x')
+            found_image_sizes[idx][0] = int(height)
+            found_image_sizes[idx][1] = int(width)
 
     topics = found_video_topics+[audio_topic]
 
@@ -655,7 +683,8 @@ def construct_video(framerate, buffer_length, image_sizes):
     video = {'start': -1, 'head': 0, 'framerate': framerate,
              'images': [[None]*buffer_length for _ in image_sizes],
              'last_image': [np.zeros((w, h, c), dtype='uint8')
-                            for w, h, c in image_sizes]}
+                            for w, h, c in image_sizes],
+             'sizes': image_sizes}
     return video
 
 
@@ -681,15 +710,17 @@ def write_out(video, audio, filename, vid_writer, columns, idx):
         write_image(video, vid_writer, columns)
 
     vid_writer.release()
-    tmp_vid_filename = get_tmp_vid_filename(filename)
-    LOGGER.info('finished writing video without audio to: %s',
-                tmp_vid_filename)
 
-    try:
-        add_audio(filename, video, audio, idx)
-    except Exception as exc:  # pylint: disable=broad-except
-        os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
-        LOGGER.error('There was an exception while adding audio: %s', exc)
+    if not video['start'] == -1:
+        tmp_vid_filename = get_tmp_vid_filename(filename)
+        LOGGER.info('finished writing video without audio to: %s',
+                    tmp_vid_filename)
+
+        try:
+            add_audio(filename, video, audio, idx)
+        except Exception as exc:  # pylint: disable=broad-except
+            os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
+            LOGGER.error('There was an exception while adding audio: %s', exc)
 
 
 if __name__ == '__main__':
