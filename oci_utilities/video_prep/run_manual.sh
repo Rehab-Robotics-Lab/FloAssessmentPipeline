@@ -12,9 +12,15 @@ scriptpath="$(dirname "$script")"
 source "$scriptpath/../includes/parse_input_subj_no.sh"
 
 ### download files
+echo 'creating data folder'
 mkdir -p "$HOME/data"
-rm -rf "$HOME/data/*"
+echo 'clearing data folder'
+rm -rf "$HOME/data"
+echo 'creating data folder'
+mkdir -p "$HOME/data"
+echo 'starting download'
 oci os object bulk-download -bn 'rrl-flo-raw' --dest-dir "$HOME/data" --prefix "$subject_padded"
+echo 'done with download'
 
 ### uncompress files
 echo 'uncompressing files'
