@@ -12,40 +12,62 @@ scriptpath="$(dirname "$script")"
 source "$scriptpath/../includes/parse_input_subj_no.sh"
 
 ### download files
+echo 'creating data folder'
 mkdir -p "$HOME/data"
-rm -rf "$HOME/data/*"
+echo 'clearing data folder'
+rm -rf "$HOME/data"
+echo 'creating data folder'
+mkdir -p "$HOME/data"
+echo 'starting download'
 oci os object bulk-download -bn 'rrl-flo-raw' --dest-dir "$HOME/data" --prefix "$subject_padded"
+echo 'done with download'
 
 ### uncompress files
 echo 'uncompressing files'
 find "$HOME/data" -name '*.bz2' -exec lbzip2 -d -f -n 48 {} \;
 
-### If podium
-if [ -d "$HOME/data/$subject_padded/ros/podium/" ]
+if [[ "${subject_padded::1}" == 5 ]]
 then
-echo 'processing podium files'
-# shellcheck source=../../bag2video/run_docker_bag2vid.sh
-bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/podium" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
-# shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh"  -t "$HOME/data/$subject_padded/ros/podium"
-fi
+    echo "Working with an Aim 5 dataset"
 
-### If robot
-if [ -d "$HOME/data/$subject_padded/ros/robot/" ]
-then
-# shellcheck source=../../bag2video/run_docker_bag2vid.sh
-bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/robot" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
-# shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros/robot"
-fi
+    if [ -d "$HOME/data/$subject_padded/ros/robot/" ]
+    then
+    # shellcheck source=../../bag2video/run_docker_bag2vid.sh
+    bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/robot" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay /remote_video_clean_relay
+    # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
+    bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros/robot"
+    fi
+else
+    echo "Working with an Aim 1 dataset"
 
-### If all together
-if ls "$HOME/data/$subject_padded/ros/"*.bag &> /dev/null
-then
-# shellcheck source=../../bag2video/run_docker_bag2vid.sh
-bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
-# shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros"
+    ### If podium
+    if [ -d "$HOME/data/$subject_padded/ros/podium/" ]
+    then
+    echo 'processing podium files'
+    # shellcheck source=../../bag2video/run_docker_bag2vid.sh
+    bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/podium" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
+    # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
+    bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh"  -t "$HOME/data/$subject_padded/ros/podium"
+    fi
+
+    ### If robot
+    if [ -d "$HOME/data/$subject_padded/ros/robot/" ]
+    then
+    # shellcheck source=../../bag2video/run_docker_bag2vid.sh
+    bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/robot" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
+    # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
+    bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros/robot"
+    fi
+
+    ### If all together
+    if ls "$HOME/data/$subject_padded/ros/"*.bag &> /dev/null
+    then
+    # shellcheck source=../../bag2video/run_docker_bag2vid.sh
+    bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay
+    # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
+    bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros"
+    fi
+
 fi
 
 ### For gopro
@@ -59,6 +81,7 @@ bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$
 bash "$scriptpath/../../prep_code_vids/concatenate_vids.sh" -t "$HOME/data/$subject_padded/3rd-person"
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
 bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/3rd-person/concatenated"
+
 
 ### upload data
 oci os object bulk-upload -bn 'rrl-flo-vids' --src-dir "$HOME/data/$subject_padded" --include '*.mov' --include '*.MOV' --include '*.mp4' --include '*.MP4' --include '*.avi' --include '*.AVI' --prefix "$subject_padded/" --overwrite
