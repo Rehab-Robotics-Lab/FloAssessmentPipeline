@@ -72,7 +72,13 @@ fi
 
 ### For gopro
 # two spellings have been getting used (use neg with or to always return true)
-[ ! -d "$HOME/data/$subject_padded/go-pro" ] || mv "$HOME/data/$subject_padded/go-pro" "$HOME/data/$subject_padded/gopro"
+if [ -d "$HOME/data/$subject_padded/go-pro" ]
+then
+    echo "gopro folder named like go-pro, changing to gopro"
+    mv "$HOME/data/$subject_padded/go-pro" "$HOME/data/$subject_padded/gopro"
+else
+    echo "gopro folder correctly named or does not exist, nothing to do"
+fi
 # shellcheck source=../../prep_code_vids/concatenate_vids.sh
 bash "$scriptpath/../../prep_code_vids/concatenate_vids.sh" -t "$HOME/data/$subject_padded/gopro"
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
