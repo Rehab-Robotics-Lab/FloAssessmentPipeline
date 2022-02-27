@@ -20,7 +20,7 @@ for ext in GH GX
 do
     echo "looking for files with $ext in name"
     readarray -t files <<<"$(ls "$target"/"$ext"01*MP4 2>/dev/null)"
-    if [ ${#files[@]} -gt 1 ]
+    if [ -n "${files[0]}" ]
     then
         for fn in "${files[@]}"
         do
