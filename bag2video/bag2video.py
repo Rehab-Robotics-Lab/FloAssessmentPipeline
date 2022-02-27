@@ -339,7 +339,8 @@ def stitch_image(img_to_write, columns):
     rows = [None]*num_rows
     for r_idx in range(num_rows):
         if columns > 1:
-            # TODO: make sure that images that are being horizontally concatenated have the same height
+            # TODO: make sure that images that are being horizontally
+            #       concatenated have the same height
             rows[r_idx] = cv2.hconcat(img_to_write[
                 r_idx*columns:
                 min(r_idx*columns+columns, len(img_to_write))
@@ -349,7 +350,7 @@ def stitch_image(img_to_write, columns):
     # Need to make sure that every row has the same width.
     # find max width and
     max_w = np.max([row.shape[1] for row in rows])
-    for row_idx in range(len(rows)):
+    for row_idx, _ in enumerate(rows):
         left_padding = int(np.floor((max_w - np.shape(rows[row_idx])[1])/2))
         right_padding = int(np.ceil((max_w - np.shape(rows[row_idx])[1])/2))
         if left_padding > 0 or right_padding > 0:
