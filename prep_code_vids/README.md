@@ -28,6 +28,13 @@ bash "$HOME/LilFloAssessmentPipeline/oci_utilities/video_prep/run_manual.sh" "$s
 done
 ```
 
+If you want to run on all subjects, first run:
+`source ./LilFloAssessmentPipeline/oci_utilities/includes/get_all_subj.sh`
+
+which will create a variable `$subjects` which you can then use in your for loop.
+If you want the reverse:
+`$(echo $subjects  | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }')`
+
 you might want to put the output into a log:
 `./video_prep/run_manual.sh "$sn" >>> log.txt`
 

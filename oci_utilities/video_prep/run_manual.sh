@@ -30,12 +30,12 @@ if [[ "${subject_padded::1}" == 5 ]]
 then
     echo "Working with an Aim 5 dataset"
 
-    if [ -d "$HOME/data/$subject_padded/ros/robot/" ]
+    if [ -d "$HOME/data/$subject_padded/ros/" ]
     then
     # shellcheck source=../../bag2video/run_docker_bag2vid.sh
-    bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/robot" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay /remote_video_clean_relay
+    bash "$scriptpath/../../bag2video/run_docker_bag2vid.sh" -d "$HOME/data/$subject_padded/ros/" -s 90 -v info --audio_topic /robot_audio/audio_relay /lower_realsense/color/image_raw_relay /upper_realsense/color/image_raw_relay /remote_video_clean_relay
     # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
-    bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros/robot"
+    bash "$scriptpath/../../prep_code_vids/transcode-to_davinci.sh" -t "$HOME/data/$subject_padded/ros/"
     fi
 else
     echo "Working with an Aim 1 dataset"
@@ -71,6 +71,14 @@ else
 fi
 
 ### For gopro
+# two spellings have been getting used (use neg with or to always return true)
+if [ -d "$HOME/data/$subject_padded/go-pro" ]
+then
+    echo "gopro folder named like go-pro, changing to gopro"
+    mv "$HOME/data/$subject_padded/go-pro" "$HOME/data/$subject_padded/gopro"
+else
+    echo "gopro folder correctly named or does not exist, nothing to do"
+fi
 # shellcheck source=../../prep_code_vids/concatenate_vids.sh
 bash "$scriptpath/../../prep_code_vids/concatenate_vids.sh" -t "$HOME/data/$subject_padded/gopro"
 # shellcheck source=../../prep_code_vids/transcode-to_davinci.sh
