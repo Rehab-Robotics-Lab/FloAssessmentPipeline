@@ -106,6 +106,27 @@ This allows easier indexing and out of order processing
 
 For instructions on running, see: [convert_to_hdf5/README.md](convert_to_hdf5/README.md)
 
+### Backfill Camera Extrinsics
+
+Some of the trials don't have all of the data they need for the extrinsics for the depth/
+rgb. Luckily, this doesn't change too much over time. So we can grab data from other trials.
+To do that, do this:
+
+1.  Create a new instane:
+
+*   Literally any computer (you can even do this locally, but these instruction assume you are in the cloud)
+
+2.  Push the code files to OCI by running `./oci_utilities/push_code.sh`
+3.  Remote into that instance. Ex:
+    `oci-cli-helpers/utilities/oci-ssh.sh $(oci-cli-helpers/utilities/ocid.sh instance rrl-flo-blocksetup_0)`
+4.  Setup permissions: `OCI_CLI_AUTH=instance_principal && export OCI_CLI_AUTH`
+5.  Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
+6.  Pull down code onto the remote instance:
+    `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
+7.  Install python/pip: `sudo dnf -y install python3`
+8.  Install h5py: `pip3 install --user h5py`
+9.  Run: `./oci_utilities/get_transforms/run.sh`
+
 ### Pose Detection
 
 A central component of the pipeline is extracting pose from video.
@@ -130,5 +151,10 @@ During development, testing, etc. It might be good to be able to download data f
 4.  Get files:
     *   Use mirror to get an entire directory of files: `mirror --parallel=<num_parallel_files> <remote source> <local destination>`
     *   Use pget to get a file via multiple parallel streams: `pget <filename>`
-    *   Use mget to get files. Something like `mget  flo_recording_2020-12-16-15-3* -P 10` might be useful, 10 is saying to download up to 10 files simultaneously.
+    *   Use mget to get files. Something like `mget flo_recording_2020-12-16-15-3* -P 10` might be useful, 10 is saying to download up to 10 files simultaneously.
     *   Note, you can put an `&` at the end of any command to be able to start the next command. You can recover a command with `wait <command number (shown when you put it in background)>`, you can send it back to the background with ctrl-z. You can view all jobs with `jobs`
+
+## Notes
+
+*   I thought that using dense I/O shapes would make work faster. For reasons I don't understand, it does not.
+*   Block volumes aren't as fast as one might
