@@ -928,7 +928,7 @@ def add_topic_move_feedback(bag_file, hdf5_file):
         add_to_dataset(
             topic_name,
             hdf5_file,
-            (msg.feedback.time_elapsed, msg.feeback.time_remaining,
+            (msg.feedback.time_elapsed, msg.feedback.time_remaining,
              msg.feedback.move_number),
             msg.header.stamp.to_sec()
         )
