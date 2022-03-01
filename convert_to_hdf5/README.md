@@ -4,13 +4,17 @@ This package converts bag files from the Lil'Flo platform to HDF5 files.
 
 ## Running
 
-### With Docker
+### Local
 
-Temporary:
+1.  Put bag files in a directory (uncompressed)
+2.  Install Docker
+3.  Run `convert_to_hdf5/src/run_local -h` for instructions on running:
+    1.  `convert_to_hdf5/src/run_local -r` will rebuild the relevant docker file
+    2.  `convert_to_hdf5/src/run_local -r -d <path to dir with bag files>` will rebuild the relevant docker file and run the hdf5 conversion
+    3.  `convert_to_hdf5/src/run_local -d <path to dir with bag files>` will run the hdf5 conversion
 
-1.  Put a bag file named `in.bag` into a data folder somewhere
-2.  Run `test.sh <path to data folder>` from within this directory
-3.  Your HDF5 file will now be in in your data folder
+Once the conversion is complete, you should see the vid and novid hdf5 files in the directory
+next to the bag files.
 
 ### OCI
 
@@ -36,12 +40,3 @@ log="$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_$sn"
 bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" "$sn" 2>&1 | tee -a $log
 done
 ```
-
-## TODO
-
-1.  Explore using szip as a filter for compression
-2.  Explore using smaller chunk sizes
-
-### Note:
-
-Please make sure there is a extrinsics.yaml file in the /data folder
