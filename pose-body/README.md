@@ -6,10 +6,15 @@ We run openpose at maximum accuracy. This requires a GPU with at least 16GB of m
 If multiple GPUs are available, they will all be used.
 
 One of the steps here is finding the depth of the detected poses.
+This requires that the camera intrinsics and depth-to-color extrinsics.
 Sometimes this is avaialable in the HDF5 file directly, other times
-it has to be read from the transforms.json file that is
+it has to be read from the transforms.json file. That file is generated
+using `get_transformss/run.sh`. This file is already generated and [stored
+in OCI](https://cloud.oracle.com/object-storage/buckets/idtxkczoknc2/rrl-flo-transforms/objects?region=us-ashburn-1).
 
-## On OCI
+## Running
+
+### On OCI
 
 1.  push the code files to OCI by running `./oci_utilities/push_code.sh`
 2.  Provision instance of:
@@ -45,16 +50,17 @@ done
 
 ### Running Locally
 
-1.  Run script: ./setup_local.sh
-2.  Build openpose using: build dockerfile: `docker build . --tag openpose`
-3.  Run script: ./scripts/run_local.sh -d <"Location to data directory">
+1.  Install Dependencies:
+    a. You can try to use the local setup script `pose-body/setup_local.sh`
+    b. You can manually install: cuda, docker, nvidia-docker
+2.  Run script: `./pose-body/scripts/run_local.sh -d <"Location to data directory">`
 
 You might get a common GPU architecture not supported error. In that case, make sure to restart docker with :
 
-sudo systemctl restart docker
+`sudo systemctl restart docker`
 
 Make sure you are able to run:
-sudo docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
+`sudo docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi`
 
 ## General Architecture:
 
