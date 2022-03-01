@@ -15,6 +15,8 @@ VIDEO_TOPICS = [
     'vid/depth/upper/data'
 ]
 
+AUDIO_TOPICS = ['robot_audio/audio_relay/data']
+
 
 def load_hdf_file(out_dir, appendix, mode):
     """Load HDF file, creating it if needed
@@ -50,9 +52,10 @@ def copy_vid_to_novid(out_dir):
     hdf5_file_novid = load_hdf_file(out_dir, 'novid', 'w-')
 
     def place_dset(dset_name, dset_data):
+        print(f"found dataset: {dset_name}")
         if not isinstance(dset_data, h5py.Dataset):
             return
-        if dset_name not in VIDEO_TOPICS:
+        if (dset_name not in VIDEO_TOPICS) and (dset_name not in AUDIO_TOPICS):
             group = '/'.join(dset_name.split('/')[0:-1])
             hdf5_file_novid.require_group(group)
             hdf5_file.copy(dset_data, hdf5_file_novid[group])
