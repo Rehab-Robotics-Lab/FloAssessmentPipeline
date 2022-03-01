@@ -2,8 +2,12 @@
 
 To do this, we run in a docker image, openpose is just easier that way.
 
-We run openpose at maximum accuracy. This requires a GPU with at least 16GB of memory.
+We run openpose using the 25b model at non-maximum accuracy,
+which requires 5.6 GB of GPU memory.
 If multiple GPUs are available, they will all be used.
+
+Note: there is a higher accuracy mode that takes 16GB of memory,
+it just isn't worth it...
 
 One of the steps here is finding the depth of the detected poses.
 This requires that the camera intrinsics and depth-to-color extrinsics.
