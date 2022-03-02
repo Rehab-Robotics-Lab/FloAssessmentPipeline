@@ -85,9 +85,12 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun):
         print('running pose detections')
         for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks'):
             color_arr = hdf5_in[dset][chunk]
-            keypoints = process_frames(color_arr)
+            keypoints, params = process_frames(color_arr)
             keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
             confidence_dset[chunk[0], :] = keypoints[:, :, 2]
+            for key, val in params.items():
+                keypoints_dset.attrs[key] = val
+                confidence_dset.attrs[key] = val
 
     print('Adding Stereo Depth')
     add_stereo_depth(

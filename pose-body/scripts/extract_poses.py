@@ -104,4 +104,4 @@ The last channel is taken as number of images
         output_keypoints[i, :, :] = pose_keypoints
         # OutputPoseKeypoints.append(poseKeypoints)
 
-    return output_keypoints
+    return (output_keypoints, params)
