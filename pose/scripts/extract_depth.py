@@ -15,7 +15,7 @@ def extract_depth(depth_img, keypoints, params, window_size=3):  # pylint: disab
         (keypoints.shape[0], keypoints.shape[1] + 1))
     keypoints_with_depth[:, :2] = keypoints  # Keypoints with depth appended
 
-    #shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
+    # shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
 
     keypoints_in_depth = (
         k_d @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) - t_cd))).T
@@ -27,7 +27,7 @@ def extract_depth(depth_img, keypoints, params, window_size=3):  # pylint: disab
 
     for i in range(keypoints_with_depth.shape[0]):
 
-        #x = int(keypoints_in_depth[i, 0] - shift)
+        # x = int(keypoints_in_depth[i, 0] - shift)
         p_x = int(keypoints_in_depth[i, 0])
         p_y = int(keypoints_in_depth[i, 1])
 
@@ -40,25 +40,30 @@ def extract_depth(depth_img, keypoints, params, window_size=3):  # pylint: disab
     return keypoints_with_depth
 
 
-def add_stereo_depth(hdf5_in, hdf5_out, color_dset, transforms=None):  # pylint: disable= too-many-locals
+def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=None):  # pylint: disable= too-many-locals
     '''
     Function to create datasets in hdf5_tracking(hdf5_out) and add 3d keypoints
     '''
-    dset_components = color_dset.split('/')
+    dset_components = cam_root.split('/')
     if dset_components[0] == '':
         dset_components = dset_components[1:]
-    depth_match_dset = f"{'/'.join(dset_components[:-1])}/matched_depth_index"
-    time_dset = f"{'/'.join(dset_components[:-1])}/time"
+    depth_match_dset = f"{cam_root}/matched_depth_index"
+    time_dset = f"{cam_root}/time"
     depth_dset = '/'.join([dset_components[0], 'depth',
                            dset_components[2], 'data'])
-    stereo_depth_dset = color_dset + '-3dkeypoints-stereo'
+    stereo_depth_dset_name = f'{pose_dset_root}/3dkeypoints/stereo'
+    keypoint_dset_name = f'{pose_dset_root}/keypoints'
     keypoints3d_dset = None
+    color_dset = f"{cam_root}/data"
 
-    if stereo_depth_dset not in hdf5_out:
+    if stereo_depth_dset_name not in hdf5_out:
+        keypoints_shape = hdf5_out[keypoint_dset_name].shape
         keypoints3d_dset = hdf5_out.create_dataset(
-            stereo_depth_dset, (hdf5_in[color_dset].len(), 25, 3), dtype=np.float32)
+            stereo_depth_dset_name,
+            (keypoints_shape[0], keypoints_shape[1], 3),
+            dtype=np.float32)
     else:
-        keypoints3d_dset = hdf5_out[stereo_depth_dset]
+        keypoints3d_dset = hdf5_out[stereo_depth_dset_name]
         print('You might be running the Stereo depth extraction twice')
 
     k_c = hdf5_in[color_dset].attrs['K'].reshape(3, 3)
@@ -87,7 +92,7 @@ def add_stereo_depth(hdf5_in, hdf5_out, color_dset, transforms=None):  # pylint:
     for idx in trange(hdf5_in[color_dset].shape[0]):
         matched_index = hdf5_in[depth_match_dset][idx]
         depth_img = hdf5_in[depth_dset][matched_index]
-        keypoints = hdf5_out[color_dset + '-keypoints'][idx]
+        keypoints = hdf5_out[keypoint_dset_name][idx]
         keypoints3d_dset[idx, :, :] = \
             extract_depth(depth_img, keypoints,
                           (inv_kc, k_d, r_cd, t_cd))
