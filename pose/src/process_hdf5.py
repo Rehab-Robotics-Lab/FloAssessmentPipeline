@@ -68,8 +68,8 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     except:  # pylint: disable=bare-except
         print('cannot open transforms file')
 
-    cam_root = f'/vid/color/{cam}'
-    dset = f'{cam_root}/data'
+    cam_root = f'/vid/{cam}'
+    color_dset = f'{cam_root}/color/data'
     pose_dset_root = f'{cam_root}/pose/{algorithm}'
 
     if algorithm == "mp-hands":
@@ -83,7 +83,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     kp_dset_name = f'{pose_dset_root}/keypoints'
     if kp_dset_name not in hdf5_out:
         keypoints_dset = hdf5_out.create_dataset(
-            kp_dset_name, (hdf5_in[dset].len(), num_keypoints, 2), dtype=np.float32)
+            kp_dset_name, (hdf5_in[color_dset].len(), num_keypoints, 2), dtype=np.float32)
     else:
         keypoints_dset = hdf5_out[kp_dset_name]
         preexisting_keypoints = True
@@ -93,7 +93,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     conf_dset_name = f'{pose_dset_root}/confidence'
     if conf_dset_name not in hdf5_out:
         confidence_dset = hdf5_out.create_dataset(
-            conf_dset_name, (hdf5_in[dset].len(), num_keypoints), dtype=np.float32)
+            conf_dset_name, (hdf5_in[color_dset].len(), num_keypoints), dtype=np.float32)
     else:
         confidence_dset = hdf5_out[conf_dset_name]
         preexisting_confidence = True
@@ -109,8 +109,8 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             # we don't want to need imports for openpose for a different algorithm
             # pylint: disable=import-outside-toplevel
             from openpose_wrapper import process_frames
-            for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks'):
-                color_arr = hdf5_in[dset][chunk]
+            for chunk in tqdm(hdf5_in[color_dset].iter_chunks(), desc='chunks'):
+                color_arr = hdf5_in[color_dset][chunk]
                 keypoints, params = process_frames(color_arr)
                 keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
                 confidence_dset[chunk[0], :] = keypoints[:, :, 2]
