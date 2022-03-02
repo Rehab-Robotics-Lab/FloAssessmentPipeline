@@ -25,6 +25,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     # pylint: disable= too-many-statements
     # pylint: disable= too-many-arguments
     # pylint: disable= too-many-locals
+    # pylint: disable= too-many-branches
     """Extract poses from video in hdf5 file and build new hdf
     file with poses, confidences, and other non-video data.
 
@@ -103,6 +104,10 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
         if algorithm == "openpose":
             # for openpose, keypoints will be:
             # body_25b, left hand, right hand
+            # We only want to import if we are doing openpose. We could alternatively
+            # put a wrapper around this whole thing. But since we aren't doing that,
+            # we don't want to need imports for openpose for a different algorithm
+            # pylint: disable=import-outside-toplevel
             from openpose_wrapper import process_frames
             for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks'):
                 color_arr = hdf5_in[dset][chunk]
