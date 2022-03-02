@@ -44,17 +44,13 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     '''
     Function to create datasets in hdf5_tracking(hdf5_out) and add 3d keypoints
     '''
-    dset_components = cam_root.split('/')
-    if dset_components[0] == '':
-        dset_components = dset_components[1:]
     depth_match_dset = f"{cam_root}/matched_depth_index"
-    time_dset = f"{cam_root}/time"
-    depth_dset = '/'.join([dset_components[0], 'depth',
-                           dset_components[2], 'data'])
+    time_dset = f"{cam_root}/color/time"
+    depth_dset = f"{cam_root}/depth/data"
     stereo_depth_dset_name = f'{pose_dset_root}/3dkeypoints/stereo'
     keypoint_dset_name = f'{pose_dset_root}/keypoints'
     keypoints3d_dset = None
-    color_dset = f"{cam_root}/data"
+    color_dset = f"{cam_root}/color/data"
 
     if stereo_depth_dset_name not in hdf5_out:
         keypoints_shape = hdf5_out[keypoint_dset_name].shape
