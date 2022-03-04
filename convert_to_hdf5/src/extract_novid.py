@@ -9,10 +9,10 @@ import h5py
 
 
 VIDEO_TOPICS = [
-    'vid/color/lower/data',
-    'vid/color/upper/data',
-    'vid/depth/lower/data',
-    'vid/depth/upper/data'
+    'vid/lower/color/data',
+    'vid/upper/color/data',
+    'vid/lower/depth/data',
+    'vid/upper/depth/data'
 ]
 
 AUDIO_TOPICS = ['robot_audio/audio_relay/data']
