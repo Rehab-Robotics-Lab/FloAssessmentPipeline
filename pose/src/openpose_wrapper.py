@@ -62,23 +62,23 @@ The last channel is taken as number of images
         params["model_pose"] = "BODY_25B"
         params["net_resolution"] = "-1x480"
         # High accuracy mode, required a lot of memory...
-    elif algorith == "openpose:25Bms"
-    params["net_resolution"] = "1712x960"
-    params["scale_number"] = 4
-    params["scale_gap"] = 0.25
-    params["hand"] = False
-    params["hand_scale_number"] = 6
-    params["hand_scale_range"] = 0.4
-    params["face"] = False
-    # params["num_gpu"] = 1
-    # Hands and faces cause a large slowdown.
-    # params["hand"] = False
-    # params["hand_scale_number"] = 6
-    # params["hand_scale_range"] = 0.4
-    # params["face"] = False
+    elif algorithm == "openpose:25Bms":
+        params["net_resolution"] = "1712x960"
+        params["scale_number"] = 4
+        params["scale_gap"] = 0.25
+        params["hand"] = False
+        params["hand_scale_number"] = 6
+        params["hand_scale_range"] = 0.4
+        params["face"] = False
+        # params["num_gpu"] = 1
+        # Hands and faces cause a large slowdown.
+        # params["hand"] = False
+        # params["hand_scale_number"] = 6
+        # params["hand_scale_range"] = 0.4
+        # params["face"] = False
 
-    # If we want hands and faces, we should use
-    # https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models#single-network-whole-body-pose-estimation-model
+        # If we want hands and faces, we should use
+        # https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models#single-network-whole-body-pose-estimation-model
     elif algorithm == "openpose:135":
         params["model_pose"] = "BODY_135"
         params["net_resolution"] = "-1x480"
