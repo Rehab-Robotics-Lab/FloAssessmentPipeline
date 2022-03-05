@@ -20,15 +20,20 @@ Args:
  -d <dir>: path to directory with files
  -s <src>: the source the data comes from (robot, podium, or mixed).
  -r: rebuild the docker file that this uses
+ -o: Rerun pose detection, overwriting prior results, if previous pose
+     detection exists
 "
 
-while getopts :hrd:s: flag
+rerun=false
+
+while getopts :hrod:s: flag
 do
     case "${flag}" in
         d) data=${OPTARG};;
         s) source=${OPTARG};;
         h) echo "$help_message"; exit 0;;
         r) rebuild=true;;
+        o) rerun=true;;
         :) echo 'missing argument' >&2; exit 1;;
         \?) echo 'invalid option' >&2; exit 1
     esac
@@ -45,9 +50,19 @@ video_file='full_data-vid.hdf5'
 novideo_file='full_data-novid.hdf5'
 transforms_file='transforms.json'
 
+if $rerun
+then
 docker run \
     --mount type=bind,source="$data",target=/data \
     --rm \
     -it \
     openpose\
-    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a openpose # --rerun
+    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a openpose --rerun
+else
+docker run \
+    --mount type=bind,source="$data",target=/data \
+    --rm \
+    -it \
+    openpose\
+    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a openpose --no-rerun
+fi
