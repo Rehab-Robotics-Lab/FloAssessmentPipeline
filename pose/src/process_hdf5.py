@@ -73,7 +73,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     pose_dset_root = f'{cam_root}/pose/{algorithm}'
 
     if algorithm == "mp-hands":
-        num_keypoints = 20
+        num_keypoints = 2*21
     elif algorithm == "openpose":
         num_keypoints = 25+2*21  # 25 for body_25b and 21 for each hand
     else:
@@ -117,6 +117,18 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
                 for key, val in params.items():
                     keypoints_dset.attrs[key] = val
                     confidence_dset.attrs[key] = val
+        if algorithm == "mp-hands":
+            import mediapipe as mp
+            mp_hands = mp.solutions.hands
+            with mp_hands.Hands(
+                    static_image_mode=False,
+                    max_num_hands=2,
+                    model_complexity=1,
+                    min_detection_confidence=0.5,
+                    min_tracking_confidence=0.5) as hands:
+                for frame in tqdm(hdf5_in[color_dset], desc='frames'):
+                    results = hands.process(frame)
+                    print(results.multi_handedness)
 
     print('Adding Stereo Depth')
     add_stereo_depth(
