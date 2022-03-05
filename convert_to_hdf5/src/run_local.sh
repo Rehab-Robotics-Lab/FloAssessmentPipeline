@@ -6,15 +6,21 @@ script="$(realpath "$0")"
 scriptpath="$(dirname "$script")"
 
 # parse options
-while getopts :hd: flag
+while getopts :hrd: flag
 do
     case "${flag}" in
         d) dir=${OPTARG};;
-        h) echo "pass in directory with bag files under tag -d, will output hdf5 files to the same location"; exit 0;;
+        r) rebuild=true;;
+        h) echo "pass in directory with bag files under tag -d, will output hdf5 files to the same location. Pass in with flag -r to rebuild the dockerfile used by this pipeline"; exit 0;;
         :) echo 'missing argument' >&2; exit 1;;
         \?) echo 'invalid option' >&2; exit 1
     esac
 done
+
+if [ "$rebuild" = true ] ; then
+    echo 'rebuilding docker image'
+    docker build -t hdf5convert -f "$scriptpath/../../dockerfiles/convert_to_hdf5" "$scriptpath/../../"
+fi
 
 if [ -z "$dir" ]
 then
@@ -51,7 +57,13 @@ do
 done
 
 # This must be run after all of the other hdf5 work is done
-python3 "$scriptpath/extract_novid.py" -t "$dir"
+docker run \
+    --mount type=bind,source="$dir",target=/data \
+    -it \
+    --rm \
+    --name=hdf5-converter \
+    hdf5convert \
+    python3 "./extract_novid.py" -t "/data"
 
 
 echo "--------------------------------------"
