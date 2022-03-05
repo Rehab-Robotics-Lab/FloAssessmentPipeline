@@ -2,7 +2,6 @@
 """
 Provides functions for drawing over images
 """
-
 import cv2
 
 
