@@ -32,7 +32,7 @@ def process_frame(img, op_wrapper):
     op_wrapper.emplaceAndPop(op.VectorDatum([datum]))
     # tqdm.write(datum.poseKeypoints.shape)
     #cv2.imwrite('output/test.jpg', datum.cvOutputData)
-    return datum.cvOutputData, datum.poseKeypoints
+    return datum.cvOutputData, datum.poseKeypoints, datum.handKeypoints
 
 
 def process_frames(images):
@@ -81,7 +81,7 @@ The last channel is taken as number of images
     except:  # pylint: disable=bare-except
         pass
 
-    output_keypoints = np.zeros((num_images, 25, 3))
+    output_keypoints = np.zeros((num_images, 25+2*21, 3))
     op_wrapper = op.WrapperPython()
     op_wrapper.configure(params)
     op_wrapper.start()
@@ -89,7 +89,8 @@ The last channel is taken as number of images
     for i in trange(images.shape[0], desc='openpose'):
 
         image2process = images[i, :, :, :]
-        _, pose_keypoints = process_frame(image2process, op_wrapper)
+        _, pose_keypoints, hand_keypoints = process_frame(
+            image2process, op_wrapper)
         # OutputImages[:, :, :, i] = OutputImage
         # tqdm.write('for image {} found: {}'.format(i, pose_keypoints))
 
@@ -101,7 +102,9 @@ The last channel is taken as number of images
             tqdm.write("\tMore than one person Detected: skipping frame")
             continue
 
-        output_keypoints[i, :, :] = pose_keypoints
+        output_keypoints[i, 0:25, :] = pose_keypoints
+        output_keypoints[i, 25:25+21, :] = hand_keypoints[0]  # left hand
+        output_keypoints[i, 25+21:25+2*21, :] = hand_keypoints[1]  # right hand
         # OutputPoseKeypoints.append(poseKeypoints)
 
-    return output_keypoints
+    return (output_keypoints, params)

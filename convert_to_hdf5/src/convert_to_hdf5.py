@@ -459,24 +459,29 @@ def match_depth(hdf5_file, data_info_mapping):  # pylint: disable=too-many-branc
         hdf5_files: the list of hdf file objects to work on
         data_info_mapping: The mapping between video data topics and info data topics
     """
-    color_topics = filter(lambda x: 'color' in x, data_info_mapping)
-    for color_root_topic in color_topics:
-        color_match_topic = color_root_topic+'/matched_depth_index'
+    depth_topics = filter(lambda x: 'depth' in x, data_info_mapping)
+    for depth_root_topic in depth_topics:
+        cam_root = '/'.join(depth_root_topic.split('/')[0:-1])
+        match_topic = cam_root+'/matched_depth_index'
 
         timestamps = {}
 
-        if color_match_topic not in hdf5_file:
-            match_dataset = hdf5_file.create_dataset(color_match_topic, (INITIAL_SIZE,),
-                                                     maxshape=(None,),
-                                                     dtype=np.uint32, chunks=(CHUNK_SIZE,))
-        else:
-            match_dataset = hdf5_file[color_match_topic]
-        depth_root_topic = color_root_topic.replace('color', 'depth')
-        color_time_topic = color_root_topic+'/time'
+        depth_root_topic = cam_root+'/depth'
+        color_time_topic = cam_root+'/color/time'
         depth_time_topic = depth_root_topic + '/time'
 
         if color_time_topic not in hdf5_file or depth_time_topic not in hdf5_file:
             continue
+
+        if match_topic not in hdf5_file:
+            match_dataset = hdf5_file.create_dataset(match_topic, (INITIAL_SIZE,),
+                                                     maxshape=(None,),
+                                                     dtype=np.uint32, chunks=(CHUNK_SIZE,))
+        else:
+            match_dataset = hdf5_file[match_topic]
+
+        match_dataset.attrs['description'] = \
+            'row number is color frame, value is the matching depth frame'
 
         for source, time_topic in zip(('color', 'depth'), (color_time_topic, depth_time_topic)):
             timestamp = hdf5_file[time_topic]
@@ -928,7 +933,7 @@ def add_topic_move_feedback(bag_file, hdf5_file):
         add_to_dataset(
             topic_name,
             hdf5_file,
-            (msg.feedback.time_elapsed, msg.feeback.time_remaining,
+            (msg.feedback.time_elapsed, msg.feedback.time_remaining,
              msg.feedback.move_number),
             msg.header.stamp.to_sec()
         )
