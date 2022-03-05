@@ -1,3 +1,5 @@
+'''The joints that are used by openpose'''
+
 
 def openpose_joints():
     return[

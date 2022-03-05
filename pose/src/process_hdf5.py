@@ -6,7 +6,6 @@ import json
 import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
-from tqdm import tqdm
 
 
 def allkeys(obj):
