@@ -5,12 +5,8 @@ import argparse
 import json
 import numpy as np
 import h5py
-<<<<<<< HEAD:pose_body/scripts/process_hdf5.py
-from pose_body.scripts.extract_poses import process_frames
-from pose_body.scripts.extract_depth import add_stereo_depth
-=======
-from extract_depth import add_stereo_depth
->>>>>>> 860a3b06accfc77d0aa5b049ac14f8c11cbb3473:pose/src/process_hdf5.py
+from pose.src.extract_poses import process_frames
+from pose.src.extract_depth import add_stereo_depth
 from tqdm import tqdm
 
 
@@ -74,16 +70,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
         print('cannot open transforms file')
 
     cam_root = f'/vid/{cam}'
-<<<<<<< HEAD:pose_body/scripts/process_hdf5.py
-    dset = f'{cam_root}/color/data'
 
-    preexisting_keypoints = False
-    if f'{cam_root}/openpose/keypoints' not in hdf5_out:
-        keypoints_dset = hdf5_out.create_dataset(
-            f'{cam_root}/openpose/keypoints', (hdf5_in[dset].len(), 25, 2), dtype=np.float32)
-    else:
-        keypoints_dset = hdf5_out[f'{cam_root}/openpose/keypoints']
-=======
     color_dset = f'{cam_root}/color/data'
     pose_dset_root = f'{cam_root}/pose/{algorithm}'
 
@@ -101,42 +88,22 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             kp_dset_name, (hdf5_in[color_dset].len(), num_keypoints, 2), dtype=np.float32)
     else:
         keypoints_dset = hdf5_out[kp_dset_name]
->>>>>>> 860a3b06accfc77d0aa5b049ac14f8c11cbb3473:pose/src/process_hdf5.py
         preexisting_keypoints = True
         print('keypoints already exist')
 
     preexisting_confidence = False
-<<<<<<< HEAD:pose_body/scripts/process_hdf5.py
-    if f'{cam_root}/openpose/confidence' not in hdf5_out:
-        confidence_dset = hdf5_out.create_dataset(
-            f'{cam_root}/openpose/confidence', (hdf5_in[dset].len(), 25), dtype=np.float32)
-    else:
-        confidence_dset = hdf5_out[f'{cam_root}/openpose/confidence']
-=======
+
     conf_dset_name = f'{pose_dset_root}/confidence'
     if conf_dset_name not in hdf5_out:
         confidence_dset = hdf5_out.create_dataset(
             conf_dset_name, (hdf5_in[color_dset].len(), num_keypoints), dtype=np.float32)
     else:
         confidence_dset = hdf5_out[conf_dset_name]
->>>>>>> 860a3b06accfc77d0aa5b049ac14f8c11cbb3473:pose/src/process_hdf5.py
         preexisting_confidence = True
         print('confidences already exist')
 
     if (not(preexisting_keypoints and preexisting_confidence)) or rerun:
         print('running pose detections')
-<<<<<<< HEAD:pose_body/scripts/process_hdf5.py
-        for chunk in tqdm(hdf5_in[dset].iter_chunks(), desc='chunks',
-                          total=hdf5_in[dset].id.get_num_chunks()):
-            color_arr = hdf5_in[dset][chunk]
-            keypoints = process_frames(color_arr)
-            keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
-            confidence_dset[chunk[0], :] = keypoints[:, :, 2]
-
-    print('Adding Stereo Depth')
-    add_stereo_depth(
-        hdf5_in, hdf5_out, cam_root,
-=======
         if algorithm == "openpose":
             # for openpose, keypoints will be:
             # body_25b, left hand, right hand
@@ -157,7 +124,6 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     print('Adding Stereo Depth')
     add_stereo_depth(
         hdf5_in, hdf5_out, cam_root, pose_dset_root,
->>>>>>> 860a3b06accfc77d0aa5b049ac14f8c11cbb3473:pose/src/process_hdf5.py
         transforms[source][cam] if (source in transforms and
                                     cam in transforms[source]) else None)
     print('Done Adding Stereo Depth')
