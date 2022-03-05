@@ -50,4 +50,4 @@ docker run \
     --rm \
     -it \
     openpose\
-    ./process_hdf5.py -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose" --rerun
+    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a openpose # --rerun

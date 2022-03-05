@@ -5,7 +5,7 @@ import argparse
 import json
 import numpy as np
 import h5py
-from extract_depth import add_stereo_depth
+from pose.src.extract_depth import add_stereo_depth
 from tqdm import tqdm
 
 
@@ -108,7 +108,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             # put a wrapper around this whole thing. But since we aren't doing that,
             # we don't want to need imports for openpose for a different algorithm
             # pylint: disable=import-outside-toplevel
-            from openpose_wrapper import process_frames
+            from pose.src.openpose_wrapper import process_frames
             for chunk in tqdm(hdf5_in[color_dset].iter_chunks(), desc='chunks'):
                 color_arr = hdf5_in[color_dset][chunk]
                 keypoints, params = process_frames(color_arr)

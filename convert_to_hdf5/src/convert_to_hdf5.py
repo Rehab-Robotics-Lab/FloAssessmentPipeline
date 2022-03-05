@@ -462,7 +462,7 @@ def match_depth(hdf5_file, data_info_mapping):  # pylint: disable=too-many-branc
     depth_topics = filter(lambda x: 'depth' in x, data_info_mapping)
     for depth_root_topic in depth_topics:
         cam_root = '/'.join(depth_root_topic.split('/')[0:-1])
-        match_topic = cam_root+'/matched_depth_index'
+        match_topic = cam_root+'/color/matched_depth_index'
 
         timestamps = {}
 
