@@ -1,0 +1,31 @@
+FROM ubuntu:20.04
+
+# From: https://google.github.io/mediapipe/getting_started/install.html
+
+# Note: To make Mediapipe work with TensorFlow, please set Python 3.7 as the default Python version and install the Python “six” library by running pip3 install --user six.
+
+#get deps
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3-dev \
+    python3-pip \
+    libopencv-dev \
+    libhdf5-dev \
+    libatlas-base-dev \
+    python3-setuptools
+
+#for python api
+RUN pip3 install --upgrade pip
+RUN pip3 install \
+    numpy \
+    opencv-python \
+    tqdm \
+    scipy \
+    matplotlib \
+    h5py \
+    ipdb \
+    six \
+    mediapipe
+
+COPY ./pose/src/process_hdf5.py ./
+COPY ./pose/src/extract_depth.py ./

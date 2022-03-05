@@ -35,8 +35,9 @@ do
 done
 
 if [ "$rebuild" = true ] ; then
-    echo 'rebuilding docker image'
+    echo 'rebuilding docker images'
     docker build -t openpose -f "$scriptpath/../../dockerfiles/openpose" "$scriptpath/../../"
+    docker build -t mediapipe -f "$scriptpath/../../dockerfiles/mediapipe" "$scriptpath/../../"
 fi
 
 echo "Processing Files in data folder: $data"
@@ -45,9 +46,16 @@ video_file='full_data-vid.hdf5'
 novideo_file='full_data-novid.hdf5'
 transforms_file='transforms.json'
 
+#docker run \
+#    --mount type=bind,source="$data",target=/data \
+#    --rm \
+#    -it \
+#    openpose\
+#    ./process_hdf5.py -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose" --rerun
+
 docker run \
     --mount type=bind,source="$data",target=/data \
     --rm \
     -it \
-    openpose\
-    ./process_hdf5.py -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose" --rerun
+    mediapipe\
+    ./process_hdf5.py -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "upper" -a "mp-hands" --rerun
