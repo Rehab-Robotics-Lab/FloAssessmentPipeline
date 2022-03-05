@@ -57,12 +57,12 @@ docker run \
     --rm \
     -it \
     openpose\
-    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a openpose --rerun
+    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose:25B" --rerun
 else
 docker run \
     --mount type=bind,source="$data",target=/data \
     --rm \
     -it \
     openpose\
-    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a openpose --no-rerun
+    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose:25B" --no-rerun
 fi

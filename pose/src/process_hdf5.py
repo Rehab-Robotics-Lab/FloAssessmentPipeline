@@ -74,8 +74,10 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
 
     if algorithm == "mp-hands":
         num_keypoints = 20
-    elif algorithm == "openpose":
-        num_keypoints = 25+2*21  # 25 for body_25b and 21 for each hand
+    elif algorithm in ("openpose:25B", "openpose:25Bms"):
+        num_keypoints = 25
+    elif algorithm == "openpose:135":
+        num_keypoints = 135
     else:
         raise ValueError("invalid algorithm passed")
 
@@ -101,7 +103,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
 
     if (not(preexisting_keypoints and preexisting_confidence)) or rerun:
         print('running pose detections')
-        if algorithm == "openpose":
+        if algorithm in ("openpose:25B", "openpose:135"):
             # for openpose, keypoints will be:
             # body_25b, left hand, right hand
             # We only want to import if we are doing openpose. We could alternatively
@@ -111,7 +113,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             from pose.src.openpose_wrapper import process_frames
             for chunk in tqdm(hdf5_in[color_dset].iter_chunks(), desc='chunks'):
                 color_arr = hdf5_in[color_dset][chunk]
-                keypoints, params = process_frames(color_arr)
+                keypoints, params = process_frames(color_arr, algorithm)
                 keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
                 confidence_dset[chunk[0], :] = keypoints[:, :, 2]
                 for key, val in params.items():
@@ -151,9 +153,14 @@ if __name__ == '__main__':
                         help="Do not re-run pose detection if keypoints " +
                         "already exist in output")
     PARSER.add_argument("-a", "--algorithm",
-                        choices=['openpose', 'mp-hands', 'detectron2'],
+                        choices=['openpose:25B', 'openpose:135', "openpose:25Bms",
+                                 'mp-hands', 'detectron2'],
                         required=True,
-                        help="Algorithm to run for pose estimation")
+                        help="Algorithm to run for pose estimation. " +
+                        "Openpose 25B uses deep network for body only " +
+                        "from whole body pose paper, openpose:25Bms uses " +
+                        "the same with a multi-scale net, openpose:135 " +
+                        "uses openpose with whole body (body+hand+foot+face)")
     ARGS = PARSER.parse_args()
     convert(ARGS.video, ARGS.no_video, ARGS.transforms,
             ARGS.source, ARGS.cam, ARGS.rerun, ARGS.algorithm)
