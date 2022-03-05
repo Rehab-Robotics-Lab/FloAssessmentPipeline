@@ -44,9 +44,7 @@ RUN pip3 install h5py ipdb
 
 WORKDIR /openpose/build/scripts
 
-COPY ./pose/src/openpose_wrapper.py ./
-COPY ./pose/src/process_hdf5.py ./
-COPY ./pose/src/extract_depth.py ./
+COPY ./ ./
 
 WORKDIR /openpose/build/scripts
-CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
+CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec python3 -m pose_body.scripts.process_hdf5 {} \;"
