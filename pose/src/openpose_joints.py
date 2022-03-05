@@ -2,6 +2,8 @@
 
 
 def openpose_joints():
+    """Return a list with the joints produced by openpose
+    """
     return[
         "Nose",
         "LEye",
