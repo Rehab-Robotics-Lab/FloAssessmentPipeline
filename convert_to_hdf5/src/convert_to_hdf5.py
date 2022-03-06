@@ -286,10 +286,10 @@ def add_video_topics(hdf5_database,  data_info_mapping, meta_data, topic_info, e
     for root_topic in data_info_mapping:
         vid_topic = root_topic+'/data'
         rospy.loginfo(
-            '\tParsing for standard topic : %s' % (vid_topic))
+            '\tParsing for standard topic : %s', vid_topic)
         raw_topic = meta_data['bag-mapping'][vid_topic]
         rospy.loginfo(
-            '\t\traw topic : %s' % (raw_topic))
+            '\t\traw topic : %s', raw_topic)
         topic_meta_info = topic_info[root_topic]
         if topic_meta_info:
             vid_topic_time = root_topic + '/time'
@@ -422,7 +422,7 @@ def add_realsense_video_data(bag_file, hdf5_file, meta_data):
     for root_topic in outer_progress_bar:
         vid_topic = root_topic+'/data'
         raw_topic = meta_data['bag-mapping'][vid_topic]
-        outer_progress_bar.set_description('Working on: {}'.format(vid_topic))
+        outer_progress_bar.set_description(f'Working on: {vid_topic}')
 
         with tqdm(total=bag_file.get_message_count(raw_topic)) as inner_progress_bar:
             for _, msg, _ in bag_file.read_messages([raw_topic]):

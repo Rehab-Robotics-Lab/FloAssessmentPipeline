@@ -55,8 +55,8 @@ def draw_cam_info(img, idx=None, time=None, cam=None, cam_type="color"):
         cam_type: the type of camera
     """
     if idx:
-        draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
+        draw_text(img, f'frame: {idx}', pos=(100, 3))
     if time:
-        draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
+        draw_text(img, f'time: {time:.2f}', pos=(500, 3))
     if cam:
         draw_text(img, f'view: {cam} realsense {cam_type}', pos=(900, 3))
