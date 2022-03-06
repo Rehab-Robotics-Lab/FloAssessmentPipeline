@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from common import color
 from common import img_overlays
-from pose_body.scripts.openpose_joints import openpose_joints
+from pose.src.openpose_joints import openpose_joints
 from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import MIN_CONFIDENCE

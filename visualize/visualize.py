@@ -9,22 +9,22 @@ from visualize.skeleton_3d import skeleton_3d
 from visualize.video_overlay.overlay_angular_motion import overlay_angular_motion
 
 
-def visualize(file_stub, cam, func):
+def visualize(directory, cam, func):
     if func == 'wrists':
         print('overlaying wrists')
-        overlay_wrists(file_stub, cam)
+        overlay_wrists(directory, cam)
 
     elif func == '2dSkeleton':
         print('overlaying 2D Skeleton')
-        overlay_2dSkeleton(file_stub, cam)
+        overlay_2dSkeleton(directory, cam)
 
     elif func == '3dSkeleton':
         print('creating 3d skeleton GIF')
-        skeleton_3d(file_stub, cam, save=True, show=False)
+        skeleton_3d(directory, cam, save=True, show=False)
 
     elif func == 'angular_motion':
         print('Plotting Angular motion at Shoulders')
-        overlay_angular_motion(file_stub, cam)
+        overlay_angular_motion(directory, cam)
 
     else:
         print('Invalid OVERLAY option')
