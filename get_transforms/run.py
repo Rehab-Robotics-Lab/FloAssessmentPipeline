@@ -32,12 +32,12 @@ def get_transforms(out_dir):
                 'HDF5 Database COULD NOT BE READ/CREATED: %s', hdf5_fn)
         source = hdf5_fn.parts[-2]  # robot or podium or mixed
         for cam in ('lower', 'upper'):
-            if (f'vid/depth_to_color/{cam}/time' in hdf5_database and
-                    f'vid/depth_to_color/{cam}/data' in hdf5_database):
+            if (f'vid/{cam}/depth_to_color/time' in hdf5_database and
+                    f'vid/{cam}/depth_to_color/data' in hdf5_database):
                 print('found transforms')
                 for time, data in zip(
-                        hdf5_database[f'vid/depth_to_color/{cam}/time'],
-                        hdf5_database[f'vid/depth_to_color/{cam}/data']):
+                        hdf5_database[f'vid/{cam}/depth_to_color/time'],
+                        hdf5_database[f'vid/{cam}/depth_to_color/data']):
                     transforms[source][cam][time] = {
                         'rotation': data[0].tolist(),
                         'translation': data[1].tolist()}
