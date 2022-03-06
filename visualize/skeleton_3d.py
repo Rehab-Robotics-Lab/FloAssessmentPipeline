@@ -8,6 +8,7 @@ import matplotlib.animation as animation
 import h5py
 import kinematics.scripts.extract_profiles as kinematics
 from pose.src.openpose_joints import openpose_joints
+from common import plot_helpers
 # Inspiration from:
 # https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55
 
@@ -30,6 +31,7 @@ def animate(iteration, data, scatters, lines, axes_list, joint_pairs, keypoints,
         keypoints: The keypoints to use (joints)
         frames: The frames for the shoulders
     """
+    # efforts to use tqdm to draw a status bar were unsucsefful.
     if iteration % 100 == 0:
         print(f'iteration: {iteration}\t/\t{len(data)}')
     for idx, axes in enumerate(axes_list):
@@ -87,7 +89,7 @@ def animate(iteration, data, scatters, lines, axes_list, joint_pairs, keypoints,
 
 
 #pylint: disable=too-many-statements
-def skeleton_3d(directory, cam, save=False, show=False):
+def skeleton_3d(directory, cam, dset_names, save=False, show=False):
     """Make animation of 3D skeletons
 
     Args:
@@ -100,9 +102,8 @@ def skeleton_3d(directory, cam, save=False, show=False):
     print('Generating 3D Skeleton')
     directory = pathlib.Path(directory)
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
-    cam_root = f'vid/{cam}'
 
-    points3d = hdf5_tracking[f'{cam_root}/pose/openpose:25B/3dkeypoints/raw_realsense']
+    points3d = hdf5_tracking[dset_names['3dkeypoints']]
 
     annotations = ['Nose', 'UpperNeck', 'LShoulder', 'LElbow',
                    'LWrist', 'RShoulder', 'RElbow', 'RWrist', 'LHip', 'RHip']
@@ -119,13 +120,9 @@ def skeleton_3d(directory, cam, save=False, show=False):
         (JNTS.index('UpperNeck'), JNTS.index('RHip'))
     ]
 
-    x_percentiles = np.nanpercentile(points3d[:, :, 0], [1, 50, 99])
-    x_diff = x_percentiles[-1]-x_percentiles[0]
-    y_percentiles = np.nanpercentile(points3d[:, :, 1], [1, 50, 99])
-    y_diff = y_percentiles[-1]-y_percentiles[0]
-    z_percentiles = np.nanpercentile(points3d[:, :, 2], [1, 50, 99])
-    z_diff = z_percentiles[-1]-z_percentiles[0]
-    plot_radius = 1.2*0.5*np.max((x_diff, y_diff, z_diff))
+    max_range, x_percentiles, y_percentiles, z_percentiles = \
+        plot_helpers.calculate_data_range(points3d)
+    plot_radius = 1.2*0.5*max_range
 
     print('creating figure containers')
     fig = plt.figure(figsize=(20, 10))
@@ -250,7 +247,7 @@ def skeleton_3d(directory, cam, save=False, show=False):
     if save:
         writervideo = animation.FFMpegWriter(
             fps=np.floor(
-                1/(np.median(np.diff(hdf5_tracking['vid/lower/color/time']))))
+                1/(np.median(np.diff(hdf5_tracking[dset_names['time_color']]))))
         )
         ani.save(directory / f'viz-{cam}-3dSkeleton.avi', writer=writervideo)
 

@@ -1,3 +1,4 @@
+"""Module to overlay wrists"""
 #!/usr/bin/env python3
 
 import pathlib
@@ -9,27 +10,31 @@ from common import color
 from pose.src.openpose_joints import openpose_joints
 
 
-def overlay_wrists(directory, cam):
+def overlay_wrists(directory, cam, dset_names):
+    """Overlay wrists on the color image
+
+    Requires the two hdf5 files: full_data-novid.hdf5
+    and full_data-vid.hdf5
+
+    Args:
+        directory: Directory with the hdf5 files
+        cam: The camera to use
+        dset_names: The names of the relevant datasets
+    """
     directory = pathlib.Path(directory)
     hdf5_video = h5py.File(directory/'full_data-vid.hdf5', 'r')
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
 
-    cam_root = f'vid/{cam}'
-    pose_root = f'{cam_root}/pose/openpose:25B'
-    color_dset_name = f'{cam_root}/color/data'
     video_writer = cv2.VideoWriter(
         str(directory/f'viz-{cam}-wrists.avi'),
         cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
-    for idx in trange(hdf5_video[color_dset_name].shape[0]):
-        img = hdf5_video[color_dset_name][idx]
-        keypoints = hdf5_tracking[f'{pose_root}/keypoints/color'][idx]
-        confidence = hdf5_tracking[f'{pose_root}/confidence'][idx]
-        time = hdf5_tracking[f'{cam_root}/color/time'][idx]
+    for idx in trange(hdf5_video[dset_names['color_dset']].shape[0]):
+        img = hdf5_video[dset_names['color_dset']][idx]
+        keypoints = hdf5_tracking[dset_names['keypoints_color']][idx]
+        confidence = hdf5_tracking[dset_names['confidence']][idx]
+        time = hdf5_tracking[dset_names['time_color']][idx]
 
-        img_overlays.draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
-        img_overlays.draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
-        img_overlays.draw_text(
-            img, 'view: {} realsense'.format(cam), pos=(900, 3))
+        img_overlays.draw_cam_info(img, idx, time, cam)
 
         for joint in (openpose_joints().index("LWrist"),
                       openpose_joints().index("RWrist")):

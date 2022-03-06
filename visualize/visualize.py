@@ -1,30 +1,58 @@
+"""Module to orchestrate visualizations"""
 #!/usr/bin/env python3
-# Expect one argument of form: <file stub> which will be used to access
-# <file stub>.hdf5 and <filestub>-novid.hdf5 and create <file stub>-wrists.avi
 
 import argparse
 from visualize.video_overlay.overlay_wrists import overlay_wrists
-from visualize.video_overlay.skeleton_overlay2d import overlay_2dSkeleton
+from visualize.video_overlay.skeleton_overlay2d import overlay_2d_skeleton
 from visualize.skeleton_3d import skeleton_3d
 from visualize.video_overlay.overlay_angular_motion import overlay_angular_motion
 
 
 def visualize(directory, cam, func):
+    """Visualize data
+
+    Ingests two hdf5 files and outputs video of the tracking in them.
+
+    The angular_motion function requires that angular motion have been extracted.
+
+    Args:
+        directory: directory with both full_data-novid.hdf5 and full_data-vid.hdf5
+        cam: The camera to use (upper, lower)
+        func: The visualization function to use (wrists, 2dSkeleton, 3dSkeleton,
+              angular_motion)
+    """
+    dset_names = {}
+    dset_names['cam_root'] = f'vid/{cam}'
+    dset_names['color_dset'] = f'{dset_names["cam_root"]}/color/data'
+    dset_names['depth_dset'] = f'{dset_names["cam_root"]}/depth/data'
+    dset_names['depth_mapping_dset'] = \
+        f'{dset_names["cam_root"]}/color/matched_depth_index'
+    dset_names['3dkeypoints'] = \
+        f'{dset_names["cam_root"]}/pose/openpose:25B/3dkeypoints/raw_realsense'
+    dset_names['keypoints_color'] = \
+        f'{dset_names["cam_root"]}/pose/openpose:25B/keypoints/color'
+    dset_names['keypoints_depth'] = \
+        f'{dset_names["cam_root"]}/pose/openpose:25B/keypoints/depth'
+    dset_names['confidence'] = \
+        f'{dset_names["cam_root"]}/pose/openpose:25B/confidence'
+    dset_names['time_color'] = f'{dset_names["cam_root"]}/color/time'
+    dset_names['time_depth'] = f'{dset_names["cam_root"]}/depth/time'
+
     if func == 'wrists':
         print('overlaying wrists')
-        overlay_wrists(directory, cam)
+        overlay_wrists(directory, cam, dset_names)
 
     elif func == '2dSkeleton':
         print('overlaying 2D Skeleton')
-        overlay_2dSkeleton(directory, cam)
+        overlay_2d_skeleton(directory, cam, dset_names)
 
     elif func == '3dSkeleton':
         print('creating 3d skeleton GIF')
-        skeleton_3d(directory, cam, save=True, show=False)
+        skeleton_3d(directory, cam, dset_names, save=True, show=False)
 
     elif func == 'angular_motion':
         print('Plotting Angular motion at Shoulders')
-        overlay_angular_motion(directory, cam)
+        overlay_angular_motion(directory, cam, dset_names)
 
     else:
         print('Invalid OVERLAY option')

@@ -1,36 +1,30 @@
+"""Module to overlay angular motion"""
 #!/usr/bin/env python3
 
 import pathlib
-from typing import Counter
-import numpy as np
-import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
-import matplotlib.animation as animation
-import h5py
-from numpy.core.fromnumeric import shape
-import cv2
 import math
-import sys
+import numpy as np
+import h5py
+import cv2
+from tqdm import trange
 from common.color import color_scale
 from common import img_overlays
-import kinematics.scripts.extract_profiles as k
-from tqdm import trange
-import copy
 
 
-def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
+def overlay_angular_motion(directory, cam, dset_names):
     """overlay data from hdf5 file onto images from hdf file.
     Requires both the no video and video hdf5 files.
     Args:
         directory: The common file stub for the two hdf5 files
         cam: The camera to use (upper or lower)
     """
+    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-branches
     directory = pathlib.Path(directory)
     hdf5_video = h5py.File(directory/'full_data-vid.hdf5')
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5')
 
-    cam_root = f'vid/{cam}'
-    color_dset_name = f'{cam_root}/color/data'
     video_writer = cv2.VideoWriter(
         str(directory/f'viz-{cam}-angular_motion.avi'),
         cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
@@ -79,16 +73,13 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
             vals.append(np.ones(500, dtype=np.float64))
         all_rs_vals.append(vals)
 
-    for idx in trange(hdf5_video[color_dset_name].shape[0]-2):
-        img = hdf5_video[color_dset_name][idx]
-        keypoints = hdf5_tracking[f'{cam_root}/pose/openpose:25B/keypoints/color'][idx]
-        confidence = hdf5_tracking[f'{cam_root}/pose/openpose:25B/confidence'][idx]
-        time = hdf5_tracking[f'{cam_root}/color/time'][idx]
+    for idx in trange(hdf5_video[dset_names['color_dset']].shape[0]-2):
+        img = hdf5_video[dset_names['color_dset']][idx]
+        keypoints = hdf5_tracking[dset_names["cam_root"]][idx]
+        confidence = hdf5_tracking[dset_names['confidence']][idx]
+        time = hdf5_tracking[dset_names['time_color']][idx]
 
-        img_overlays.draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
-        img_overlays.draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
-        img_overlays.draw_text(
-            img, 'view: {} realsense'.format(cam), pos=(900, 3))
+        img_overlays.draw_cam_info(img, idx, time, cam)
 
         # Joints listed here: https://github.com/CMU-Perceptual-Computing-Lab/openpose/
         # blob/master/doc/02_output.md#keypoints-in-cpython
@@ -114,7 +105,7 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
             for j, topic in enumerate(topics):
                 scale = scales[topic.split('_')[-1]]
                 all_ls_vals[i][j] = np.roll(all_ls_vals[i][j], 1)
-                if(math.isnan(hdf5_tracking[topic][idx])):
+                if math.isnan(hdf5_tracking[topic][idx]):
                     img_overlays.draw_text(
                         img, 'Outlier ', pos=(x_offset, 100))
                     print('here')
@@ -124,11 +115,14 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
                 color = np.zeros(3)
                 color[j] = 255
 
-                img_overlays.draw_text(img, topic.split('/')[-1], pos=(x_offset, y_offset - 100 + 30*j),
-                                       font_scale=1,
-                                       font_thickness=1,
-                                       text_color=color,
-                                       text_color_bg=None)
+                img_overlays.draw_text(
+                    img,
+                    topic.split('/')[-1],
+                    pos=(x_offset, y_offset - 100 + 30*j),
+                    font_scale=1,
+                    font_thickness=1,
+                    text_color=color,
+                    text_color_bg=None)
 
                 cv2.polylines(img,
                               [np.int32(
@@ -144,7 +138,7 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
             for j, topic in enumerate(topics):
                 scale = scales[topic.split('_')[-1]]
                 all_rs_vals[i][j] = np.roll(all_rs_vals[i][j], 1)
-                if(math.isnan(hdf5_tracking[topic][idx])):
+                if math.isnan(hdf5_tracking[topic][idx]):
                     img_overlays.draw_text(
                         img, 'Outlier ', pos=(x_offset, 100))
                 else:
@@ -152,7 +146,9 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
 
                 color = np.zeros(3)
                 color[j] = 255
-                img_overlays.draw_text(img, topic.split('/')[-1], pos=(x_offset, y_offset - 100 + 30*j),
+                img_overlays.draw_text(img,
+                                       topic.split('/')[-1],
+                                       pos=(x_offset, y_offset - 100 + 30*j),
                                        font_scale=1,
                                        font_thickness=1,
                                        text_color=color,
@@ -169,9 +165,3 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
     video_writer.release()
     hdf5_video.close()
     hdf5_tracking.close()
-
-
-# Expect one argument of form: <file stub> which will be used to access
-# <file stub>.hdf5 and <filestub>-novid.hdf5 and create <file stub>-wrists.avi
-if __name__ == '__main__':
-    overlay_angular_motion(sys.argv[1], sys.argv[2])
