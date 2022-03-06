@@ -1,9 +1,13 @@
-"""Module to extract motion profiles"""
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author: gsuveer
+"""
 
 import numpy as np
 from scipy.spatial.transform import Rotation
-from pose.src.openpose_joints import openpose_joints
+from pose_body.scripts.openpose_joints import openpose_joints
+
 JNTS = openpose_joints()
 
 
@@ -161,7 +165,7 @@ def diff(signal, timestamps):
     signal
     '''
     assert signal.shape[0] == timestamps.shape[0]
-    diff_x = np.diff(signal)
-    diff_t = np.diff(timestamps - timestamps[0])
-    gradient = np.divide(diff_x, diff_t)
+    dx = np.diff(signal)
+    dt = np.diff(timestamps - timestamps[0])
+    gradient = np.divide(dx, dt)
     return gradient
