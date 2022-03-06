@@ -6,7 +6,7 @@ from tqdm import trange
 import cv2
 from common import img_overlays
 from common import color
-from pose_body.scripts.openpose_joints import openpose_joints
+from pose.src.openpose_joints import openpose_joints
 
 
 def overlay_wrists(directory, cam):
