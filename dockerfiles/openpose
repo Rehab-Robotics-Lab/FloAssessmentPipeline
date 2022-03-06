@@ -51,6 +51,22 @@ WORKDIR /openpose/models/pose/body_25b/
 RUN cp /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/pose_deploy.prototxt /openpose/models/pose/body_25b/
 RUN cp /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/pose_iter_XXXXXX.caffemodel /openpose/models/pose/body_25b/
 
+# get medium accuracy, high speed model
+#WORKDIR /openpose/experimental_models/1_25BBkg/body_25b/
+#RUN wget posefs1.perception.cs.cmu.edu/OpenPose/models/pose/1_25BBkg/body_25b/pose_iter_XXXXXX.caffemodel
+#RUN wget https://raw.githubusercontent.com/CMU-Perceptual-Computing-Lab/openpose_train/master/experimental_models/1_25BBkg/body_25b/pose_deploy.prototxt
+#WORKDIR /openpose/models/pose/body_25b/
+#RUN cp /openpose/experimental_models/1_25BBkg/body_25b/pose_deploy.prototxt /openpose/models/pose/body_25b/
+#RUN cp /openpose/experimental_models/1_25BBkg/body_25b/pose_iter_XXXXXX.caffemodel /openpose/models/pose/body_25b/
+
+#get whole body deep model (hands+body+feet in one model)
+WORKDIR /openpose/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/
+RUN wget posefs1.perception.cs.cmu.edu/OpenPose/models/pose/100_135AlmostSameBatchAllGPUs/body_135/pose_iter_XXXXXX.caffemodel
+RUN wget https://raw.githubusercontent.com/CMU-Perceptual-Computing-Lab/openpose_train/master/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/pose_deploy.prototxt
+WORKDIR /openpose/models/pose/body_135/
+RUN cp /openpose/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/pose_deploy.prototxt /openpose/models/pose/body_135/
+RUN cp /openpose/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/pose_iter_XXXXXX.caffemodel /openpose/models/pose/body_135/
+
 WORKDIR /openpose/build
 
 #CMD mkdir scripts
@@ -62,9 +78,7 @@ RUN pip3 install h5py ipdb
 
 WORKDIR /openpose/build/scripts
 
-COPY ./pose/src/openpose_wrapper.py ./
-COPY ./pose/src/process_hdf5.py ./
-COPY ./pose/src/extract_depth.py ./
+COPY ./ ./
 
 WORKDIR /openpose/build/scripts
-CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
+CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec python3 -m pose_body.scripts.process_hdf5 {} \;"
