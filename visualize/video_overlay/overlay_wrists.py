@@ -11,18 +11,19 @@ from pose.src.openpose_joints import openpose_joints
 
 def overlay_wrists(directory, cam):
     directory = pathlib.Path(directory)
-    hdf5_video = h5py.File(directory/'full_data-vid.hdf5')
-    hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5')
+    hdf5_video = h5py.File(directory/'full_data-vid.hdf5', 'r')
+    hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
 
     cam_root = f'vid/{cam}'
+    pose_root = f'{cam_root}/pose/openpose:25B'
     color_dset_name = f'{cam_root}/color/data'
     video_writer = cv2.VideoWriter(
         str(directory/f'viz-{cam}-wrists.avi'),
         cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
     for idx in trange(hdf5_video[color_dset_name].shape[0]):
         img = hdf5_video[color_dset_name][idx]
-        keypoints = hdf5_tracking[f'{cam_root}/openpose/keypoints'][idx]
-        confidence = hdf5_tracking[f'{cam_root}/openpose/confidence'][idx]
+        keypoints = hdf5_tracking[f'{pose_root}/keypoints/color'][idx]
+        confidence = hdf5_tracking[f'{pose_root}/confidence'][idx]
         time = hdf5_tracking[f'{cam_root}/color/time'][idx]
 
         img_overlays.draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))

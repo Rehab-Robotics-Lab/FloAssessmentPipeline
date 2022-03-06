@@ -81,7 +81,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
         raise ValueError("invalid algorithm passed")
 
     preexisting_keypoints = False
-    kp_dset_name = f'{pose_dset_root}/keypoints'
+    kp_dset_name = f'{pose_dset_root}/keypoints/color'
     if kp_dset_name not in hdf5_out:
         keypoints_dset = hdf5_out.create_dataset(
             kp_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints, 2), dtype=np.float32)
@@ -113,7 +113,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             keypoints, params = process_frames(
                 hdf5_in[color_dset_name], algorithm)
             keypoints_dset[:, :, :] = keypoints[:, :, 0:2]
-            confidence_dset[:, :, :] = keypoints[:, :, 2]
+            confidence_dset[:, :] = keypoints[:, :, 2]
             for key, val in params.items():
                 keypoints_dset.attrs[key] = val
                 confidence_dset.attrs[key] = val
