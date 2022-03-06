@@ -11,6 +11,7 @@ from numpy.core.fromnumeric import shape
 import cv2
 import math
 import sys
+from common.color import color_scale
 from common import img_overlays
 import kinematics.scripts.extract_profiles as k
 from tqdm import trange
@@ -95,7 +96,7 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
             x = int(keypoints[joint][0])  # pylint: disable=invalid-name
             y = int(keypoints[joint][1])  # pylint: disable=invalid-name
             cv2.circle(img, (x, y), 20,
-                       img_overlays.color_scale(confidence[4], 0, 1), 8)
+                       color_scale(confidence[4], 0, 1), 8)
 
         # TODO: get this all in a clean loop
         # TODO: plot on top of each other
