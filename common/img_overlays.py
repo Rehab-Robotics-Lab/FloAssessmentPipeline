@@ -37,3 +37,26 @@ def draw_text(img, text,  # pylint: disable=too-many-arguments
                 font, font_scale, text_color, font_thickness)
 
     return text_size
+
+
+def draw_cam_info(img, idx=None, time=None, cam=None, cam_type="color"):
+    """Draw camera info on frame.
+
+    index, time, and cam arguments are optional,
+    if not passed, they will not be drawn.
+
+    will edit the image directly
+
+    Args:
+        img: numpy/cv2 image
+        idx: The frame index
+        time: The frame time
+        cam: The camera name for the frame
+        cam_type: the type of camera
+    """
+    if idx:
+        draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
+    if time:
+        draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
+    if cam:
+        draw_text(img, f'view: {cam} realsense {cam_type}', pos=(900, 3))

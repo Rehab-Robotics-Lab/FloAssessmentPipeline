@@ -32,6 +32,13 @@ Everything can be run locally, but is really meant to run on Oracle Cloud Infras
     clean.
 *   Lint your shell code:
     `git ls-files | grep 'sh$' | xargs shellcheck -x --source-path=SCRIPTDIR`
+*   Sometimes you will need to break the rules of pylint,
+    generally because you have too many local variables or
+    something. Recognize that these rules exist for a good
+    reason. But if you feel that there is not a cleaer way
+    to refactor your code that will make it more readable,
+    then you can put in pylint disable statements for
+    single errors only (no ignoring whole files).
 
 ## Some tools
 
