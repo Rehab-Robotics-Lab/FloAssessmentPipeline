@@ -80,8 +80,8 @@ def overlay_angular_motion(directory, cam):  # pylint: disable=too-many-locals
 
     for idx in trange(hdf5_video[color_dset_name].shape[0]-2):
         img = hdf5_video[color_dset_name][idx]
-        keypoints = hdf5_tracking[f'{cam_root}/openpose/keypoints'][idx]
-        confidence = hdf5_tracking[f'{cam_root}/openpose/confidence'][idx]
+        keypoints = hdf5_tracking[f'{cam_root}/pose/openpose:25B/keypoints/color'][idx]
+        confidence = hdf5_tracking[f'{cam_root}/pose/openpose:25B/confidence'][idx]
         time = hdf5_tracking[f'{cam_root}/color/time'][idx]
 
         img_overlays.draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))

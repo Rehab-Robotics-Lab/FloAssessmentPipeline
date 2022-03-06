@@ -102,7 +102,7 @@ def skeleton_3d(directory, cam, save=False, show=False):
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
     cam_root = f'vid/{cam}'
 
-    points3d = hdf5_tracking[f'{cam_root}/openpose/keypoints-3d']
+    points3d = hdf5_tracking[f'{cam_root}/pose/openpose:25B/3dkeypoints/raw_realsense']
 
     annotations = ['Nose', 'UpperNeck', 'LShoulder', 'LElbow',
                    'LWrist', 'RShoulder', 'RElbow', 'RWrist', 'LHip', 'RHip']
