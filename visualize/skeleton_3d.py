@@ -4,7 +4,7 @@
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib import animation
 import h5py
 import kinematics.scripts.extract_profiles as kinematics
 from pose.src.openpose_joints import openpose_joints
