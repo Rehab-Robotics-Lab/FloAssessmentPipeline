@@ -71,7 +71,7 @@ def overlay_2dSkeleton(directory, cam):
     depth_dset_name = f'{cam_root}/depth/data'
     depth_mapping_dset_name = f'{cam_root}/color/matched_depth_index'
 
-    points3d = hdf5_tracking[f'{cam_root}/openpose/keypoints-3d']
+    points3d = hdf5_tracking[f'{cam_root}/pose/openpose:25B/3dkeypoints/raw_realsense']
     x_percentiles = np.nanpercentile(points3d[:, :, 0], [1, 50, 99])
     x_diff = x_percentiles[-1]-x_percentiles[0]
     y_percentiles = np.nanpercentile(points3d[:, :, 1], [1, 50, 99])
@@ -108,10 +108,10 @@ def overlay_2dSkeleton(directory, cam):
         # convert from 16 to 8 bit
         depth_img = cv2.convertScaleAbs(depth_img, alpha=(0xFF/0xFFFF))
 
-        color_keypoints = hdf5_tracking[f'{cam_root}/openpose/keypoints'][idx]
-        depth_keypoints = hdf5_tracking[f'{cam_root}/openpose/keypoints-depth'][idx]
-        keypoints_3d = hdf5_tracking[f'{cam_root}/openpose/keypoints-3d'][idx]
-        confidence = hdf5_tracking[f'{cam_root}/openpose/confidence'][idx]
+        color_keypoints = hdf5_tracking[f'{cam_root}/pose/openpose:25B/keypoints/color'][idx]
+        depth_keypoints = hdf5_tracking[f'{cam_root}/pose/openpose:25B/keypoints/depth'][idx]
+        keypoints_3d = hdf5_tracking[f'{cam_root}/pose/openpose:25B/3dkeypoints/raw_realsense'][idx]
+        confidence = hdf5_tracking[f'{cam_root}/pose/openpose:25B/confidence'][idx]
         color_time = hdf5_tracking[f'{cam_root}/color/time'][idx]
         depth_time = hdf5_tracking[f'{cam_root}/depth/time'][depth_idx]
 

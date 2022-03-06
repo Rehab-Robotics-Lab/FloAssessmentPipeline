@@ -40,7 +40,7 @@ done
 
 if [ "$rebuild" = true ] ; then
     echo 'rebuilding docker image'
-    docker build -t video-overlay -f "$scriptpath/../../dockerfiles/video_overlay" "$scriptpath/../../"
+    docker build -t video-overlay -f "$scriptpath/../dockerfiles/video_overlay" "$scriptpath/../"
 fi
 
 if [ "$help" = true ] ; then
