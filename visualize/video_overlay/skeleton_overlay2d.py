@@ -119,7 +119,7 @@ def plot_overhead(img, keypoints_3d, scaling_params, confidence, pos):
              the pixel height to plot over, the x position for the left side of the plotting,
              the y position for the top of the plotting)
     """
-    plot_scale = (np.min(pos[0], pos[1])/2)/1.2*scaling_params[0]
+    plot_scale = (np.min([pos[0], pos[1]])/2)/1.2*scaling_params[0]
     for limb in PAIRS:
         if ((not np.any(np.isnan(
             [keypoints_3d[limb[jidx]][0:2] for jidx in (0, 1)]
@@ -211,7 +211,7 @@ def overlay_2d_skeleton(directory, cam, dset_names):
         confidence = hdf5_tracking[dset_names['confidence']][idx]
 
         img_overlays.draw_cam_info(
-            img, idx, hdf5_tracking[dset_names['time_color']][idx], cam)
+            color_img, idx, hdf5_tracking[dset_names['time_color']][idx], cam)
         img_overlays.draw_cam_info(
             depth_img, depth_idx, hdf5_tracking[dset_names['time_depth']][depth_idx], cam, "depth")
 
