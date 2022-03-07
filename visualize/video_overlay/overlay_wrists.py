@@ -21,7 +21,7 @@ def overlay_wrists(directory, cam, dset_names):
         cam: The camera to use
         dset_names: The names of the relevant datasets
     """
-    #pylint: disable=too-many-local-variables
+    #pylint: disable=too-many-locals
     directory = pathlib.Path(directory)
     hdf5_video = h5py.File(directory/'full_data-vid.hdf5', 'r')
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
