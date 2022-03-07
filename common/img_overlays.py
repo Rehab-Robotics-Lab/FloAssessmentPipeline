@@ -68,6 +68,7 @@ class DataPlot:
     """Class to create data plots which scroll, kind of like an osciliscope
     display.
     """
+    #pylint: disable=too-many-instance-attributes
 
     def __init__(self, pos, size, label=None, domain_length=15,
                  buffer=500, color=(250, 250, 250), thickness=4,
