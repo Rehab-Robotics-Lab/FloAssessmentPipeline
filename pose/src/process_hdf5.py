@@ -6,6 +6,7 @@ import json
 import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
+from tqdm import tqdm
 
 
 def allkeys(obj):
@@ -110,8 +111,8 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             # we don't want to need imports for openpose for a different algorithm
             # pylint: disable=import-outside-toplevel
             from openpose_wrapper import process_frames
-            for chunk in tqdm(hdf5_in[color_dset].iter_chunks(), desc='chunks'):
-                color_arr = hdf5_in[color_dset][chunk]
+            for chunk in tqdm(hdf5_in[color_dset_name].iter_chunks(), desc='chunks'):
+                color_arr = hdf5_in[color_dset_name][chunk]
                 keypoints, params = process_frames(color_arr)
                 keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
                 confidence_dset[chunk[0], :] = keypoints[:, :, 2]
@@ -119,6 +120,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
                     keypoints_dset.attrs[key] = val
                     confidence_dset.attrs[key] = val
         if algorithm == "mp-hands":
+            import ipdb
             import mediapipe as mp
             mp_hands = mp.solutions.hands
             with mp_hands.Hands(
@@ -127,17 +129,10 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
                     model_complexity=1,
                     min_detection_confidence=0.5,
                     min_tracking_confidence=0.5) as hands:
-                for frame in tqdm(hdf5_in[color_dset], desc='frames'):
+                for frame in tqdm(hdf5_in[color_dset_name], desc='frames'):
                     results = hands.process(frame)
-                    print(results.multi_handedness)
-            from pose.src.openpose_wrapper import process_frames
-            keypoints, params = process_frames(
-                hdf5_in[color_dset_name], algorithm)
-            keypoints_dset[:, :, :] = keypoints[:, :, 0:2]
-            confidence_dset[:, :] = keypoints[:, :, 2]
-            for key, val in params.items():
-                keypoints_dset.attrs[key] = val
-                confidence_dset.attrs[key] = val
+                    if results.multi_handedness:
+                        keypoints_dset
 
     print('Adding Stereo Depth')
     add_stereo_depth(
