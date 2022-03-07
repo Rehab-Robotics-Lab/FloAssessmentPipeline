@@ -5,8 +5,7 @@ import argparse
 import json
 import numpy as np
 import h5py
-from extract_depth import add_stereo_depth
-from tqdm import tqdm
+from pose.src.extract_depth import add_stereo_depth
 
 
 def allkeys(obj):
@@ -69,21 +68,23 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
         print('cannot open transforms file')
 
     cam_root = f'/vid/{cam}'
-    color_dset = f'{cam_root}/color/data'
+    color_dset_name = f'{cam_root}/color/data'
     pose_dset_root = f'{cam_root}/pose/{algorithm}'
 
     if algorithm == "mp-hands":
         num_keypoints = 2*21
-    elif algorithm == "openpose":
-        num_keypoints = 25+2*21  # 25 for body_25b and 21 for each hand
+    elif algorithm in ("openpose:25B", "openpose:25Bms"):
+        num_keypoints = 25
+    elif algorithm == "openpose:135":
+        num_keypoints = 135
     else:
         raise ValueError("invalid algorithm passed")
 
     preexisting_keypoints = False
-    kp_dset_name = f'{pose_dset_root}/keypoints'
+    kp_dset_name = f'{pose_dset_root}/keypoints/color'
     if kp_dset_name not in hdf5_out:
         keypoints_dset = hdf5_out.create_dataset(
-            kp_dset_name, (hdf5_in[color_dset].len(), num_keypoints, 2), dtype=np.float32)
+            kp_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints, 2), dtype=np.float32)
     else:
         keypoints_dset = hdf5_out[kp_dset_name]
         preexisting_keypoints = True
@@ -93,7 +94,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     conf_dset_name = f'{pose_dset_root}/confidence'
     if conf_dset_name not in hdf5_out:
         confidence_dset = hdf5_out.create_dataset(
-            conf_dset_name, (hdf5_in[color_dset].len(), num_keypoints), dtype=np.float32)
+            conf_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints), dtype=np.float32)
     else:
         confidence_dset = hdf5_out[conf_dset_name]
         preexisting_confidence = True
@@ -101,7 +102,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
 
     if (not(preexisting_keypoints and preexisting_confidence)) or rerun:
         print('running pose detections')
-        if algorithm == "openpose":
+        if algorithm in ("openpose:25B", "openpose:135"):
             # for openpose, keypoints will be:
             # body_25b, left hand, right hand
             # We only want to import if we are doing openpose. We could alternatively
@@ -129,6 +130,14 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
                 for frame in tqdm(hdf5_in[color_dset], desc='frames'):
                     results = hands.process(frame)
                     print(results.multi_handedness)
+            from pose.src.openpose_wrapper import process_frames
+            keypoints, params = process_frames(
+                hdf5_in[color_dset_name], algorithm)
+            keypoints_dset[:, :, :] = keypoints[:, :, 0:2]
+            confidence_dset[:, :] = keypoints[:, :, 2]
+            for key, val in params.items():
+                keypoints_dset.attrs[key] = val
+                confidence_dset.attrs[key] = val
 
     print('Adding Stereo Depth')
     add_stereo_depth(
@@ -163,9 +172,14 @@ if __name__ == '__main__':
                         help="Do not re-run pose detection if keypoints " +
                         "already exist in output")
     PARSER.add_argument("-a", "--algorithm",
-                        choices=['openpose', 'mp-hands', 'detectron2'],
+                        choices=['openpose:25B', 'openpose:135', "openpose:25Bms",
+                                 'mp-hands', 'detectron2'],
                         required=True,
-                        help="Algorithm to run for pose estimation")
+                        help="Algorithm to run for pose estimation. " +
+                        "Openpose 25B uses deep network for body only " +
+                        "from whole body pose paper, openpose:25Bms uses " +
+                        "the same with a multi-scale net, openpose:135 " +
+                        "uses openpose with whole body (body+hand+foot+face)")
     ARGS = PARSER.parse_args()
     convert(ARGS.video, ARGS.no_video, ARGS.transforms,
             ARGS.source, ARGS.cam, ARGS.rerun, ARGS.algorithm)

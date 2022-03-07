@@ -470,7 +470,7 @@ def add_audio(filename, video, audio, idx):
         os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
         return
 
-    audio_filename = '{}-tmp.mp3'.format(os.path.splitext(filename)[0])
+    audio_filename = '{os.path.splitext(filename)[0]}-tmp.mp3'
     # if sys.version_info[0] == 3:
     #     with open(audio_filename, 'w+b') as mp3_file:
     #         mp3_file.write(bytes(audio['data']))
@@ -509,7 +509,7 @@ def get_tmp_vid_filename(filename):
         filename: The root filename to add temp into
     """
     sp_filename = os.path.splitext(filename)
-    tmp_vid_filename = '{}-tmp{}'.format(sp_filename[0], sp_filename[1])
+    tmp_vid_filename = f'{sp_filename[0]}-tmp{sp_filename[1]}'
     return tmp_vid_filename
 
 
@@ -521,7 +521,7 @@ def get_idx_vid_filename(filename, idx):
         idx: the index to add into the filename
     """
     sp_filename = os.path.splitext(filename)
-    idx_filename = '{}-{}{}'.format(sp_filename[0], idx, sp_filename[1])
+    idx_filename = f'{sp_filename[0]}-{idx}{sp_filename[1]}'
     return idx_filename
 
 
@@ -725,7 +725,7 @@ def write_out(video, audio, filename, vid_writer, columns, idx):
 
 
 if __name__ == '__main__':
-    print('got args: {}'.format(sys.argv))
+    print(f'got args: {sys.argv}')
     PARSER = argparse.ArgumentParser()
 
     PARSER.add_argument("-o", "--output", type=str,

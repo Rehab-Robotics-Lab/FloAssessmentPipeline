@@ -3,13 +3,31 @@ FROM nvidia/cuda:10.0-cudnn7-devel
 
 #get deps
 RUN apt-get update && \
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-python3-dev python3-pip git g++ wget make libprotobuf-dev protobuf-compiler libopencv-dev \
-libgoogle-glog-dev libboost-all-dev libcaffe-cuda-dev libhdf5-dev libatlas-base-dev python3-setuptools
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        python3-dev \
+        python3-pip \
+        git \
+        g++ \
+        wget \
+        make \
+        libprotobuf-dev \
+        protobuf-compiler \
+        libopencv-dev \
+        libgoogle-glog-dev \
+        libboost-all-dev \
+        libcaffe-cuda-dev \
+        libhdf5-dev \
+        libatlas-base-dev \
+        python3-setuptools
 
 #for python api
 RUN pip3 install --upgrade pip
-RUN pip3 install numpy opencv-python tqdm scipy matplotlib
+RUN pip3 install \
+    numpy \
+    opencv-python \
+    tqdm \
+    scipy \
+    matplotlib
 
 #replace cmake as old version has CUDA variable bugs
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.16.0/cmake-3.16.0-Linux-x86_64.tar.gz && \
@@ -33,6 +51,22 @@ WORKDIR /openpose/models/pose/body_25b/
 RUN cp /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/pose_deploy.prototxt /openpose/models/pose/body_25b/
 RUN cp /openpose/experimental_models/1_25BSuperModel11FullVGG/body_25b/pose_iter_XXXXXX.caffemodel /openpose/models/pose/body_25b/
 
+# get medium accuracy, high speed model
+#WORKDIR /openpose/experimental_models/1_25BBkg/body_25b/
+#RUN wget posefs1.perception.cs.cmu.edu/OpenPose/models/pose/1_25BBkg/body_25b/pose_iter_XXXXXX.caffemodel
+#RUN wget https://raw.githubusercontent.com/CMU-Perceptual-Computing-Lab/openpose_train/master/experimental_models/1_25BBkg/body_25b/pose_deploy.prototxt
+#WORKDIR /openpose/models/pose/body_25b/
+#RUN cp /openpose/experimental_models/1_25BBkg/body_25b/pose_deploy.prototxt /openpose/models/pose/body_25b/
+#RUN cp /openpose/experimental_models/1_25BBkg/body_25b/pose_iter_XXXXXX.caffemodel /openpose/models/pose/body_25b/
+
+#get whole body deep model (hands+body+feet in one model)
+WORKDIR /openpose/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/
+RUN wget posefs1.perception.cs.cmu.edu/OpenPose/models/pose/100_135AlmostSameBatchAllGPUs/body_135/pose_iter_XXXXXX.caffemodel
+RUN wget https://raw.githubusercontent.com/CMU-Perceptual-Computing-Lab/openpose_train/master/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/pose_deploy.prototxt
+WORKDIR /openpose/models/pose/body_135/
+RUN cp /openpose/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/pose_deploy.prototxt /openpose/models/pose/body_135/
+RUN cp /openpose/experimental_models/100_135AlmostSameBatchAllGPUs/body_135/pose_iter_XXXXXX.caffemodel /openpose/models/pose/body_135/
+
 WORKDIR /openpose/build
 
 #CMD mkdir scripts
@@ -44,9 +78,7 @@ RUN pip3 install h5py ipdb
 
 WORKDIR /openpose/build/scripts
 
-COPY ./pose/src/openpose_wrapper.py ./
-COPY ./pose/src/process_hdf5.py ./
-COPY ./pose/src/extract_depth.py ./
+COPY ./ ./
 
 WORKDIR /openpose/build/scripts
-CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec ./process_hdf5.py {} \;"
+CMD /bin/bash -c "find /data -type f -name *.hdf5 -printf '%P' -exec python3 -m pose_body.scripts.process_hdf5 {} \;"
