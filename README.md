@@ -15,6 +15,31 @@ to make it easier to manage.
 
 Everything can be run locally, but is really meant to run on Oracle Cloud Infrastructure (OCI).
 
+## Style
+
+*   Try to run everything in docker
+*   All dockerfiles go in dockerfiles. Where possible re-use.
+*   Assume that any scripts will be run from wherever. Wrap
+    everything up so that it can tolerate that.
+*   Don't require uses to call docker directly. Wrap it up.
+*   Any code specific to OCI should be in the `oci_utilities`
+    directory. Everything else should be able to run on any
+    general system with the right compute capabilities.
+*   Lint your python code:
+    `git ls-files | grep 'py$' | xargs pylint --rcfile=pylintrc --unsafe-load-any-extension=y --disable=fixme`
+    you will likely get some import errors for ros packages that
+    run in docker. That is OK. Everything else should be totally
+    clean.
+*   Lint your shell code:
+    `git ls-files | grep 'sh$' | xargs shellcheck -x --source-path=SCRIPTDIR`
+*   Sometimes you will need to break the rules of pylint,
+    generally because you have too many local variables or
+    something. Recognize that these rules exist for a good
+    reason. But if you feel that there is not a cleaer way
+    to refactor your code that will make it more readable,
+    then you can put in pylint disable statements for
+    single errors only (no ignoring whole files).
+
 ## Some tools
 
 *   **ViTables:** is really great for being able to explore hdf5 files
@@ -148,8 +173,3 @@ During development, testing, etc. It might be good to be able to download data f
     *   Use pget to get a file via multiple parallel streams: `pget <filename>`
     *   Use mget to get files. Something like `mget flo_recording_2020-12-16-15-3* -P 10` might be useful, 10 is saying to download up to 10 files simultaneously.
     *   Note, you can put an `&` at the end of any command to be able to start the next command. You can recover a command with `wait <command number (shown when you put it in background)>`, you can send it back to the background with ctrl-z. You can view all jobs with `jobs`
-
-## Notes
-
-*   I thought that using dense I/O shapes would make work faster. For reasons I don't understand, it does not.
-*   Block volumes aren't as fast as one might

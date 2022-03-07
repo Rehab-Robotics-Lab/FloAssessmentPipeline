@@ -1,128 +1,66 @@
+"""Module to overlay wrists"""
 #!/usr/bin/env python3
 
-"""A module for overlaying data and text onto images"""
-
-import math
-import sys
-import numpy as np
+import pathlib
 import h5py
-import cv2
 from tqdm import trange
+import cv2
 from common import img_overlays
-
-# from: https://stackoverflow.com/a/65146731/5274985
-
-
-def color_scale(mag, cmin, cmax):
-    """ Return a tuple of floats between 0 and 1 for R, G, and B. """
-    # Normalize to 0-1
-    try:
-        scale = float(mag-cmin)/(cmax-cmin)
-    except ZeroDivisionError:
-        scale = 0.5  # cmax == cmin
-    blue = min((max((4*(0.75-scale), 0.)), 1.))
-    red = min((max((4*(scale-0.25), 0.)), 1.))
-    green = min((max((4*math.fabs(scale-0.5)-1., 0.)), 1.))
-    return int(red*255), int(green*255), int(blue*255)
+from common import color
+from pose.src.openpose_joints import openpose_joints
 
 
-def overlay(file_stub, cam):  # pylint: disable=too-many-locals
-    """overlay data from hdf5 file onto images from hdf file.
+def overlay_wrists(directory, cam, dset_names):
+    """Overlay wrists on the color image
 
-    Requires both the no video and video hdf5 files.
+    Requires the two hdf5 files: full_data-novid.hdf5
+    and full_data-vid.hdf5
 
     Args:
-        file_stub: The common file stub for the two hdf5 files
-        cam: The camera to use (upper or lower)
+        directory: Directory with the hdf5 files
+        cam: The camera to use
+        dset_names: The names of the relevant datasets
     """
-    hdf5_video = h5py.File(file_stub+'.hdf5')
-    hdf5_tracking = h5py.File(file_stub+'-novid.hdf5')
+    #pylint: disable=too-many-locals
+    directory = pathlib.Path(directory)
+    hdf5_video = h5py.File(directory/'full_data-vid.hdf5', 'r')
+    hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
 
-    dset = 'vid/color/data/{}/data'.format(cam)
     video_writer = cv2.VideoWriter(
-        file_stub+'-'+cam+'-wrist.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
-    t_vals = np.zeros(500, dtype=np.float64)
-    x_l_vals = np.ones(500, dtype=np.float64)
-    y_l_vals = np.ones(500, dtype=np.float64)
-    x_r_vals = np.ones(500, dtype=np.float64)
-    y_r_vals = np.ones(500, dtype=np.float64)
-    for idx in trange(hdf5_video[dset].shape[0]):
-        img = hdf5_video[dset][idx]
-        keypoints = hdf5_tracking[dset+'-keypoints'][idx]
-        confidence = hdf5_tracking[dset+'-confidence'][idx]
-        sec = hdf5_tracking['vid/color/data/{}/secs'.format(cam)][idx]
-        nsec = hdf5_tracking['vid/color/data/{}/nsecs'.format(cam)][idx]
-        time = sec+nsec*1e-9
+        str(directory/f'viz-{cam}-wrists.avi'),
+        cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
+    left_wrist_plots = [img_overlays.DataPlot(
+        (10, 30), (400, 200), label="left wrist: x", color=(0, 200, 0), blur=25),
+        img_overlays.DataPlot(
+        (10, 240), (400, 200), label="left wrist: y", color=(200, 0, 0), blur=25)]
+    right_wrist_plots = [img_overlays.DataPlot(
+        (10, 450), (400, 200), label="right wrist: x", color=(0, 0, 200), blur=25),
+        img_overlays.DataPlot(
+        (10, 660), (400, 200), label="right wrist: y", color=(200, 200, 0), blur=25)]
+    for idx in trange(hdf5_video[dset_names['color_dset']].shape[0]):
+        img = hdf5_video[dset_names['color_dset']][idx]
+        keypoints = hdf5_tracking[dset_names['keypoints_color']][idx]
+        confidence = hdf5_tracking[dset_names['confidence']][idx]
+        time = hdf5_tracking[dset_names['time_color']][idx]
 
-        img_overlays.draw_text(img, 'frame: {}'.format(idx), pos=(100, 3))
-        img_overlays.draw_text(img, 'time: {:.2f}'.format(time), pos=(500, 3))
-        img_overlays.draw_text(
-            img, 'view: {} realsense'.format(cam), pos=(900, 3))
+        img_overlays.draw_cam_info(img, idx, time, cam)
 
-        # Joints listed here: https://github.com/CMU-Perceptual-Computing-Lab/openpose/
-        # blob/master/doc/02_output.md#keypoints-in-cpython
-        for joint in (4, 7):
-            x = int(keypoints[joint][0])  # pylint: disable=invalid-name
-            y = int(keypoints[joint][1])  # pylint: disable=invalid-name
-            cv2.circle(img, (x, y), 20,
-                       color_scale(confidence[4], 0, 1), 8)
+        for joint, plts in zip(
+                (openpose_joints().index("LWrist"),
+                 openpose_joints().index("RWrist")),
+                (left_wrist_plots, right_wrist_plots)):
+            x_pos = int(keypoints[joint][0])
+            y_pos = int(keypoints[joint][1])
+            cv2.circle(img, (x_pos, y_pos), 20,
+                       color.color_scale(confidence[joint], 0, 1), 8)
+            # x
+            plts[0].add_data(time, x_pos)
+            plts[0].plot(img)
+            # y
+            plts[1].add_data(time, y_pos)
+            plts[1].plot(img)
 
-        # TODO: get this all in a clean loop
-        # TODO: plot on top of each other
-        t_vals = np.roll(t_vals, 1)
-        x_l_vals = np.roll(x_l_vals, 1)
-        y_l_vals = np.roll(y_l_vals, 1)
-        x_r_vals = np.roll(x_r_vals, 1)
-        y_r_vals = np.roll(y_r_vals, 1)
-        t_vals[0] = time
-        x_l_vals[0] = keypoints[4][0]
-        y_l_vals[0] = keypoints[4][1]
-        x_r_vals[0] = keypoints[7][0]
-        y_r_vals[0] = keypoints[7][1]
-        if idx == 0:
-            x_l_vals[-1] = keypoints[4][0]
-            y_l_vals[-1] = keypoints[4][1]
-            x_r_vals[-1] = keypoints[7][0]
-            y_r_vals[-1] = keypoints[7][1]
-            t_vals[-1] = time
-
-        adj_time = t_vals - time
-        in_range = adj_time > -15
-        scaled_time = adj_time * 30 + 450
-
-        cv2.polylines(img,
-                      [np.int32(
-                          np.transpose(
-                              (scaled_time[in_range],
-                               200+(.2*x_l_vals[in_range]))))],
-                      isClosed=False, color=(250, 0, 0), thickness=4)
-        cv2.polylines(img,
-                      [np.int32(np.transpose(
-                          (scaled_time[in_range], 400+(.2*y_l_vals[in_range]))))],
-                      isClosed=False, color=(250, 250, 0), thickness=4)
-        cv2.polylines(img,
-                      [np.int32(np.transpose(
-                          (scaled_time[in_range], 600+(.2*x_r_vals[in_range]))))],
-                      isClosed=False, color=(250, 0, 250), thickness=4)
-        cv2.polylines(img,
-                      [np.int32(np.transpose(
-                          (scaled_time[in_range], 800+(.2*y_r_vals[in_range]))))],
-                      isClosed=False, color=(0, 250, 0), thickness=4)
-
-        # img[0:300, 10:50] = x_l_plot.render()
-        # img[0:300, 55:95] = y_l_plot.render()
-        # img[0:300, 100:140] = x_r_plot.render()
-        # img[0:300, 150:190] = y_r_plot.render()
-
-        # cv2.imshow('im', img)
-        # cv2.waitKey(1)
         video_writer.write(img)
     video_writer.release()
     hdf5_video.close()
     hdf5_tracking.close()
-
-
-# Expect one argument of form: <file stub> which will be used to access
-# <file stub>.hdf5 and <filestub>-novid.hdf5 and create <file stub>-wrists.avi
-if __name__ == '__main__':
-    overlay(sys.argv[1], sys.argv[2])
