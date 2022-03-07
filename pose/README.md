@@ -1,15 +1,45 @@
 # Pose Detection
 
-To do this, we run in a docker image, openpose is just easier that way.
+We need to detect the pose of subjects using the two cameras feeds
+we have available. From the upper camera, we can only reliably see
+hands and wrists, so we extract those. From the forward facing (lower)
+camera, we want to get hands, arms, torso, and eye gaze direction.
 
-We run openpose at maximum accuracy. This requires a GPU with at least 16GB of memory.
-If multiple GPUs are available, they will all be used.
+Most pose detection algorithms operate in 2D only. We do however
+have 3D data. So we use the 2D algorithms and then simply overlay
+the 3D data and extract the keypoints from the depth. Later pipeline
+steps can transform this into more useful data.
+
+To maximize efficiency, all pose detection is done in the same step.
+This allows all of the data to be downloaded only once for pose detection.
+
+We use different algorithms for the different pose components:
+
+*   OpenPose: whole body and hand
+*   Detectron2: whole body
+*   MediaPipe: Hand
 
 One of the steps here is finding the depth of the detected poses.
+This requires that the camera intrinsics and depth-to-color extrinsics.
 Sometimes this is avaialable in the HDF5 file directly, other times
-it has to be read from the transforms.json file that is
+it has to be read from the transforms.json file. That file is generated
+using `get_transformss/run.sh`. This file is already generated and [stored
+in OCI](https://cloud.oracle.com/object-storage/buckets/idtxkczoknc2/rrl-flo-transforms/objects?region=us-ashburn-1).
 
-## On OCI
+## OpenPose
+
+To do this, we run in a docker image, openpose is just easier that way.
+
+We run openpose using the 25b model at non-maximum accuracy,
+which requires 5.6 GB of GPU memory.
+If multiple GPUs are available, they will all be used.
+
+Note: there is a higher accuracy mode that takes 16GB of memory,
+it just isn't worth it.
+
+## Running
+
+### On OCI
 
 1.  push the code files to OCI by running `./oci_utilities/push_code.sh`
 2.  Provision instance of:
@@ -45,26 +75,18 @@ done
 
 ### Running Locally
 
-1.  Run script: ./setup_local.sh
-2.  Build openpose using: build dockerfile: `docker build . --tag openpose`
-3.  Run script: ./scripts/run_local.sh -d <"Location to data directory">
+1.  Install Dependencies:
+    a. You can try to use the local setup script `pose-body/setup_local.sh`
+    b. You can manually install: cuda, docker, nvidia-docker
+2.  Run script: `./pose-body/scripts/run_local.sh -d <"Location to data directory">`
 
 You might get a common GPU architecture not supported error. In that case, make sure to restart docker with :
 
-sudo systemctl restart docker
+`sudo systemctl restart docker`
 
 Make sure you are able to run:
-sudo docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
+`sudo docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi`
 
-## General Architecture:
-
-job def: subj no, hdf5 file name
-parallelization: multiple hdf5 files (each subject has multiple)
-
-Input: exiting HDF5 file with videos
-
-There is a single output: an HDF5 file with the poses extracted from each view, the depth values (for depth cameras) at those pixel locations
-
-1.  Look in HDF5 file for any datasets starting with `vid_color_data_` and run openpose on those
-2.  if there is matching `vid_depth_data_` set, then extract the depth values that correspond to the pixel locations
-3.  put in new hdf5 file with `pose_<upper/lower>` (need to think through that data structure a bit more I think)
+You also might find that your gpu runs out of memory. To check this,
+run `nvidia-smi`. You can keep an updated window with this by running
+something like: `watch -n .1 nvidia-smi`.

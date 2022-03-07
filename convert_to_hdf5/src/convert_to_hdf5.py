@@ -286,10 +286,10 @@ def add_video_topics(hdf5_database,  data_info_mapping, meta_data, topic_info, e
     for root_topic in data_info_mapping:
         vid_topic = root_topic+'/data'
         rospy.loginfo(
-            '\tParsing for standard topic : %s' % (vid_topic))
+            '\tParsing for standard topic : %s', vid_topic)
         raw_topic = meta_data['bag-mapping'][vid_topic]
         rospy.loginfo(
-            '\t\traw topic : %s' % (raw_topic))
+            '\t\traw topic : %s', raw_topic)
         topic_meta_info = topic_info[root_topic]
         if topic_meta_info:
             vid_topic_time = root_topic + '/time'
@@ -422,7 +422,7 @@ def add_realsense_video_data(bag_file, hdf5_file, meta_data):
     for root_topic in outer_progress_bar:
         vid_topic = root_topic+'/data'
         raw_topic = meta_data['bag-mapping'][vid_topic]
-        outer_progress_bar.set_description('Working on: {}'.format(vid_topic))
+        outer_progress_bar.set_description(f'Working on: {vid_topic}')
 
         with tqdm(total=bag_file.get_message_count(raw_topic)) as inner_progress_bar:
             for _, msg, _ in bag_file.read_messages([raw_topic]):
@@ -459,24 +459,29 @@ def match_depth(hdf5_file, data_info_mapping):  # pylint: disable=too-many-branc
         hdf5_files: the list of hdf file objects to work on
         data_info_mapping: The mapping between video data topics and info data topics
     """
-    color_topics = filter(lambda x: 'color' in x, data_info_mapping)
-    for color_root_topic in color_topics:
-        color_match_topic = color_root_topic+'/matched_depth_index'
+    depth_topics = filter(lambda x: 'depth' in x, data_info_mapping)
+    for depth_root_topic in depth_topics:
+        cam_root = '/'.join(depth_root_topic.split('/')[0:-1])
+        match_topic = cam_root+'/color/matched_depth_index'
 
         timestamps = {}
 
-        if color_match_topic not in hdf5_file:
-            match_dataset = hdf5_file.create_dataset(color_match_topic, (INITIAL_SIZE,),
-                                                     maxshape=(None,),
-                                                     dtype=np.uint32, chunks=(CHUNK_SIZE,))
-        else:
-            match_dataset = hdf5_file[color_match_topic]
-        depth_root_topic = color_root_topic.replace('color', 'depth')
-        color_time_topic = color_root_topic+'/time'
+        depth_root_topic = cam_root+'/depth'
+        color_time_topic = cam_root+'/color/time'
         depth_time_topic = depth_root_topic + '/time'
 
         if color_time_topic not in hdf5_file or depth_time_topic not in hdf5_file:
             continue
+
+        if match_topic not in hdf5_file:
+            match_dataset = hdf5_file.create_dataset(match_topic, (INITIAL_SIZE,),
+                                                     maxshape=(None,),
+                                                     dtype=np.uint32, chunks=(CHUNK_SIZE,))
+        else:
+            match_dataset = hdf5_file[match_topic]
+
+        match_dataset.attrs['description'] = \
+            'row number is color frame, value is the matching depth frame'
 
         for source, time_topic in zip(('color', 'depth'), (color_time_topic, depth_time_topic)):
             timestamp = hdf5_file[time_topic]
@@ -928,7 +933,7 @@ def add_topic_move_feedback(bag_file, hdf5_file):
         add_to_dataset(
             topic_name,
             hdf5_file,
-            (msg.feedback.time_elapsed, msg.feeback.time_remaining,
+            (msg.feedback.time_elapsed, msg.feedback.time_remaining,
              msg.feedback.move_number),
             msg.header.stamp.to_sec()
         )
@@ -1207,8 +1212,8 @@ def add_realsense_extrinsics(bag_file, hdf5_file):
             '/upper_realsense/extrinsics/depth_to_color',
             '/lower_realsense/extrinsics/depth_to_color'
     ), (
-        '/vid/depth_to_color/upper',
-        '/vid/depth_to_color/lower'
+        '/vid/upper/depth_to_color',
+        '/vid/lower/depth_to_color'
     )):
         rospy.loginfo('adding %s', topic_name)
 
@@ -1605,14 +1610,14 @@ def add_realsense_topics(bag_file, hdf5_file):
     """
     meta_data = {
         'bag-mapping': {
-            'vid/color/upper/data': '/upper_realsense/color/image_raw_relay',
-            'vid/color/upper/info': '/upper_realsense/color/camera_info',
-            'vid/depth/upper/data': '/upper_realsense/depth/image_rect_raw_relay',
-            'vid/depth/upper/info': '/upper_realsense/depth/camera_info',
-            'vid/color/lower/data': '/lower_realsense/color/image_raw_relay',
-            'vid/color/lower/info': '/lower_realsense/color/camera_info',
-            'vid/depth/lower/data': '/lower_realsense/depth/image_rect_raw_relay',
-            'vid/depth/lower/info': '/lower_realsense/depth/camera_info'
+            'vid/upper/color/data': '/upper_realsense/color/image_raw_relay',
+            'vid/upper/color/info': '/upper_realsense/color/camera_info',
+            'vid/upper/depth/data': '/upper_realsense/depth/image_rect_raw_relay',
+            'vid/upper/depth/info': '/upper_realsense/depth/camera_info',
+            'vid/lower/color/data': '/lower_realsense/color/image_raw_relay',
+            'vid/lower/color/info': '/lower_realsense/color/camera_info',
+            'vid/lower/depth/data': '/lower_realsense/depth/image_rect_raw_relay',
+            'vid/lower/depth/info': '/lower_realsense/depth/camera_info'
         }}
     add_realsense_video_data(bag_file, hdf5_file, meta_data)
     add_realsense_extrinsics(bag_file, hdf5_file)
