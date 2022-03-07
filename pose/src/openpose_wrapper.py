@@ -32,10 +32,11 @@ def process_frame(img, op_wrapper):
     op_wrapper.emplaceAndPop(op.VectorDatum([datum]))
     # tqdm.write(datum.poseKeypoints.shape)
     #cv2.imwrite('output/test.jpg', datum.cvOutputData)
-    return datum.cvOutputData, datum.poseKeypoints, datum.handKeypoints
+    # return datum.cvOutputData, datum.poseKeypoints, datum.handKeypoints
+    return datum.poseKeypoints
 
 
-def process_frames(images):
+def process_frames(images, algorithm):
     """Function to take in a array of RGB images and return a array of images
 with keypoints and a separate keypoint array
 
@@ -52,23 +53,39 @@ The last channel is taken as number of images
     params["number_people_max"] = 1
     params["render_pose"] = 0
     params["display"] = 0
+    # Using experimental models:
+    # https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models
+
     # using max accuracy:
     # https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models#body_25b-model---option-1-maximum-accuracy-less-speed
-    params["model_pose"] = "BODY_25B"
-    # params["net_resolution"] = "1712x960"
-    # params["scale_number"] = 4
-    # params["scale_gap"] = 0.25
-    # params["hand"] = False
-    # params["hand_scale_number"] = 6
-    # params["hand_scale_range"] = 0.4
-    # params["face"] = False
-    # params["num_gpu"] = 1
-    # ^^ these parameters with hand on cause an out of memory error on Tesla V100 (16 GB RAM)
-    params["net_resolution"] = "-1x480"
-    params["hand"] = True
-    params["hand_scale_number"] = 6
-    params["hand_scale_range"] = 0.4
-    params["face"] = False
+    if algorithm == "openpose:25B":
+        params["model_pose"] = "BODY_25B"
+        params["net_resolution"] = "-1x480"
+        # High accuracy mode, required a lot of memory...
+    elif algorithm == "openpose:25Bms":
+        params["net_resolution"] = "1712x960"
+        params["scale_number"] = 4
+        params["scale_gap"] = 0.25
+        params["hand"] = False
+        params["hand_scale_number"] = 6
+        params["hand_scale_range"] = 0.4
+        params["face"] = False
+        # params["num_gpu"] = 1
+        # Hands and faces cause a large slowdown.
+        # params["hand"] = False
+        # params["hand_scale_number"] = 6
+        # params["hand_scale_range"] = 0.4
+        # params["face"] = False
+
+        # If we want hands and faces, we should use
+        # https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/tree/master/experimental_models#single-network-whole-body-pose-estimation-model
+    elif algorithm == "openpose:135":
+        params["model_pose"] = "BODY_135"
+        params["net_resolution"] = "-1x480"
+        # High accuracy mode
+        # params["net_resolution"] = "1712x960"
+        # params["scale_number"] = 4
+        # params["scale_gap"] = 0.25
 
     if len(images.shape) < 4:
         tqdm.write("Adding Extra Dimension")
@@ -81,7 +98,10 @@ The last channel is taken as number of images
     except:  # pylint: disable=bare-except
         pass
 
-    output_keypoints = np.zeros((num_images, 25+2*21, 3))
+    if params["model_pose"] == "BODY_25B":
+        output_keypoints = np.zeros((num_images, 25, 3))
+    elif params["model_pose"] == "BODY_135":
+        output_keypoints = np.zeros((num_images, 135, 3))
     op_wrapper = op.WrapperPython()
     op_wrapper.configure(params)
     op_wrapper.start()
@@ -89,8 +109,10 @@ The last channel is taken as number of images
     for i in trange(images.shape[0], desc='openpose'):
 
         image2process = images[i, :, :, :]
-        _, pose_keypoints, hand_keypoints = process_frame(
+        pose_keypoints = process_frame(
             image2process, op_wrapper)
+        # _, pose_keypoints, hand_keypoints = process_frame(
+        #     image2process, op_wrapper)
         # OutputImages[:, :, :, i] = OutputImage
         # tqdm.write('for image {} found: {}'.format(i, pose_keypoints))
 
@@ -102,9 +124,6 @@ The last channel is taken as number of images
             tqdm.write("\tMore than one person Detected: skipping frame")
             continue
 
-        output_keypoints[i, 0:25, :] = pose_keypoints
-        output_keypoints[i, 25:25+21, :] = hand_keypoints[0]  # left hand
-        output_keypoints[i, 25+21:25+2*21, :] = hand_keypoints[1]  # right hand
-        # OutputPoseKeypoints.append(poseKeypoints)
+        output_keypoints[i, :, :] = pose_keypoints
 
     return (output_keypoints, params)

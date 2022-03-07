@@ -57,7 +57,13 @@ do
 done
 
 # This must be run after all of the other hdf5 work is done
-python3 "$scriptpath/extract_novid.py" -t "$dir"
+docker run \
+    --mount type=bind,source="$dir",target=/data \
+    -it \
+    --rm \
+    --name=hdf5-converter \
+    hdf5convert \
+    python3 "./extract_novid.py" -t "/data"
 
 
 echo "--------------------------------------"
