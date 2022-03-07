@@ -22,11 +22,12 @@ Args:
  -r: rebuild the docker file that this uses
  -o: Rerun pose detection, overwriting prior results, if previous pose
      detection exists
+ -a: Algorithm to run (openpose, mp-hands)
 "
 
 rerun=false
 
-while getopts :hrod:s: flag
+while getopts :hroa:d:s: flag
 do
     case "${flag}" in
         d) data=${OPTARG};;
@@ -34,6 +35,7 @@ do
         h) echo "$help_message"; exit 0;;
         r) rebuild=true;;
         o) rerun=true;;
+        a) algorithm=${OPTARG};;
         :) echo 'missing argument' >&2; exit 1;;
         \?) echo 'invalid option' >&2; exit 1
     esac
@@ -51,19 +53,40 @@ video_file='full_data-vid.hdf5'
 novideo_file='full_data-novid.hdf5'
 transforms_file='transforms.json'
 
-if $rerun
+if [ "$algorithm" = "openpose" ]
 then
-docker run \
-    --mount type=bind,source="$data",target=/data \
-    --rm \
-    -it \
-    openpose\
-    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose:25B" --rerun
-else
-docker run \
-    --mount type=bind,source="$data",target=/data \
-    --rm \
-    -it \
-    openpose\
-    python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose:25B" --no-rerun
+    if $rerun
+    then
+    docker run \
+        --mount type=bind,source="$data",target=/data \
+        --rm \
+        -it \
+        openpose\
+        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose:25B" --rerun
+    else
+    docker run \
+        --mount type=bind,source="$data",target=/data \
+        --rm \
+        -it \
+        openpose\
+        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "lower" -a "openpose:25B" --no-rerun
+    fi
+elif [ "$algorithm" = "mp-hands" ]
+then
+    if $rerun
+    then
+    docker run \
+        --mount type=bind,source="$data",target=/data \
+        --rm \
+        -it \
+        mediapipe\
+        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "upper" -a "mp-hands" --rerun
+    else
+    docker run \
+        --mount type=bind,source="$data",target=/data \
+        --rm \
+        -it \
+        mediapipe\
+        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "upper" -a "mp-hands" --no-rerun
+    fi
 fi

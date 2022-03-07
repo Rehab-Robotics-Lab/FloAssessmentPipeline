@@ -27,5 +27,4 @@ RUN pip3 install \
     six \
     mediapipe
 
-COPY ./pose/src/process_hdf5.py ./
-COPY ./pose/src/extract_depth.py ./
+COPY ./ ./
