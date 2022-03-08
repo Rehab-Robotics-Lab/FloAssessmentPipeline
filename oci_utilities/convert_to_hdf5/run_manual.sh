@@ -65,12 +65,16 @@ do
         then
             echo "waiting for previous file to finish"
             hdf_exit_code=$(docker container wait hdf5-converter)
+            echo "Docker finished HDF5 conversion"
             docker rm /hdf5-converter
+            echo "Removed docker image"
             if [ "$hdf_exit_code" -ne 0 ]
             then
+                echo "there was an error while running docker hdf5 extraction" >&2
                 exit "$hdf_exit_code"
             fi
             rm "$HOME/data/$group/${previous_bag_fn%.*}"
+            echo "removed previous bag file"
         fi
 
         echo "starting hdf5 transfer"
