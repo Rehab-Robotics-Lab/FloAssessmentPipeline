@@ -7,6 +7,7 @@ import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
 from tqdm import tqdm
+import ipdb
 
 
 def allkeys(obj):
@@ -72,74 +73,89 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
     color_dset_name = f'{cam_root}/color/data'
     pose_dset_root = f'{cam_root}/pose/{algorithm}'
 
-    if algorithm == "mp-hands":
-        num_keypoints = 2*21
-    elif algorithm in ("openpose:25B", "openpose:25Bms"):
-        num_keypoints = 25
-    elif algorithm == "openpose:135":
-        num_keypoints = 135
-    else:
-        raise ValueError("invalid algorithm passed")
+    if algorithm in ("openpose:25B", "openpose:135"):
+        if algorithm in ("openpose:25B", "openpose:25Bms"):
+            num_keypoints = 25
+        elif algorithm == "openpose:135":
+            num_keypoints = 135
+        else:
+            raise ValueError("invalid algorithm passed")
 
-    preexisting_keypoints = False
-    kp_dset_name = f'{pose_dset_root}/keypoints/color'
-    if kp_dset_name not in hdf5_out:
-        keypoints_dset = hdf5_out.create_dataset(
-            kp_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints, 2), dtype=np.float32)
-    else:
-        keypoints_dset = hdf5_out[kp_dset_name]
-        preexisting_keypoints = True
-        print('keypoints already exist')
+        preexisting_keypoints = False
+        kp_dset_name = f'{pose_dset_root}/keypoints/color'
+        if kp_dset_name not in hdf5_out:
+            keypoints_dset = hdf5_out.create_dataset(
+                kp_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints, 2), dtype=np.float32)
+        else:
+            keypoints_dset = hdf5_out[kp_dset_name]
+            preexisting_keypoints = True
+            print('keypoints already exist')
 
-    preexisting_confidence = False
-    conf_dset_name = f'{pose_dset_root}/confidence'
-    if conf_dset_name not in hdf5_out:
-        confidence_dset = hdf5_out.create_dataset(
-            conf_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints), dtype=np.float32)
-    else:
-        confidence_dset = hdf5_out[conf_dset_name]
-        preexisting_confidence = True
-        print('confidences already exist')
+        preexisting_confidence = False
+        conf_dset_name = f'{pose_dset_root}/confidence'
+        if conf_dset_name not in hdf5_out:
+            confidence_dset = hdf5_out.create_dataset(
+                conf_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints), dtype=np.float32)
+        else:
+            confidence_dset = hdf5_out[conf_dset_name]
+            preexisting_confidence = True
+            print('confidences already exist')
 
-    if (not(preexisting_keypoints and preexisting_confidence)) or rerun:
-        print('running pose detections')
-        if algorithm in ("openpose:25B", "openpose:135"):
-            # for openpose, keypoints will be:
-            # body_25b, left hand, right hand
+        if (not(preexisting_keypoints and preexisting_confidence)) or rerun:
+            print('running pose detections')
             # We only want to import if we are doing openpose. We could alternatively
             # put a wrapper around this whole thing. But since we aren't doing that,
             # we don't want to need imports for openpose for a different algorithm
             # pylint: disable=import-outside-toplevel
-            from openpose_wrapper import process_frames
-            for chunk in tqdm(hdf5_in[color_dset_name].iter_chunks(), desc='chunks'):
-                color_arr = hdf5_in[color_dset_name][chunk]
-                keypoints, params = process_frames(color_arr)
-                keypoints_dset[chunk[0], :, :] = keypoints[:, :, 0:2]
-                confidence_dset[chunk[0], :] = keypoints[:, :, 2]
-                for key, val in params.items():
-                    keypoints_dset.attrs[key] = val
-                    confidence_dset.attrs[key] = val
-        if algorithm == "mp-hands":
-            import ipdb
-            import mediapipe as mp
-            mp_hands = mp.solutions.hands
-            with mp_hands.Hands(
-                    static_image_mode=False,
-                    max_num_hands=2,
-                    model_complexity=1,
-                    min_detection_confidence=0.5,
-                    min_tracking_confidence=0.5) as hands:
-                for frame in tqdm(hdf5_in[color_dset_name], desc='frames'):
-                    results = hands.process(frame)
-                    if results.multi_handedness:
-                        keypoints_dset
+            from pose.src.openpose_wrapper import process_frames
+            keypoints, params = process_frames(
+                hdf5_in[color_dset_name], algorithm)
+            keypoints_dset[:, :, :] = keypoints[:, :, 0:2]
+            confidence_dset[:, :] = keypoints[:, :, 2]
+            for key, val in params.items():
+                keypoints_dset.attrs[key] = val
+                confidence_dset.attrs[key] = val
+        print('Adding Stereo Depth')
+        add_stereo_depth(
+            hdf5_in, hdf5_out, cam_root, pose_dset_root,
+            transforms[source][cam] if (source in transforms and
+                                        cam in transforms[source]) else None)
+        print('Done Adding Stereo Depth')
+    elif algorithm == "mp-hands":
+        preexisting_keypoints = True
+        kp_dsets = {'right': {'keypoints/color': None,
+                              '3dkeypoints/mp-world': None},
+                    'left': {'keypoints/color': None,
+                             '3dkeypoints/mp-world':  None}}
+        for hand in kp_dsets:
+            for kp_type in kp_dsets[hand]:
+                kp_dset_name = f'{pose_dset_root}/{hand}/{kp_type}'
+                if kp_dset_name not in hdf5_out:
+                    kp_dsets[hand][kp_type] = hdf5_out.create_dataset(
+                        kp_dset_name, (hdf5_in[color_dset_name].len(), 21, 3), dtype=np.float32)
+                    preexisting_keypoints = False
+                else:
+                    kp_dsets[hand][kp_type] = hdf5_out[kp_dset_name]
+                    print('keypoints already exist')
+            kp_dsets[hand]['3dkeypoints/mp-world'].attrs['desc'] = \
+                'The MULTI_HAND_WORLD_LANDMARKS provided by media pipe: ' +\
+                'https://google.github.io/mediapipe/solutions/hands.html#multi_hand_world_landmarks'
 
-    print('Adding Stereo Depth')
-    add_stereo_depth(
-        hdf5_in, hdf5_out, cam_root, pose_dset_root,
-        transforms[source][cam] if (source in transforms and
-                                    cam in transforms[source]) else None)
-    print('Done Adding Stereo Depth')
+        if not(preexisting_keypoints) or rerun:
+            print('running pose detections')
+            # pylint: disable=import-outside-toplevel
+            from pose.src.mphands_wrapper import process_frames
+            keypoints = process_frames(hdf5_in[color_dset_name])
+            for hand in kp_dsets:
+                for kp_type in kp_dsets[hand]:
+                    kp_dsets[hand][kp_type][:, :, :] = keypoints[hand][kp_type]
+        print('Adding Stereo Depth')
+        for hand in kp_dsets:
+            add_stereo_depth(
+                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}',
+                transforms[source][cam] if (source in transforms and
+                                            cam in transforms[source]) else None)
+        print('Done Adding Stereo Depth')
 
     print('done processing')
     hdf5_in.close()
@@ -176,5 +192,7 @@ if __name__ == '__main__':
                         "the same with a multi-scale net, openpose:135 " +
                         "uses openpose with whole body (body+hand+foot+face)")
     ARGS = PARSER.parse_args()
-    convert(ARGS.video, ARGS.no_video, ARGS.transforms,
-            ARGS.source, ARGS.cam, ARGS.rerun, ARGS.algorithm)
+    from ipdb import launch_ipdb_on_exception
+    with launch_ipdb_on_exception():
+        convert(ARGS.video, ARGS.no_video, ARGS.transforms,
+                ARGS.source, ARGS.cam, ARGS.rerun, ARGS.algorithm)
