@@ -61,18 +61,20 @@ def visualize(directory, cam, func):
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser()
 
-    PARSER.add_argument('--dir', type=str, required=True,
+    PARSER.add_argument('-d', '--dir', type=str, required=True,
                         help='The directory to find the files to process ' +
                         'Two HDF5 files are expected: <dir>/full_data-vid.hdf5 ' +
                         'and <dir>/full_data-novid.hdf5. The result will be ' +
                         'generated in the same directory with filename: ' +
                         '<dir>/viz-<cam>-<function>.avi')
-    PARSER.add_argument('--cam', type=str, choices=['upper', 'lower'],
+    PARSER.add_argument('-c', '--cam', type=str, choices=['upper', 'lower'],
                         required=True,
                         help='which camera to use')
-    PARSER.add_argument('--function', type=str, required=True,
+    PARSER.add_argument('-f', '--function', type=str, required=True,
                         choices=['wrists', '2dSkeleton',
                                  '3dSkeleton', 'angular_motion'],
                         help='which visualization function to use')
+    PARSER.add_argument('-a', '--algorithm', type=str,
+                        action='append', required=True)
     ARGS = PARSER.parse_args()
     visualize(ARGS.dir, ARGS.cam, ARGS.function)
