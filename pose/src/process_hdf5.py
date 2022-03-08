@@ -7,7 +7,6 @@ import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
 from tqdm import tqdm
-import ipdb
 
 
 def allkeys(obj):
@@ -192,7 +191,5 @@ if __name__ == '__main__':
                         "the same with a multi-scale net, openpose:135 " +
                         "uses openpose with whole body (body+hand+foot+face)")
     ARGS = PARSER.parse_args()
-    from ipdb import launch_ipdb_on_exception
-    with launch_ipdb_on_exception():
-        convert(ARGS.video, ARGS.no_video, ARGS.transforms,
-                ARGS.source, ARGS.cam, ARGS.rerun, ARGS.algorithm)
+    convert(ARGS.video, ARGS.no_video, ARGS.transforms,
+            ARGS.source, ARGS.cam, ARGS.rerun, ARGS.algorithm)
