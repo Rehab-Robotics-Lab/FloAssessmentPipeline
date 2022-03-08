@@ -235,7 +235,7 @@ def get_realsense_extrinsics(bag_file):
     topics = bag_file.get_type_and_topic_info()[1].keys()
     realsense_topics = filter(lambda val: 'realsense' in val, topics)
     extrinsics_topics = filter(
-        lambda val: 'extrinsics' and 'depth_to_color' in val, realsense_topics)
+        lambda val: ('extrinsics' in val) and ('depth_to_color' in val), realsense_topics)
 
     extrinsics = {}
     for topic in extrinsics_topics:
