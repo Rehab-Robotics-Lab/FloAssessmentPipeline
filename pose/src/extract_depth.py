@@ -20,8 +20,9 @@ def extract_depth(depth_img, keypoints, params):  # pylint: disable= too-many-lo
     # inv_kc, k_d, r_cd, t_cd = params
     inv_kc, k_d, _, _ = params
     keypoints_with_depth = np.ones(
-        (keypoints.shape[0], keypoints.shape[1] + 1))
-    keypoints_with_depth[:, :2] = keypoints  # Keypoints with depth appended
+        (keypoints.shape[0], 3))
+    # Keypoints with depth appended
+    keypoints_with_depth[:, :2] = keypoints[:, :2]
 
     # shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
 
@@ -116,6 +117,11 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
         keypoints3d_dset = hdf5_out[keypoints3d_dset_name]
         print('You might be running the Stereo depth extraction twice')
 
+    keypoints3d_dset.attrs['desc'] = \
+        'Keypoints in 3D coordinates using the raw depth from the ' +\
+        'realsense camera, indexed at keypoints. Depth is used to ' +\
+        'provide x, y, and z in metric space (meters)'
+
     if keypoints_depth_dset_name not in hdf5_out:
         keypoints_shape = hdf5_out[keypoints_dset_name].shape
         keypoints_depth_dset = hdf5_out.create_dataset(
@@ -125,6 +131,9 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     else:
         keypoints_depth_dset = hdf5_out[keypoints_depth_dset_name]
         print('You might be running the Stereo depth extraction twice')
+
+    keypoints_depth_dset.attrs['desc'] =\
+        'Keypoints in the depth image frame space (pixels)'
 
     k_c = hdf5_in[color_dset_name].attrs['K'].reshape(3, 3)
 
