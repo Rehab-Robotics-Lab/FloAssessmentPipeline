@@ -8,7 +8,7 @@ from visualize.skeleton_3d import skeleton_3d
 from visualize.video_overlay.overlay_angular_motion import overlay_angular_motion
 
 
-def visualize(directory, cam, func):
+def visualize(directory, cam, func, algorithms):
     """Visualize data
 
     Ingests two hdf5 files and outputs video of the tracking in them.
@@ -20,6 +20,7 @@ def visualize(directory, cam, func):
         cam: The camera to use (upper, lower)
         func: The visualization function to use (wrists, 2dSkeleton, 3dSkeleton,
               angular_motion)
+        algorithms: The algorithms to put onto plots
     """
     dset_names = {}
     dset_names['cam_root'] = f'vid/{cam}'
@@ -27,32 +28,55 @@ def visualize(directory, cam, func):
     dset_names['depth_dset'] = f'{dset_names["cam_root"]}/depth/data'
     dset_names['depth_mapping_dset'] = \
         f'{dset_names["cam_root"]}/color/matched_depth_index'
-    dset_names['3dkeypoints'] = \
-        f'{dset_names["cam_root"]}/pose/openpose:25B/3dkeypoints/raw_realsense'
-    dset_names['keypoints_color'] = \
-        f'{dset_names["cam_root"]}/pose/openpose:25B/keypoints/color'
-    dset_names['keypoints_depth'] = \
-        f'{dset_names["cam_root"]}/pose/openpose:25B/keypoints/depth'
-    dset_names['confidence'] = \
-        f'{dset_names["cam_root"]}/pose/openpose:25B/confidence'
     dset_names['time_color'] = f'{dset_names["cam_root"]}/color/time'
     dset_names['time_depth'] = f'{dset_names["cam_root"]}/depth/time'
+    for alg in algorithms:
+        dset_names[alg] = {}
+        # not all of these exist for all algorithm outputs. It is up
+        # to the user to use the right things
+        dset_names[alg]['root'] = f'{dset_names["cam_root"]}/pose/{alg}'
+        dset_names[alg]['left'] = {}
+        dset_names[alg]['right'] = {}
+        dset_names[alg]['left']['root'] = f'{dset_names["cam_root"]}/pose/{alg}/left'
+        dset_names[alg]['right']['root'] = f'{dset_names["cam_root"]}/pose/{alg}/right'
+
+        dset_names[alg]['3dkeypoints'] = \
+            f'{dset_names[alg]["root"]}/3dkeypoints/raw_realsense'
+        dset_names[alg]['keypoints_color'] = \
+            f'{dset_names[alg]["root"]}/keypoints/color'
+        dset_names[alg]['keypoints_depth'] = \
+            f'{dset_names[alg]["root"]}/keypoints/depth'
+        dset_names[alg]['confidence'] = \
+            f'{dset_names[alg]["root"]}/confidence'
+
+        for arm in ('left', 'right'):
+            dset_names[alg][arm]['3dkeypoints'] = \
+                f'{dset_names[alg][arm]["root"]}/3dkeypoints/raw_realsense'
+            dset_names[alg][arm]['keypoints_color'] = \
+                f'{dset_names[alg][arm]["root"]}/keypoints/color'
+            dset_names[alg][arm]['keypoints_depth'] = \
+                f'{dset_names[alg][arm]["root"]}/keypoints/depth'
+            dset_names[alg][arm]['confidence'] = \
+                f'{dset_names[alg][arm]["root"]}/confidence'
 
     if func == 'wrists':
         print('overlaying wrists')
-        overlay_wrists(directory, cam, dset_names)
+        if len(algorithms) > 1:
+            raise ValueError("Wrists overlay can only plot from one algorithm")
+        overlay_wrists(directory, cam, dset_names, algorithms[0])
 
     elif func == '2dSkeleton':
         print('overlaying 2D Skeleton')
-        overlay_2d_skeleton(directory, cam, dset_names)
+        overlay_2d_skeleton(directory, cam, dset_names, algorithms)
 
     elif func == '3dSkeleton':
         print('creating 3d skeleton GIF')
-        skeleton_3d(directory, cam, dset_names, save=True, show=False)
+        skeleton_3d(directory, cam, dset_names,
+                    algorithms, save=True, show=False)
 
     elif func == 'angular_motion':
         print('Plotting Angular motion at Shoulders')
-        overlay_angular_motion(directory, cam, dset_names)
+        overlay_angular_motion(directory, cam, dset_names, algorithms)
 
     else:
         print('Invalid OVERLAY option')
@@ -75,6 +99,7 @@ if __name__ == '__main__':
                                  '3dSkeleton', 'angular_motion'],
                         help='which visualization function to use')
     PARSER.add_argument('-a', '--algorithm', type=str,
-                        action='append', required=True)
+                        action='append', required=True,
+                        choices=['openpose:25B', 'mp-hands'])
     ARGS = PARSER.parse_args()
-    visualize(ARGS.dir, ARGS.cam, ARGS.function)
+    visualize(ARGS.dir, ARGS.cam, ARGS.function, ARGS.algorithm)

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 import h5py
 import kinematics.scripts.extract_profiles as kinematics
-from pose.src.openpose_joints import openpose_joints
+from pose.src.joints import openpose_joints
 from common import plot_helpers
 # Inspiration from:
 # https://medium.com/@pnpsegonne/animating-a-3d-scatterplot-with-matplotlib-ca4b676d4b55

@@ -3,7 +3,7 @@
 
 import numpy as np
 from scipy.spatial.transform import Rotation
-from pose.src.openpose_joints import openpose_joints
+from pose.src.joints import openpose_joints
 JNTS = openpose_joints()
 
 
