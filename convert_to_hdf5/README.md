@@ -30,11 +30,25 @@ next to the bag files.
 8.  Run setup script: `chmod u+x "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/machine_setup.sh" && mkdir -p "$HOME/logs/install/" && bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/machine_setup.sh" 2>&1 | tee -a "$HOME/logs/install/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)"`
 9.  Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
 10. Run Script: ` bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"  `
+11. To keep an eye on the process running under the hood in docker, you can run:
+    `while true; do sleep 1; docker logs -f hdf5-converter 2>&1 | tee -a "$HOME/logs/runs/docker"; done`
+    in another tab (in tmux: `ctrl-b + "`)
 
 If you want to run a bunch of subjects at once, you can do that with something like:
 
 ```{bash}
 for sn in 3
+do
+log="$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_$sn"
+bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" "$sn" 2>&1 | tee -a $log
+done
+```
+
+All subjects
+
+```{bash}
+source ./LilFloAssessmentPipeline/oci_utilities/includes/get_all_subj.sh
+for sn in $subjects
 do
 log="$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_$sn"
 bash "$HOME/LilFloAssessmentPipeline/oci_utilities/convert_to_hdf5/run_manual.sh" "$sn" 2>&1 | tee -a $log
