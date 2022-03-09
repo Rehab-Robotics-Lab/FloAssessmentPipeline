@@ -41,12 +41,18 @@ cleanup(){
     printf "Cleaning up session\n"
     kill "$background_pid" || true
     oci session terminate \
+    --config-file "$HOME/.oci/config" \
+    --profile 'rrl-oci-profile-data-upload' \
+    --auth security_token \
     echo 'done cleaning up'
 }
 
 trap cleanup EXIT
 
 oci os object sync \
+    --config-file "$HOME/.oci/config" \
+    --profile 'rrl-oci-profile-data-upload' \
+    --auth security_token \
     --bucket-name $BUCKET_NAME \
     --dry-run \
     --src-dir "$src_dir" \
@@ -70,6 +76,9 @@ done
 
 echo 'beginning upload'
 oci os object sync \
+    --config-file "$HOME/.oci/config" \
+    --profile 'rrl-oci-profile-data-upload' \
+    --auth security_token \
     --bucket-name $BUCKET_NAME \
     --src-dir "$src_dir" \
     --prefix "$prefix"
