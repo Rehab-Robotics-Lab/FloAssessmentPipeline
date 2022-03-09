@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from pose.src.openpose_joints import openpose_joints
+from pose.src.joints import openpose_joints
 from common import color
 from common import img_overlays
 from common import plot_helpers
@@ -16,21 +16,21 @@ from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import MIN_CONFIDENCE
 
-JNTS = openpose_joints()
+OPENPOSE_JNTS = openpose_joints()
 # Joints listed here: https://github.com/CMU-Perceptual-Computing-Lab/openpose/
 # blob/master/doc/02_output.md#keypoints-in-cpython
 PAIRS = [
-    (JNTS.index('UpperNeck'), JNTS.index('LShoulder')),
-    (JNTS.index('UpperNeck'), JNTS.index('RShoulder')),
-    (JNTS.index('LShoulder'), JNTS.index('LElbow')),
-    (JNTS.index('RShoulder'), JNTS.index('RElbow')),
-    (JNTS.index('LElbow'),    JNTS.index('LWrist')),
-    (JNTS.index('RElbow'),    JNTS.index('RWrist')),
-    (JNTS.index('UpperNeck'), JNTS.index('LHip')),
-    (JNTS.index('UpperNeck'), JNTS.index('RHip'))
+    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('LShoulder')),
+    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('RShoulder')),
+    (OPENPOSE_JNTS.index('LShoulder'), OPENPOSE_JNTS.index('LElbow')),
+    (OPENPOSE_JNTS.index('RShoulder'), OPENPOSE_JNTS.index('RElbow')),
+    (OPENPOSE_JNTS.index('LElbow'),    OPENPOSE_JNTS.index('LWrist')),
+    (OPENPOSE_JNTS.index('RElbow'),    OPENPOSE_JNTS.index('RWrist')),
+    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('LHip')),
+    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('RHip'))
 ]
 
-JOINTS = [openpose_joints().index(key) for key in [
+OPENPOSE_JOINTS = [openpose_joints().index(key) for key in [
     "Nose", "LEye", "REye", "LEar", "REar", "LShoulder", "RShoulder",
             "LElbow", "RElbow", "LWrist", "RWrist", "LHip", "RHip", "UpperNeck",
             "HeadTop"
@@ -62,7 +62,7 @@ def stretch_histogram(img):
     return cdf[img]
 
 
-def plot_joints(img, keypoints, confidence):
+def plot_joints(img, keypoints, confidence, joint_idx):
     """Plot joint positions on image
 
     plotting is done inplace
@@ -71,8 +71,9 @@ def plot_joints(img, keypoints, confidence):
         img: The image to plot on
         keypoints: The kypoints to plot
         confidence: The confidence of the detections
+        joint_idx: The joint indeces to plot
     """
-    for joint in JOINTS:
+    for joint in joint_idx:
         if ((not np.any(np.isnan(keypoints[joint][0:2]))) and
                 confidence[joint] > MIN_CONFIDENCE):
             x_pos = int(keypoints[joint][0])
@@ -218,7 +219,7 @@ def overlay_2d_skeleton(directory, cam, dset_names):
         for img, keypoints in zip((color_img, depth_img),
                                   (hdf5_tracking[dset_names['keypoints_color']][idx],
                                    hdf5_tracking[dset_names['keypoints_depth']][idx])):
-            plot_joints(img, keypoints, confidence)
+            plot_joints(img, keypoints, confidence, OPENPOSE_JOINTS)
             plot_limbs(img, keypoints, confidence)
 
         w_padding = int((color_img.shape[1]-depth_img.shape[1]))
