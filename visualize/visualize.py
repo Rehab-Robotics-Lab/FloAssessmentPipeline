@@ -100,6 +100,10 @@ if __name__ == '__main__':
                         help='which visualization function to use')
     PARSER.add_argument('-a', '--algorithm', type=str,
                         action='append', required=True,
-                        choices=['openpose:25B', 'mp-hands'])
+                        choices=['openpose:25B', 'mp-hands'],
+                        help='Which pose detection algorithms to ' +
+                        'plot. You can pass this multiple times for ' +
+                        'some of the visualization algorithms to plot ' +
+                        'multiple pose algorithms at once.')
     ARGS = PARSER.parse_args()
     visualize(ARGS.dir, ARGS.cam, ARGS.function, ARGS.algorithm)
