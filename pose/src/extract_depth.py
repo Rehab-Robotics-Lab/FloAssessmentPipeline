@@ -17,8 +17,8 @@ def extract_depth(depth_img, keypoints, params):  # pylint: disable= too-many-lo
     '''
     Function to extract depth in the aligned camera frame given intrinsic and extrinsics
     '''
-    # inv_kc, k_d, r_cd, t_cd = params
-    inv_kc, k_d, _, _ = params
+    inv_kc, k_d, r_cd, t_cd = params
+    # inv_kc, k_d, _, _ = params
     keypoints_with_depth = np.ones(
         (keypoints.shape[0], 3))
     # Keypoints with depth appended
@@ -28,9 +28,9 @@ def extract_depth(depth_img, keypoints, params):  # pylint: disable= too-many-lo
 
     keypoints_in_depth = (
         # x pixel pos in depth, y pixel pos in depth, ~1 this is homogenous in camera
-        # k_d @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) + t_cd))).T
-        # It seems that part of using the rectified image is that the transform is alreaady done:
-        k_d @ (((inv_kc @ keypoints_with_depth.T)))).T
+        k_d @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) - t_cd))).T
+    # It seems that part of using the rectified image is that the transform is alreaady done:
+    # k_d @ (((inv_kc @ keypoints_with_depth.T)))).T
     keypoints_with_depth = (inv_kc @ keypoints_with_depth.T).T
 
     for i in range(keypoints_with_depth.shape[0]):
