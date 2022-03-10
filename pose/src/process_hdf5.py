@@ -128,7 +128,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
                     'left': {'keypoints/color': (num_frames, 21, 3),
                              '3dkeypoints/mp-world':  (num_frames, 21, 3),
                              'confidence': (num_frames)}}
-        for hand in kp_dsets:
+        for hand in kp_dsets:  # pylint: disable=consider-using-dict-items
             for kp_type in kp_dsets[hand]:
                 kp_dset_name = f'{pose_dset_root}/{hand}/{kp_type}'
                 if kp_dset_name not in hdf5_out:
@@ -147,7 +147,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             # pylint: disable=import-outside-toplevel
             from pose.src.mphands_wrapper import process_frames
             keypoints = process_frames(hdf5_in[color_dset_name])
-            for hand in kp_dsets:
+            for hand in kp_dsets:  # pylint: disable=consider-using-dict-items
                 for kp_type in kp_dsets[hand]:
                     kp_dsets[hand][kp_type][...] = keypoints[hand][kp_type]
         print('Adding Stereo Depth')
