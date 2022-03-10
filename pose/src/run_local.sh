@@ -6,41 +6,34 @@ script=$(realpath "$0")
 scriptpath=$(dirname "$script")
 
 help_message="
-Run open pose processing on hdf files.
+Extract poses from video in hdf files.
 
-Will expect a directory with files:
- - full_data-vid.hdf5
- - full_data-novid.hdf5
- - transforms.json
+Args passed through to underlying script. Everything
+runs in docker. If the docker image does not exist,
+no additional help will print.
 
-Puts discovered poses into files
+Additional Args for wrapper:
+ -r|--rebuild-docker: rebuild the docker file that this
+                      uses if this flag is present
+ -h|--help: print help
 
-Args:
- -h: print help
- -d <dir>: path to directory with files
- -s <src>: the source the data comes from (robot, podium, or mixed).
- -r: rebuild the docker file that this uses
- -o: Rerun pose detection, overwriting prior results, if previous pose
-     detection exists
- -a: Algorithm to run (openpose, mp-hands)
- -c: Camera (upper, lower)
 "
 
-rerun=false
+rebuild=false
+help=false
 
-while getopts :hroc:a:d:s: flag
+pass_through_opts=""
+
+while test $# != 0
 do
-    case "${flag}" in
-        d) data=${OPTARG};;
-        s) source=${OPTARG};;
-        h) echo "$help_message"; exit 0;;
-        r) rebuild=true;;
-        o) rerun=true;;
-        a) algorithm=${OPTARG};;
-        c) camera=${OPTARG};;
-        :) echo 'missing argument' >&2; exit 1;;
-        \?) echo 'invalid option' >&2; exit 1
+    case $1 in
+        -d|--dir) data=$2; shift;;
+        -r|--rebuild-docker) rebuild=true;;
+        -h|--help) help=true;;
+        -a|--algorithm) algorithm=$2;;& # ;;& will test remaining cases. in this case we ant to pass this through in adition to taking a look
+        *) pass_through_opts="${pass_through_opts} $1"
     esac
+    shift
 done
 
 if [ "$rebuild" = true ] ; then
@@ -49,46 +42,37 @@ if [ "$rebuild" = true ] ; then
     docker build -t mediapipe -f "$scriptpath/../../dockerfiles/mediapipe" "$scriptpath/../../"
 fi
 
-echo "Processing Files in data folder: $data"
+# if help, don't need to map anything...
+if [ "$help" = true ] ; then
+    echo "$help_message"
+    echo "----------------"
+    echo "Help from package:"
+    docker run \
+        --rm \
+        -it \
+        mediapipe\
+        python3 -m pose.src.process_hdf5 -h
+    exit 0
+fi
 
-video_file='full_data-vid.hdf5'
-novideo_file='full_data-novid.hdf5'
-transforms_file='transforms.json'
+read -ra split_opts <<<"${pass_through_opts}"
 
-if [ "$algorithm" = "openpose" ]
+read -ra split_opts <<<"${pass_through_opts}"
+
+if [[ "$algorithm" == "openpose:"* ]]
 then
-    if $rerun
-    then
     docker run \
         --mount type=bind,source="$data",target=/data \
         --rm \
         -it \
         openpose\
-        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "$camera" -a "openpose:25B" --rerun
-    else
-    docker run \
-        --mount type=bind,source="$data",target=/data \
-        --rm \
-        -it \
-        openpose\
-        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "$camera" -a "openpose:25B" --no-rerun
-    fi
-elif [ "$algorithm" = "mp-hands" ]
+        python3 -m pose.src.process_hdf5 -d "/data/" "${split_opts[@]}"
+elif [[ "$algorithm" == "mp-hands" ]]
 then
-    if $rerun
-    then
     docker run \
         --mount type=bind,source="$data",target=/data \
         --rm \
         -it \
         mediapipe\
-        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "$camera" -a "mp-hands" --rerun
-    else
-    docker run \
-        --mount type=bind,source="$data",target=/data \
-        --rm \
-        -it \
-        mediapipe\
-        python3 -m pose.src.process_hdf5 -v "/data/$video_file" -n "/data/$novideo_file" -t "/data/$transforms_file" -s "$source" -c "$camera" -a "mp-hands" --no-rerun
-    fi
+        python3 -m pose.src.process_hdf5 -d "/data/" "${split_opts[@]}"
 fi
