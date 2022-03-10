@@ -35,6 +35,10 @@ robot=$(oci os object list --bucket-name "$bucket_raw" --fields name --prefix "$
 
 [ "$(docker container ls --all --filter name=hdf5-converter -q)" ] && docker rm /hdf5-converter
 
+#processors=$(grep ^cpu\\scores /proc/cpuinfo | uniq |  awk '{print $4}')
+threads=$(grep -c ^processor /proc/cpuinfo)
+lbzip2_processors=$((threads-4))
+
 for group in mixed podium robot
 do
     echo "working on $group"
@@ -59,7 +63,7 @@ do
             --name "$bag_fn"
 
         echo "uncompressing"
-        lbzip2 -d "$HOME/data/$group/$bag_basename"
+        lbzip2 -n "$lbzip2_processors" -d "$HOME/data/$group/$bag_basename"
 
         if [ $done_first = true ]
         then
