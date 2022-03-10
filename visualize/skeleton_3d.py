@@ -89,7 +89,7 @@ def animate(iteration, data, scatters, lines, axes_list, joint_pairs, keypoints,
 
 
 #pylint: disable=too-many-statements
-def skeleton_3d(directory, cam, dset_names, save=False, show=False):
+def skeleton_3d(directory, cam, dset_names, algorithms, save=False, show=False):
     """Make animation of 3D skeletons
 
     Args:
@@ -98,7 +98,12 @@ def skeleton_3d(directory, cam, dset_names, save=False, show=False):
         cam: The camera to work with.
         save: Whether or not to save the output
         show: Whether or not to show the output
+        algorithms: algorithms to plot
     """
+    if len(algorithms) > 1 or ('openpose:25' not in algorithms[0]):
+        raise NotImplementedError(
+            "Skeleton 3d currently only supports 25 keypoint openpose")
+
     print('Generating 3D Skeleton')
     directory = pathlib.Path(directory)
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')

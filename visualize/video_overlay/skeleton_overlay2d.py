@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from pose.src.joints import openpose_joints
+from pose.src.joints import openpose_joint_pairs, openpose_upper_body_joints, mphands_joint_pairs
 from common import color
 from common import img_overlays
 from common import plot_helpers
@@ -16,26 +16,6 @@ from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import MIN_CONFIDENCE
 
-OPENPOSE_JNTS = openpose_joints()
-# Joints listed here: https://github.com/CMU-Perceptual-Computing-Lab/openpose/
-# blob/master/doc/02_output.md#keypoints-in-cpython
-PAIRS = [
-    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('LShoulder')),
-    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('RShoulder')),
-    (OPENPOSE_JNTS.index('LShoulder'), OPENPOSE_JNTS.index('LElbow')),
-    (OPENPOSE_JNTS.index('RShoulder'), OPENPOSE_JNTS.index('RElbow')),
-    (OPENPOSE_JNTS.index('LElbow'),    OPENPOSE_JNTS.index('LWrist')),
-    (OPENPOSE_JNTS.index('RElbow'),    OPENPOSE_JNTS.index('RWrist')),
-    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('LHip')),
-    (OPENPOSE_JNTS.index('UpperNeck'), OPENPOSE_JNTS.index('RHip'))
-]
-
-OPENPOSE_JOINTS = [openpose_joints().index(key) for key in [
-    "Nose", "LEye", "REye", "LEar", "REar", "LShoulder", "RShoulder",
-            "LElbow", "RElbow", "LWrist", "RWrist", "LHip", "RHip", "UpperNeck",
-            "HeadTop"
-]
-]
 
 MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
 MAX_VALID_DEPTH_MM = MAX_VALID_DEPTH_METERS*1000
@@ -82,7 +62,7 @@ def plot_joints(img, keypoints, confidence, joint_idx):
                        color.color_scale(confidence[joint], 0, 1), 8)
 
 
-def plot_limbs(img, keypoints, confidence):
+def plot_limbs(img, keypoints, confidence, joint_pairs):
     """plot limb connections
 
     does plotting in place
@@ -91,8 +71,9 @@ def plot_limbs(img, keypoints, confidence):
         img: Image
         keypoints: Keypoints to plot between
         confidence: Confidence of those keypoints
+        joint_pairs: The joint pairs to plot
     """
-    for joint in PAIRS:
+    for joint in joint_pairs:
         if ((not np.any(np.isnan([keypoints[joint[jidx]][0:2] for jidx in (0, 1)])))
                 and np.all([confidence[joint[jidx]] > MIN_CONFIDENCE for jidx in (0, 1)])):
             x_0 = int(keypoints[joint[0]][0])
@@ -105,7 +86,7 @@ def plot_limbs(img, keypoints, confidence):
                 confidence[joint[0]] + confidence[joint[1]], 0, 1))
 
 
-def plot_overhead(img, keypoints_3d, scaling_params, confidence, pos):
+def plot_overhead(img, keypoints_3d, scaling_params, confidence, joint_pairs, pos):
     """Plot an overhead skeletal view
 
     plotting is done inplace.
@@ -120,8 +101,9 @@ def plot_overhead(img, keypoints_3d, scaling_params, confidence, pos):
              the pixel height to plot over, the x position for the left side of the plotting,
              the y position for the top of the plotting)
     """
+    #pylint: disable=too-many-arguments
     plot_scale = (np.min([pos[0], pos[1]])/2)/1.2*scaling_params[0]
-    for limb in PAIRS:
+    for limb in joint_pairs:
         if ((not np.any(np.isnan(
             [keypoints_3d[limb[jidx]][0:2] for jidx in (0, 1)]
         )))
@@ -180,7 +162,196 @@ def visualize_depth(depth_img):
     return depth_img
 
 
-def overlay_2d_skeleton(directory, cam, dset_names):
+def plot_joints_limbs(img, keypoints, confidence, joints, limbs):
+    """Plot the joints and limbs on an image
+
+    Args:
+        img: Image to plot on
+        keypoints: Keypoints to plot
+        confidence: Confidence of detection, for each keypoint
+        joints: The joint indeces to plot
+        limbs: The limb definitions as a list of tuples defining
+               the indeces to connect
+    """
+    plot_joints(img, keypoints, confidence, joints)
+    plot_limbs(img, keypoints, confidence, limbs)
+
+
+def plot_openpose_color(hdf5_tracking, dset_names, algorithm, idx, color_img):
+    """Plot openpose joints and limbs on color image
+
+    Args:
+        hdf5_tracking: hdf5 tracking file, open
+        dset_names: Names of datasets in hdf5 tracking
+        algorithm: Algorithm to plot from
+        idx: Index for the image
+        color_img: The image to plot on
+    """
+    color_keypoints = hdf5_tracking[dset_names[algorithm]
+                                    ['keypoints_color']][idx]
+    confidence = hdf5_tracking[dset_names[algorithm]
+                               ['confidence']][idx]
+    joints = openpose_upper_body_joints()
+    limbs = openpose_joint_pairs()
+    plot_joints_limbs(color_img, color_keypoints,
+                      confidence, joints, limbs)
+
+
+def plot_openpose_depth(hdf5_tracking, dset_names, algorithm, idx, depth_img):
+    """Plot openpose joints and limbs on depth image
+
+    Args:
+        hdf5_tracking: hdf5 tracking file, open
+        dset_names: Names of datasets in hdf5 tracking
+        algorithm: Algorithm to plot from
+        idx: Index for the image
+        depth_img: The image to plot on
+    """
+    depth_keypoints = hdf5_tracking[dset_names[algorithm]
+                                    ['keypoints_depth']][idx]
+    confidence = hdf5_tracking[dset_names[algorithm]
+                               ['confidence']][idx]
+    joints = openpose_upper_body_joints()
+    limbs = openpose_joint_pairs()
+    plot_joints_limbs(depth_img, depth_keypoints,
+                      confidence, joints, limbs)
+
+
+def plot_mphands_color(hdf5_tracking, dset_names, algorithm, idx, color_img):
+    """Plot media pose hands joints and limbs on color image
+
+    Args:
+        hdf5_tracking: hdf5 tracking file, open
+        dset_names: Names of datasets in hdf5 tracking
+        algorithm: Algorithm to plot from
+        idx: Index for the image
+        color_img: The image to plot on
+    """
+    for hand in ('left', 'right'):
+        color_keypoints = hdf5_tracking[dset_names[algorithm]
+                                        [hand]['keypoints_color']][idx]
+        confidence = np.repeat(hdf5_tracking[dset_names[algorithm]
+                                             [hand]['confidence']][idx],
+                               len(color_keypoints))
+        joints = np.arange(0, 21)
+        limbs = mphands_joint_pairs()
+        plot_joints_limbs(color_img, color_keypoints,
+                          confidence, joints, limbs)
+
+
+def plot_mphands_depth(hdf5_tracking, dset_names, algorithm, idx, depth_img):
+    """Plot media pose hands joints and limbs on depth image
+
+    Args:
+        hdf5_tracking: hdf5 tracking file, open
+        dset_names: Names of datasets in hdf5 tracking
+        algorithm: Algorithm to plot from
+        idx: Index for the image
+        depth_img: The image to plot on
+    """
+    for hand in ('left', 'right'):
+        depth_keypoints = hdf5_tracking[dset_names[algorithm]
+                                        [hand]['keypoints_depth']][idx]
+        confidence = np.repeat(hdf5_tracking[dset_names[algorithm]
+                                             [hand]['confidence']][idx],
+                               len(depth_keypoints))
+        joints = np.arange(0, 21)
+        limbs = mphands_joint_pairs()
+        plot_joints_limbs(depth_img, depth_keypoints,
+                          confidence, joints, limbs)
+
+
+def plot_overhead_openpose(
+        hdf5_tracking, dset_names, algorithm, idx, img, scaling_params, pos):
+    """Plot an overhead view of openpose skeleton
+
+    Args:
+        hdf5_tracking: hdf5 tracking file, open
+        dset_names: Names of datasets in hdf5 tracking
+        algorithm: Algorithm to plot from
+        idx: Index for the image
+        img: The image to plot on
+        scaling_params: list/tuple with scaling parameters:
+                        max_range, x_percentiles, y_percentiles, z_percentiles
+        pos: tuple with 4 elements: (the pixel width to plot over,
+             the pixel height to plot over, the x position for the left side of the plotting,
+             the y position for the top of the plotting)
+    """
+    #pylint: disable=too-many-arguments
+    confidence = hdf5_tracking[dset_names[algorithm]['confidence']][idx]
+    keypoints_3d = hdf5_tracking[dset_names[algorithm]['3dkeypoints']][idx]
+    plot_overhead(img, keypoints_3d,
+                  scaling_params, confidence, openpose_joint_pairs(),
+                  pos)
+
+
+def plot_overhead_mphands(hdf5_tracking, dset_names, algorithm, idx,
+                          img, scaling_params, pos):
+    """Plot an overhead view of mediapipe hands skeleton
+
+    Args:
+        hdf5_tracking: hdf5 tracking file, open
+        dset_names: Names of datasets in hdf5 tracking
+        algorithm: Algorithm to plot from
+        idx: Index for the image
+        img: The image to plot on
+        scaling_params: list/tuple with scaling parameters:
+                        max_range, x_percentiles, y_percentiles, z_percentiles
+        pos: tuple with 4 elements: (the pixel width to plot over,
+             the pixel height to plot over, the x position for the left side of the plotting,
+             the y position for the top of the plotting)
+    """
+    #pylint: disable=too-many-arguments
+    for hand in ('left', 'right'):
+        keypoints_3d = hdf5_tracking[dset_names[algorithm]
+                                     [hand]['3dkeypoints']][idx]
+        confidence = np.repeat(hdf5_tracking[dset_names[algorithm]
+                                             [hand]['confidence']][idx],
+                               len(keypoints_3d))
+        plot_overhead(
+            img, keypoints_3d,
+            scaling_params, confidence, mphands_joint_pairs(),
+            pos)
+
+
+def calculate_scaling_params_all(hdf5_tracking, dset_names, algorithms):
+    """Calculate the scaling parameters across all of the algorithms
+    passed in
+
+    Args:
+        hdf5_tracking: hdf5 tracking file, open
+        dset_names: Names of datasets in hdf5 tracking
+        algorithm: Algorithms to work with
+    """
+    dsets = np.zeros((0, 3))
+    for algorithm in algorithms:
+        if 'openpose:25' in algorithm:
+            dsets = np.append(
+                dsets,
+                np.reshape(
+                    hdf5_tracking[dset_names[algorithm]["3dkeypoints"]],
+                    (-1, 3)), axis=0)
+        elif 'mp-hands' in algorithm:
+            dsets = np.append(
+                dsets,
+                np.reshape(
+                    hdf5_tracking[dset_names[algorithm]
+                                  ['left']["3dkeypoints"]],
+                    (-1, 3)), axis=0)
+            dsets = np.append(
+                dsets,
+                np.reshape(
+                    hdf5_tracking[dset_names[algorithm]
+                                  ['right']["3dkeypoints"]],
+                    (-1, 3)), axis=0)
+        else:
+            raise NotImplementedError(
+                f'Scaling params for algorithm ({algorithm}) not implemented')
+
+    return plot_helpers.calculate_data_range(dsets)
+
+
+def overlay_2d_skeleton(directory, cam, dset_names, algorithms):
     """Overlay 2D skeleton on color and depth images and visualize from
     overhead.
 
@@ -190,13 +361,14 @@ def overlay_2d_skeleton(directory, cam, dset_names):
         directory: The directory with the two hdf5 files
         cam: The camera to work with (lower, upper)
         dset_names: The names of the datasets in the hdf file to process on
+        algorithms: pose algorithms to plot from
     """
     directory = pathlib.Path(directory)
     hdf5_video = h5py.File(directory/'full_data-vid.hdf5')
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5')
 
-    scaling_params = plot_helpers.calculate_data_range(
-        hdf5_tracking[dset_names["3dkeypoints"]])
+    scaling_params = calculate_scaling_params_all(
+        hdf5_tracking, dset_names, algorithms)
 
     # note, video writer can only take unsigned 8 bit integer images
     video_writer = cv2.VideoWriter(
@@ -209,30 +381,43 @@ def overlay_2d_skeleton(directory, cam, dset_names):
         depth_img = visualize_depth(
             hdf5_video[dset_names['depth_dset']][depth_idx])
 
-        confidence = hdf5_tracking[dset_names['confidence']][idx]
-
         img_overlays.draw_cam_info(
             color_img, idx, hdf5_tracking[dset_names['time_color']][idx], cam)
         img_overlays.draw_cam_info(
             depth_img, depth_idx, hdf5_tracking[dset_names['time_depth']][depth_idx], cam, "depth")
 
-        for img, keypoints in zip((color_img, depth_img),
-                                  (hdf5_tracking[dset_names['keypoints_color']][idx],
-                                   hdf5_tracking[dset_names['keypoints_depth']][idx])):
-            plot_joints(img, keypoints, confidence, OPENPOSE_JOINTS)
-            plot_limbs(img, keypoints, confidence)
+        for algorithm in algorithms:
+            if 'openpose:25' in algorithm:
+                plot_openpose_color(
+                    hdf5_tracking, dset_names, algorithm, idx, color_img)
+                plot_openpose_depth(
+                    hdf5_tracking, dset_names, algorithm, idx, depth_img)
+            elif 'mp-hands' in algorithm:
+                plot_mphands_color(hdf5_tracking, dset_names,
+                                   algorithm, idx, color_img)
+                plot_mphands_depth(hdf5_tracking, dset_names,
+                                   algorithm, idx, depth_img)
+            else:
+                raise NotImplementedError(
+                    f'Plotting on color and depth not implemented for algorithm ({algorithm})')
 
-        w_padding = int((color_img.shape[1]-depth_img.shape[1]))
         depth_img = cv2.copyMakeBorder(
-            depth_img, 0, 0, w_padding, 0, cv2.BORDER_CONSTANT)
+            depth_img, 0, 0, int((color_img.shape[1]-depth_img.shape[1])),
+            0, cv2.BORDER_CONSTANT)
         img = cv2.vconcat([color_img, depth_img])
 
         # add top skeleton view
         # w=1920-1280 = 640
         # h=720
         # overhead, so draw x and z
-        plot_overhead(img, hdf5_tracking[dset_names['3dkeypoints']][idx],
-                      scaling_params, confidence, (640, 720, 0, 1080))
+        overhead_pos = (640, 720, 0, 1080)
+        for algorithm in algorithms:
+            if 'openpose:25' in algorithm:
+                plot_overhead_openpose(
+                    hdf5_tracking, dset_names, algorithm, idx, img, scaling_params, overhead_pos)
+            elif 'mp-hands' in algorithm:
+                plot_overhead_mphands(
+                    hdf5_tracking, dset_names, algorithm, idx, img, scaling_params, overhead_pos)
 
         video_writer.write(img)
 

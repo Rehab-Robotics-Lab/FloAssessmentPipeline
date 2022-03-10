@@ -5,7 +5,7 @@ algorithms'''
 def openpose_joints():
     """Return a list with the joints produced by openpose
     """
-    return[
+    return [
         "Nose",
         "LEye",
         "REye",
@@ -34,11 +34,58 @@ def openpose_joints():
     ]
 
 
+def openpose_joint_pairs():
+    """Pairs of joints that are connected
+    Joints listed here:
+    https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/02_output.md#keypoints-in-cpython
+    """
+    return [
+        (openpose_joints().index('UpperNeck'),
+         openpose_joints().index('LShoulder')),
+        (openpose_joints().index('UpperNeck'),
+         openpose_joints().index('RShoulder')),
+        (openpose_joints().index('LShoulder'),
+            openpose_joints().index('LElbow')),
+        (openpose_joints().index('RShoulder'),
+            openpose_joints().index('RElbow')),
+        (openpose_joints().index('LElbow'),
+            openpose_joints().index('LWrist')),
+        (openpose_joints().index('RElbow'),
+            openpose_joints().index('RWrist')),
+        (openpose_joints().index('UpperNeck'),
+            openpose_joints().index('LHip')),
+        (openpose_joints().index('UpperNeck'),
+            openpose_joints().index('RHip'))
+    ]
+
+
+def openpose_upper_body_joints():
+    """Joints (names) from openpose that are in the
+    upper body
+    """
+    return [openpose_joints().index(key) for key in [
+        "Nose",
+        "LEye",
+        "REye",
+        "LEar",
+        "REar",
+        "LShoulder",
+        "RShoulder",
+            "LElbow",
+            "RElbow",
+            "LWrist",
+            "RWrist",
+            "LHip",
+            "RHip",
+            "UpperNeck",
+            "HeadTop"]]
+
+
 def mphands_joints():
     """Return a list with the joints produced by the mediapipe
     hands algorithm
     """
-    return[
+    return [
         'WRIST',
         'THUMB_CMC',
         'THUMB_MCP',
@@ -60,4 +107,33 @@ def mphands_joints():
         'PINKY_PIP',
         'PINKY_DIP',
         'PINKY_TIP'
+    ]
+
+
+def mphands_joint_pairs():
+    """Pairs of joints that are connected
+    Joints listed here:
+    https://google.github.io/mediapipe/solutions/hands.html#hand-landmark-model
+    """
+    return [
+        (0, 1),
+        (1, 2),
+        (2, 3),
+        (3, 4),
+        (0, 5),
+        (5, 6),
+        (6, 7),
+        (7, 8),
+        (0, 9),
+        (9, 10),
+        (10, 11),
+        (11, 12),
+        (0, 13),
+        (13, 14),
+        (14, 15),
+        (15, 16),
+        (0, 17),
+        (17, 18),
+        (18, 19),
+        (19, 20)
     ]

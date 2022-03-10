@@ -6,7 +6,6 @@ import json
 import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
-from tqdm import tqdm
 
 
 def allkeys(obj):
@@ -121,17 +120,20 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
                                         cam in transforms[source]) else None)
         print('Done Adding Stereo Depth')
     elif algorithm == "mp-hands":
+        num_frames = hdf5_in[color_dset_name].len()
         preexisting_keypoints = True
-        kp_dsets = {'right': {'keypoints/color': None,
-                              '3dkeypoints/mp-world': None},
-                    'left': {'keypoints/color': None,
-                             '3dkeypoints/mp-world':  None}}
+        kp_dsets = {'right': {'keypoints/color': (num_frames, 21, 3),
+                              '3dkeypoints/mp-world': (num_frames, 21, 3),
+                              'confidence': (num_frames)},
+                    'left': {'keypoints/color': (num_frames, 21, 3),
+                             '3dkeypoints/mp-world':  (num_frames, 21, 3),
+                             'confidence': (num_frames)}}
         for hand in kp_dsets:
             for kp_type in kp_dsets[hand]:
                 kp_dset_name = f'{pose_dset_root}/{hand}/{kp_type}'
                 if kp_dset_name not in hdf5_out:
                     kp_dsets[hand][kp_type] = hdf5_out.create_dataset(
-                        kp_dset_name, (hdf5_in[color_dset_name].len(), 21, 3), dtype=np.float32)
+                        kp_dset_name, kp_dsets[hand][kp_type], dtype=np.float32)
                     preexisting_keypoints = False
                 else:
                     kp_dsets[hand][kp_type] = hdf5_out[kp_dset_name]
@@ -147,7 +149,7 @@ def convert(video_pth, no_video_pth, transforms_pth, source, cam, rerun, algorit
             keypoints = process_frames(hdf5_in[color_dset_name])
             for hand in kp_dsets:
                 for kp_type in kp_dsets[hand]:
-                    kp_dsets[hand][kp_type][:, :, :] = keypoints[hand][kp_type]
+                    kp_dsets[hand][kp_type][...] = keypoints[hand][kp_type]
         print('Adding Stereo Depth')
         for hand in kp_dsets:
             add_stereo_depth(
