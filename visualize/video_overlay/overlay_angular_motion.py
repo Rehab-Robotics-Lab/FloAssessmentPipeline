@@ -11,7 +11,7 @@ from common.color import color_scale
 from common import img_overlays
 
 
-def overlay_angular_motion(directory, cam, dset_names):
+def overlay_angular_motion(directory, cam, dset_names, algorithms):
     """overlay data from hdf5 file onto images from hdf file.
     Requires both the no video and video hdf5 files.
     Args:
@@ -21,6 +21,9 @@ def overlay_angular_motion(directory, cam, dset_names):
     # pylint: disable=too-many-locals
     # pylint: disable=too-many-statements
     # pylint: disable=too-many-branches
+    if len(algorithms) > 1 or ('openpose:25' not in algorithms[0]):
+        raise NotImplementedError(
+            "Overlay ang moition currently only supports 25 keypoint openpose")
     directory = pathlib.Path(directory)
     hdf5_video = h5py.File(directory/'full_data-vid.hdf5')
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5')

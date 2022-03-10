@@ -6,11 +6,13 @@ import h5py
 from tqdm import trange
 import cv2
 from common import img_overlays
-from common import color
-from pose.src.openpose_joints import openpose_joints
+from pose.src.joints import openpose_joints, mphands_joints
+
+LEFT_HAND_COLOR = (176, 122, 28)
+RIGHT_HAND_COLOR = (186, 26, 183)
 
 
-def overlay_wrists(directory, cam, dset_names):
+def overlay_wrists(directory, cam, dset_names, algorithm):
     """Overlay wrists on the color image
 
     Requires the two hdf5 files: full_data-novid.hdf5
@@ -20,6 +22,7 @@ def overlay_wrists(directory, cam, dset_names):
         directory: Directory with the hdf5 files
         cam: The camera to use
         dset_names: The names of the relevant datasets
+        algorithm: Algorithm to plot
     """
     #pylint: disable=too-many-locals
     directory = pathlib.Path(directory)
@@ -27,32 +30,44 @@ def overlay_wrists(directory, cam, dset_names):
     hdf5_tracking = h5py.File(directory/'full_data-novid.hdf5', 'r')
 
     video_writer = cv2.VideoWriter(
-        str(directory/f'viz-{cam}-wrists.avi'),
+        str(directory/f'viz-{cam}-{algorithm}-wrists.avi'),
         cv2.VideoWriter_fourcc(*'MJPG'), 30, (1920, 1080))
     left_wrist_plots = [img_overlays.DataPlot(
-        (10, 30), (400, 200), label="left wrist: x", color=(0, 200, 0), blur=25),
+        (10, 30), (400, 200), label="left wrist: x", color=LEFT_HAND_COLOR, blur=25),
         img_overlays.DataPlot(
-        (10, 240), (400, 200), label="left wrist: y", color=(200, 0, 0), blur=25)]
+        (10, 240), (400, 200), label="left wrist: y", color=LEFT_HAND_COLOR, blur=25)]
     right_wrist_plots = [img_overlays.DataPlot(
-        (10, 450), (400, 200), label="right wrist: x", color=(0, 0, 200), blur=25),
+        (10, 450), (400, 200), label="right wrist: x", color=RIGHT_HAND_COLOR, blur=25),
         img_overlays.DataPlot(
-        (10, 660), (400, 200), label="right wrist: y", color=(200, 200, 0), blur=25)]
+        (10, 660), (400, 200), label="right wrist: y", color=RIGHT_HAND_COLOR, blur=25)]
+
     for idx in trange(hdf5_video[dset_names['color_dset']].shape[0]):
         img = hdf5_video[dset_names['color_dset']][idx]
-        keypoints = hdf5_tracking[dset_names['keypoints_color']][idx]
-        confidence = hdf5_tracking[dset_names['confidence']][idx]
         time = hdf5_tracking[dset_names['time_color']][idx]
 
         img_overlays.draw_cam_info(img, idx, time, cam)
+        img_overlays.draw_text(img, f'algorithm: {algorithm}', pos=(1400, 3))
 
-        for joint, plts in zip(
-                (openpose_joints().index("LWrist"),
-                 openpose_joints().index("RWrist")),
-                (left_wrist_plots, right_wrist_plots)):
-            x_pos = int(keypoints[joint][0])
-            y_pos = int(keypoints[joint][1])
-            cv2.circle(img, (x_pos, y_pos), 20,
-                       color.color_scale(confidence[joint], 0, 1), 8)
+        if 'openpose:25' in algorithm:
+            keypoints = hdf5_tracking[dset_names[algorithm]
+                                      ['keypoints_color']][idx]
+            left = keypoints[openpose_joints().index("LWrist")]
+            right = keypoints[openpose_joints().index("RWrist")]
+        elif algorithm == 'mp-hands':
+            left = \
+                hdf5_tracking[dset_names[algorithm]
+                              ["left"]["keypoints_color"]][idx][mphands_joints().index("WRIST")]
+            right = \
+                hdf5_tracking[dset_names[algorithm]
+                              ["right"]["keypoints_color"]][idx][mphands_joints().index("WRIST")]
+
+        for joint, plts, hand_color in zip(
+                (left, right),
+                (left_wrist_plots, right_wrist_plots),
+                (LEFT_HAND_COLOR, RIGHT_HAND_COLOR)):
+            x_pos = int(joint[0])
+            y_pos = int(joint[1])
+            cv2.circle(img, (x_pos, y_pos), 20, hand_color, 8)
             # x
             plts[0].add_data(time, x_pos)
             plts[0].plot(img)
