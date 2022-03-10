@@ -35,8 +35,9 @@ robot=$(oci os object list --bucket-name "$bucket_raw" --fields name --prefix "$
 
 [ "$(docker container ls --all --filter name=hdf5-converter -q)" ] && docker rm /hdf5-converter
 
-processors=$(grep ^cpu\\scores /proc/cpuinfo | uniq |  awk '{print $4}')
-lbzip2_processors=$((processors-4))
+#processors=$(grep ^cpu\\scores /proc/cpuinfo | uniq |  awk '{print $4}')
+threads=$(grep -c ^processor /proc/cpuinfo)
+lbzip2_processors=$((threads-4))
 
 for group in mixed podium robot
 do
