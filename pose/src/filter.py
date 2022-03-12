@@ -49,8 +49,9 @@ def smooth_2d(hdf5_file, tracking_root, kernel_size=5):
         valid = np.any(keypoints != 0, axis=1) + confidence > .15
         keypoints[np.logical_not(valid)] = np.ma.masked
         keypoints_smooth = keypoints.copy()
-        keypoints_smooth[~keypoints.mask[:, 0], :] = np.ma.array(scipy.signal.medfilt(
-            keypoints[~keypoints.mask[:, 0], :], kernel_size=[kernel_size, 1]))
+        if not keypoints.mask.all():
+            keypoints_smooth[~keypoints.mask[:, 0], :] = np.ma.array(scipy.signal.medfilt(
+                keypoints[~keypoints.mask[:, 0], :], kernel_size=[kernel_size, 1]))
         keypoints_smooth.mask = keypoints.mask
         keypoints_smooth[keypoints_smooth.mask] = 0
         hdf5_file[filtered_dset_name][:, joint] = keypoints_smooth
