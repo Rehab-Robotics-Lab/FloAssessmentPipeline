@@ -103,9 +103,9 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     depth_dset_name = f"{cam_root}/depth/data"
     depth_time_dset_name = f'{cam_root}/depth/time'
 
-    keypoints_dset_name = f'{pose_dset_root}/keypoints/color'
-    keypoints3d_dset_name = f'{pose_dset_root}/3dkeypoints/raw_realsense'
-    keypoints_depth_dset_name = f'{pose_dset_root}/keypoints/depth'
+    keypoints_dset_name = f'{pose_dset_root}/color'
+    keypoints3d_dset_name = f'{pose_dset_root}/3d-realsense-raw'
+    keypoints_depth_dset_name = f'{pose_dset_root}/depth'
 
     if keypoints3d_dset_name not in hdf5_out:
         keypoints_shape = hdf5_out[keypoints_dset_name].shape
