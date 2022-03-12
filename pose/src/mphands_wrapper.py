@@ -25,10 +25,10 @@ def process_frames(images):
     # dimmensions: x (camera), y (camera), z(camera), x (world), y (world), z (world)
     num_images = images.shape[0]
     keypoints = {'right': {'keypoints/color': np.zeros((num_images, 21, 3)),
-                           '3dkeypoints/mp-world': np.zeros((num_images, 21, 3)),
+                           'keypoints/mp-world': np.zeros((num_images, 21, 3)),
                            'confidence': np.zeros((num_images))},
                  'left': {'keypoints/color': np.zeros((num_images, 21, 3)),
-                          '3dkeypoints/mp-world': np.zeros((num_images, 21, 3)),
+                          'keypoints/mp-world': np.zeros((num_images, 21, 3)),
                           'confidence': np.zeros((num_images))}}
     mp_hands = mp.solutions.hands
     with mp_hands.Hands(
@@ -61,7 +61,7 @@ def process_frames(images):
                     side_idx = 'right' if side == "Left" else "left"
                     keypoints[side_idx]['keypoints/color'][frame_id, :, :] = \
                         landmarks_array
-                    keypoints[side_idx]['3dkeypoints/mp-world'][frame_id, :, :] = np.array(
+                    keypoints[side_idx]['keypoints/mp-world'][frame_id, :, :] = np.array(
                         [[landmark.x, landmark.y, landmark.z] for landmark in world_landmarks])
                     keypoints[side_idx]['confidence'][frame_id] = \
                         hand_info.classification[0].score

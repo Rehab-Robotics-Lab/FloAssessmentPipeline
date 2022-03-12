@@ -8,7 +8,7 @@ from visualize.skeleton_3d import skeleton_3d
 from visualize.video_overlay.overlay_angular_motion import overlay_angular_motion
 
 
-def visualize(directory, cam, func, algorithms):
+def visualize(directory, cam, func, algorithms, group='keypoints'):
     """Visualize data
 
     Ingests two hdf5 files and outputs video of the tracking in them.
@@ -41,21 +41,21 @@ def visualize(directory, cam, func, algorithms):
         dset_names[alg]['right']['root'] = f'{dset_names["cam_root"]}/pose/{alg}/right'
 
         dset_names[alg]['3dkeypoints'] = \
-            f'{dset_names[alg]["root"]}/3dkeypoints/raw_realsense'
+            f'{dset_names[alg]["root"]}/{group}/3d-realsense-raw'
         dset_names[alg]['keypoints_color'] = \
-            f'{dset_names[alg]["root"]}/keypoints/color'
+            f'{dset_names[alg]["root"]}/{group}/color'
         dset_names[alg]['keypoints_depth'] = \
-            f'{dset_names[alg]["root"]}/keypoints/depth'
+            f'{dset_names[alg]["root"]}/{group}/depth'
         dset_names[alg]['confidence'] = \
             f'{dset_names[alg]["root"]}/confidence'
 
         for arm in ('left', 'right'):
             dset_names[alg][arm]['3dkeypoints'] = \
-                f'{dset_names[alg][arm]["root"]}/3dkeypoints/raw_realsense'
+                f'{dset_names[alg][arm]["root"]}/{group}/3d-realsense-raw'
             dset_names[alg][arm]['keypoints_color'] = \
-                f'{dset_names[alg][arm]["root"]}/keypoints/color'
+                f'{dset_names[alg][arm]["root"]}/{group}/color'
             dset_names[alg][arm]['keypoints_depth'] = \
-                f'{dset_names[alg][arm]["root"]}/keypoints/depth'
+                f'{dset_names[alg][arm]["root"]}/{group}/depth'
             dset_names[alg][arm]['confidence'] = \
                 f'{dset_names[alg][arm]["root"]}/confidence'
 
@@ -105,5 +105,11 @@ if __name__ == '__main__':
                         'plot. You can pass this multiple times for ' +
                         'some of the visualization algorithms to plot ' +
                         'multiple pose algorithms at once.')
+    PARSER.add_argument('-g', '--group', type=str, default='keypoints',
+                        choices=['keypoints', 'keypoints-median5'],
+                        help='The keypoints group to plot from. ' +
+                        'keypoints is what comes out of the pose ' +
+                        'estimation. keypoints-median5 are the ' +
+                        'keypoints with a 5 element median filter.')
     ARGS = PARSER.parse_args()
-    visualize(ARGS.dir, ARGS.cam, ARGS.function, ARGS.algorithm)
+    visualize(ARGS.dir, ARGS.cam, ARGS.function, ARGS.algorithm, ARGS.group)
