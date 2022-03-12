@@ -27,3 +27,24 @@ def calculate_data_range(points3d):
     z_diff = z_percentiles[-1]-z_percentiles[0]
     max_range = np.max((x_diff, y_diff, z_diff))
     return max_range, x_percentiles, y_percentiles, z_percentiles
+
+
+def stretch_histogram(img):
+    """Stretch histogram of 16 bit single channel image
+
+    https://docs.opencv.org/4.x/d5/daf/tutorial_py_histogram_equalization.html
+    this does the same thing as cv2.equalizeHist, but for 16 bit images
+    (as opposed to 8 bit)
+
+    Args:
+        img: The image to stretch
+
+    Returns: the image, stretched
+    """
+    hist, _ = np.histogram(img.flatten(), 0xFFFF+1, [0, 0xFFFF+1])
+    cdf = hist.cumsum()
+    # cdf_normalized = cdf * float(hist.max()) / cdf.max()
+    cdf_m = np.ma.masked_equal(cdf, 0)
+    cdf_m = (cdf_m - cdf_m.min())*0xFFFF/(cdf_m.max()-cdf_m.min())
+    cdf = np.ma.filled(cdf_m, 0).astype('uint16')
+    return cdf[img]

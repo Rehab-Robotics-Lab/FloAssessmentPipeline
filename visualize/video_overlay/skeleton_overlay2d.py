@@ -21,27 +21,6 @@ MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
 MAX_VALID_DEPTH_MM = MAX_VALID_DEPTH_METERS*1000
 
 
-def stretch_histogram(img):
-    """Stretch histogram of 16 bit single channel image
-
-    https://docs.opencv.org/4.x/d5/daf/tutorial_py_histogram_equalization.html
-    this does the same thing as cv2.equalizeHist, but for 16 bit images
-    (as opposed to 8 bit)
-
-    Args:
-        img: The image to stretch
-
-    Returns: the image, stretched
-    """
-    hist, _ = np.histogram(img.flatten(), 0xFFFF+1, [0, 0xFFFF+1])
-    cdf = hist.cumsum()
-    # cdf_normalized = cdf * float(hist.max()) / cdf.max()
-    cdf_m = np.ma.masked_equal(cdf, 0)
-    cdf_m = (cdf_m - cdf_m.min())*0xFFFF/(cdf_m.max()-cdf_m.min())
-    cdf = np.ma.filled(cdf_m, 0).astype('uint16')
-    return cdf[img]
-
-
 def plot_joints(img, keypoints, confidence, joint_idx):
     """Plot joint positions on image
 
@@ -153,7 +132,7 @@ def visualize_depth(depth_img):
 
     depth_img = np.uint16(
         np.clip(depth_img, MIN_VALID_DEPTH_MM, MAX_VALID_DEPTH_MM))
-    depth_img = stretch_histogram(depth_img)
+    depth_img = plot_helpers.stretch_histogram(depth_img)
     # The fourth channel is alpha, so get rid of that
     depth_img = (colormap(depth_img) * 0xFFFF).astype(np.uint16)[:, :, :3]
     depth_img = cv2.cvtColor(depth_img, cv2.COLOR_RGB2BGR)
