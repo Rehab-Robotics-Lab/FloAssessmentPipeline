@@ -109,8 +109,13 @@ def convert(directory, source, cam, rerun, algorithm):
                 keypoints_dset.attrs[key] = val
                 confidence_dset.attrs[key] = val
         print('Adding Stereo Depth')
+        smooth_2d(hdf5_out, f'{pose_dset_root}')
         add_stereo_depth(
             hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints',
+            transforms[source][cam] if (source in transforms and
+                                        cam in transforms[source]) else None)
+        add_stereo_depth(
+            hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints-median5',
             transforms[source][cam] if (source in transforms and
                                         cam in transforms[source]) else None)
         print('Done Adding Stereo Depth')
