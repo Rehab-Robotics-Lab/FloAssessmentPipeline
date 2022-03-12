@@ -15,6 +15,7 @@ no additional help will print.
 Additional Args for wrapper:
  -r|--rebuild-docker: rebuild the docker file that this
                       uses if this flag is present
+ -h|--help: print help
 "
 
 rebuild=false

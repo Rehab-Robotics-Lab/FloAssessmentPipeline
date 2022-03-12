@@ -7,6 +7,7 @@ import json
 import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
+from pose.src.filter import smooth_2d
 
 
 def allkeys(obj):
@@ -109,7 +110,7 @@ def convert(directory, source, cam, rerun, algorithm):
                 confidence_dset.attrs[key] = val
         print('Adding Stereo Depth')
         add_stereo_depth(
-            hdf5_in, hdf5_out, cam_root, pose_dset_root,
+            hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints',
             transforms[source][cam] if (source in transforms and
                                         cam in transforms[source]) else None)
         print('Done Adding Stereo Depth')
@@ -117,10 +118,10 @@ def convert(directory, source, cam, rerun, algorithm):
         num_frames = hdf5_in[color_dset_name].len()
         preexisting_keypoints = True
         kp_dsets = {'right': {'keypoints/color': (num_frames, 21, 3),
-                              '3dkeypoints/mp-world': (num_frames, 21, 3),
+                              'keypoints/mp-world': (num_frames, 21, 3),
                               'confidence': (num_frames)},
                     'left': {'keypoints/color': (num_frames, 21, 3),
-                             '3dkeypoints/mp-world':  (num_frames, 21, 3),
+                             'keypoints/mp-world':  (num_frames, 21, 3),
                              'confidence': (num_frames)}}
         for hand in kp_dsets:  # pylint: disable=consider-using-dict-items
             for kp_type in kp_dsets[hand]:
@@ -132,7 +133,7 @@ def convert(directory, source, cam, rerun, algorithm):
                 else:
                     kp_dsets[hand][kp_type] = hdf5_out[kp_dset_name]
                     print('keypoints already exist')
-            kp_dsets[hand]['3dkeypoints/mp-world'].attrs['desc'] = \
+            kp_dsets[hand]['keypoints/mp-world'].attrs['desc'] = \
                 'The MULTI_HAND_WORLD_LANDMARKS provided by media pipe: ' +\
                 'https://google.github.io/mediapipe/solutions/hands.html#multi_hand_world_landmarks'
 
@@ -146,8 +147,13 @@ def convert(directory, source, cam, rerun, algorithm):
                     kp_dsets[hand][kp_type][...] = keypoints[hand][kp_type]
         print('Adding Stereo Depth')
         for hand in kp_dsets:
+            smooth_2d(hdf5_out, f'{pose_dset_root}/{hand}')
             add_stereo_depth(
-                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}',
+                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints',
+                transforms[source][cam] if (source in transforms and
+                                            cam in transforms[source]) else None)
+            add_stereo_depth(
+                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints-median5',
                 transforms[source][cam] if (source in transforms and
                                             cam in transforms[source]) else None)
         print('Done Adding Stereo Depth')
