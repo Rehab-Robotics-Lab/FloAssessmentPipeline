@@ -2,7 +2,9 @@
 Module to extract depth given hdf5_in and hdf5_out files
 '''
 import numpy as np
+import multiprocessing
 from tqdm import trange
+from tqdm.contrib.concurrent import process_map  # or thread_map
 from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import DEPTH_KERNEL_SIZE
@@ -13,55 +15,50 @@ MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
 MAX_VALID_DEPTH_MM = MAX_VALID_DEPTH_METERS*1000
 
 
-def extract_depth(depth_img, keypoints, params):  # pylint: disable= too-many-locals
-    '''
-    Function to extract depth in the aligned camera frame given intrinsic and extrinsics
-    '''
-    inv_kc, k_d, r_cd, t_cd = params
-    # inv_kc, k_d, _, _ = params
-    keypoints_with_depth = np.ones(
-        (keypoints.shape[0], 3))
-    # Keypoints with depth appended
-    keypoints_with_depth[:, :2] = keypoints[:, :2]
+def create_depth_projected3(color_img_shape, color_pixels, world_c_h):
+    depth_in_color_image = np.zeros((color_img_shape[0], color_img_shape[1]))
+    points = np.round(color_pixels[:, :2]).astype('uint16')
+    valid = np.all((points[:, 0] > 0, points[:, 1] > 0,
+                    points[:, 0] < depth_in_color_image.shape[1],
+                    points[:, 1] < depth_in_color_image.shape[0]), axis=0)
+    depth_in_color_image[points[valid, 1],
+                         points[valid, 0]] = world_c_h[2, valid]
+    return depth_in_color_image
 
-    # shift = (Kd @ np.asarray([[0.015],[0],[0]]))[0]
 
-    keypoints_in_depth = (
-        # x pixel pos in depth, y pixel pos in depth, ~1 this is homogenous in camera
-        k_d @ (r_cd.T @ ((inv_kc @ keypoints_with_depth.T) - t_cd))).T
-    # It seems that part of using the rectified image is that the transform is alreaady done:
-    # k_d @ (((inv_kc @ keypoints_with_depth.T)))).T
-    keypoints_with_depth = (inv_kc @ keypoints_with_depth.T).T
+def extract_depth(poses, depth_img, indices_h, color_img_shape, transforms,
+                  window):
 
-    for i in range(keypoints_with_depth.shape[0]):
+    (h_matrix, k_c_padded, color_cam_matrix, k_d_inv,
+     k_c_inv, h_matrix_inv, k_d, k_c) = transforms
+    window = int((window-1)/2)
+    world_d = (k_d_inv@indices_h)*(np.reshape(depth_img, (1, -1), order='F'))
+    # Make world coordinate homogenous
+    world_d_h = np.concatenate((world_d, np.ones((1, world_d.shape[1]))))
+    # Bring world coordinates from depth camera space to rgb camera space
+    # Apply the camera projection matrix to finally end up back in rgb camera pixel coordinates
+    px_color = (color_cam_matrix@world_d_h)
+    valid_px_color = px_color[2, :] != 0
+    px_color_norm = px_color[:, valid_px_color]/px_color[2, valid_px_color]
+    # depth_color = world_c_h[2,valid_px_color]
+    color_pixels4 = px_color_norm[:2, :].T
 
-        p_x = int(keypoints_in_depth[i, 0])
-        p_y = int(keypoints_in_depth[i, 1])
-
-        # if openpose doesn't know what it is doing, it will put points at x,y=0
-        if p_x == 0 or p_y == 0:
-            p_z = np.nan
-        else:
-            row, col = np.indices((DEPTH_KERNEL_SIZE, DEPTH_KERNEL_SIZE))
-            # center the indices on p_x, p_y
-            row += p_y - int(np.floor(DEPTH_KERNEL_SIZE/2))
-            col += p_x - int(np.floor(DEPTH_KERNEL_SIZE/2))
-            # create a mask of the indices that are valid
-            valid = ((row >= 0) & (row < depth_img.shape[0]) &
-                     (col >= 0) & (col < depth_img.shape[1]))
-            # For some reason numpy logical_and does not short circuit.
-            v_idx = np.where(valid)
-            v_row = row[v_idx]
-            v_col = col[v_idx]
-            valid[v_idx] = ((depth_img[v_row, v_col] > MIN_VALID_DEPTH_MM) &
-                            (depth_img[v_row, v_col] < MAX_VALID_DEPTH_MM))
-            if np.any(valid):
-                p_z = np.median(depth_img[row[valid], col[valid]])
-            else:
-                p_z = np.nan
-
-        keypoints_with_depth[i] = keypoints_with_depth[i] * (p_z/1000)
-    return keypoints_with_depth, keypoints_in_depth[:, :2]
+    mapped_depth_img = create_depth_projected3(
+        color_img_shape, color_pixels4, px_color)
+    int_poses = np.round(poses).astype('uint16')
+    depths = [np.max(mapped_depth_img[max(0, pose[1]-window):
+                                      min(pose[1]+window,
+                                          mapped_depth_img.shape[0]),
+                                      max(pose[0] - window, 0):
+                                      min(pose[0]+window, mapped_depth_img.shape[1])]
+                     ) for pose in int_poses]
+    poses_3d_c = (
+        k_c_inv@np.concatenate((poses, np.ones((poses.shape[0], 1))), axis=1).T)*depths
+    poses_d_from_c = (h_matrix_inv@np.concatenate((poses_3d_c,
+                                                   np.ones((1, poses_3d_c.shape[1]))), axis=0))[:3, :]
+    poses_in_depth = k_d@poses_d_from_c
+    poses_in_depth = (poses_in_depth/poses_in_depth[2, :])[:2, :].T
+    return(poses_3d_c, poses_in_depth)
 
 
 def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=None):
@@ -135,8 +132,6 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     keypoints_depth_dset.attrs['desc'] =\
         'Keypoints in the depth image frame space (pixels)'
 
-    k_c = hdf5_in[color_dset_name].attrs['K'].reshape(3, 3)
-
     if ('depth_to_color-rotation' in hdf5_in[color_dset_name].attrs and
             'depth_to_color-translation' in hdf5_in[color_dset_name].attrs):
         r_cd_raw = hdf5_in[color_dset_name].attrs['depth_to_color-rotation']
@@ -152,14 +147,33 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
         r_cd_raw = best_transform['rotation']
         t_cd_raw = best_transform['translation']
 
+    k_c = hdf5_in[color_dset_name].attrs['K'].reshape(3, 3)
+    k_d = hdf5_in[depth_dset_name].attrs['K'].reshape(3, 3)
     r_cd = np.asarray(r_cd_raw).reshape(3, 3)
     t_cd = np.asarray(t_cd_raw).reshape(3, 1)
 
-    inv_kc = np.linalg.inv(k_c)
+    depth_img_shape = hdf5_in[depth_dset_name][0].shape
+    color_img_shape = hdf5_in[color_dset_name][0].shape
+    indices = np.reshape(np.indices(
+        np.flip(depth_img_shape)), (2, -1))
+    indices_h = np.concatenate((indices, np.ones((1, indices.shape[1]))))
+    h_matrix = np.eye(4)
+    h_matrix[:3, :3] = r_cd
+    h_matrix[:3, 3] = (t_cd).flatten()
+    k_c_padded = np.concatenate((k_c, np.zeros((3, 1))), axis=1)
+    color_cam_matrix = k_c_padded@h_matrix
+    k_d_inv = np.linalg.inv(k_d)
+    k_c_inv = np.linalg.inv(k_c)
+    h_matrix_inv = h_matrix.copy()
+    h_matrix_inv[:3, :3] = np.linalg.inv(h_matrix[:3, :3])
+    h_matrix_inv[:3, 3] = -h_matrix_inv[:3, :3]@h_matrix[:3, 3]
 
-    k_d = hdf5_in[depth_dset_name].attrs['K'].reshape(3, 3)
+    transform_mats = (h_matrix, k_c_padded, color_cam_matrix, k_d_inv,
+                      k_c_inv, h_matrix_inv, k_d, k_c)
 
+    # with Pool(len(os.sched_getaffinity(0)) as pool:
     for idx in trange(hdf5_in[color_dset_name].shape[0]):
+        # extract_depth_wrap(hdf5_in, depth_match_dset_name, )
         matched_index = hdf5_in[depth_match_dset_name][idx]
         if np.abs(
                 hdf5_in[depth_time_dset_name][matched_index] -
@@ -169,15 +183,17 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
             keypoints_depth_dset[idx, :, :] = np.NaN
         else:
             depth_img = hdf5_in[depth_dset_name][matched_index]
+            depth_img = hdf5_in[depth_dset_name][matched_index]
+            depth_img[depth_img < MIN_VALID_DEPTH_MM] = 0
+            depth_img[depth_img > MAX_VALID_DEPTH_MM] = 0
             keypoints = hdf5_out[keypoints_dset_name][idx]
-            kp3d, kp_depth = \
-                extract_depth(depth_img, keypoints,
-                              (inv_kc, k_d, r_cd, t_cd))
+            poses_3d_c, poses_in_depth = extract_depth(keypoints, depth_img, indices_h,
+                                                       color_img_shape, transform_mats, DEPTH_KERNEL_SIZE)
             invalid_indeces = np.logical_or(
-                kp3d[:, 2] < MIN_VALID_DEPTH_METERS,
-                kp3d[:, 2] > MAX_VALID_DEPTH_METERS
+                poses_3d_c[2, :] < MIN_VALID_DEPTH_METERS,
+                poses_3d_c[2, :] > MAX_VALID_DEPTH_METERS
             )
-            kp3d[invalid_indeces, :] = np.nan
-            kp_depth[invalid_indeces, :] = np.nan
-            keypoints3d_dset[idx, :, :] = kp3d
-            keypoints_depth_dset[idx, :, :] = kp_depth
+            poses_3d_c[:, invalid_indeces] = np.nan
+            poses_in_depth[invalid_indeces, :] = np.nan
+            keypoints3d_dset[idx, :, :] = poses_3d_c.T
+            keypoints_depth_dset[idx, :, :] = poses_in_depth
