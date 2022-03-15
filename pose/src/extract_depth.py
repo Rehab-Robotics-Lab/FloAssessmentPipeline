@@ -1,14 +1,15 @@
 '''
 Module to extract depth given hdf5_in and hdf5_out files
 '''
-import numpy as np
 import multiprocessing
-from tqdm import trange
-from tqdm.contrib.concurrent import process_map  # or thread_map
+from functools import partial
+import tqdm
+import numpy as np
 from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import DEPTH_KERNEL_SIZE
 from common.tracking_params import MAX_TIME_DISPARITY
+import ipdb
 
 assert DEPTH_KERNEL_SIZE % 2 == 1
 MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
@@ -29,8 +30,12 @@ def create_depth_projected3(color_img_shape, color_pixels, world_c_h):
 def extract_depth(poses, depth_img, indices_h, color_img_shape, transforms,
                   window):
 
-    (h_matrix, k_c_padded, color_cam_matrix, k_d_inv,
-     k_c_inv, h_matrix_inv, k_d, k_c) = transforms
+    (_,  # h_matrix,
+     _,  # k_c_padded,
+     color_cam_matrix, k_d_inv,
+     k_c_inv, h_matrix_inv, k_d,
+     _  # k_c
+     ) = transforms
     window = int((window-1)/2)
     world_d = (k_d_inv@indices_h)*(np.reshape(depth_img, (1, -1), order='F'))
     # Make world coordinate homogenous
@@ -54,11 +59,38 @@ def extract_depth(poses, depth_img, indices_h, color_img_shape, transforms,
                      ) for pose in int_poses]
     poses_3d_c = (
         k_c_inv@np.concatenate((poses, np.ones((poses.shape[0], 1))), axis=1).T)*depths
-    poses_d_from_c = (h_matrix_inv@np.concatenate((poses_3d_c,
-                                                   np.ones((1, poses_3d_c.shape[1]))), axis=0))[:3, :]
+    poses_d_from_c = \
+        (h_matrix_inv@np.concatenate((poses_3d_c,
+                                      np.ones((1, poses_3d_c.shape[1]))), axis=0))[:3, :]
     poses_in_depth = k_d@poses_d_from_c
     poses_in_depth = (poses_in_depth/poses_in_depth[2, :])[:2, :].T
     return(poses_3d_c, poses_in_depth)
+
+
+def extract_depth_wrap(
+        indices_h, color_img_shape, transform_mats, depth_img, keypoints, depth_time, color_time,  idx):
+
+    if np.abs(
+            depth_time -
+            color_time
+    ) > MAX_TIME_DISPARITY:
+        return (idx, np.NaN, np.NaN)
+        # keypoints3d_dset[idx, :, :] = np.NaN
+        # keypoints_depth_dset[idx, :, :] = np.NaN
+    depth_img[depth_img < MIN_VALID_DEPTH_MM] = 0
+    depth_img[depth_img > MAX_VALID_DEPTH_MM] = 0
+    poses_3d_c, poses_in_depth = \
+        extract_depth(keypoints, depth_img, indices_h,
+                      color_img_shape, transform_mats, DEPTH_KERNEL_SIZE)
+    invalid_indeces = np.logical_or(
+        poses_3d_c[2, :] < MIN_VALID_DEPTH_MM,
+        poses_3d_c[2, :] > MAX_VALID_DEPTH_MM
+    )
+    poses_3d_c[:, invalid_indeces] = np.nan
+    poses_in_depth[invalid_indeces, :] = np.nan
+    # keypoints3d_dset[idx, :, :] = poses_3d_c.T
+    # keypoints_depth_dset[idx, :, :] = poses_in_depth
+    return (idx, poses_3d_c.T, poses_in_depth)
 
 
 def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=None):
@@ -158,7 +190,7 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
         np.flip(depth_img_shape)), (2, -1))
     indices_h = np.concatenate((indices, np.ones((1, indices.shape[1]))))
     h_matrix = np.eye(4)
-    h_matrix[:3, :3] = r_cd
+    h_matrix[:3, :3] = r_cd.T
     h_matrix[:3, 3] = (t_cd).flatten()
     k_c_padded = np.concatenate((k_c, np.zeros((3, 1))), axis=1)
     color_cam_matrix = k_c_padded@h_matrix
@@ -171,29 +203,38 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     transform_mats = (h_matrix, k_c_padded, color_cam_matrix, k_d_inv,
                       k_c_inv, h_matrix_inv, k_d, k_c)
 
+    # dset_names = (depth_match_dset_name,
+    #               depth_time_dset_name, depth_dset_name, color_time_dset_name,
+    #               keypoints_dset_name)
     # with Pool(len(os.sched_getaffinity(0)) as pool:
-    for idx in trange(hdf5_in[color_dset_name].shape[0]):
-        # extract_depth_wrap(hdf5_in, depth_match_dset_name, )
-        matched_index = hdf5_in[depth_match_dset_name][idx]
-        if np.abs(
-                hdf5_in[depth_time_dset_name][matched_index] -
-                hdf5_in[color_time_dset_name][idx]
-        ) > MAX_TIME_DISPARITY:
-            keypoints3d_dset[idx, :, :] = np.NaN
-            keypoints_depth_dset[idx, :, :] = np.NaN
-        else:
-            depth_img = hdf5_in[depth_dset_name][matched_index]
-            depth_img = hdf5_in[depth_dset_name][matched_index]
-            depth_img[depth_img < MIN_VALID_DEPTH_MM] = 0
-            depth_img[depth_img > MAX_VALID_DEPTH_MM] = 0
-            keypoints = hdf5_out[keypoints_dset_name][idx]
-            poses_3d_c, poses_in_depth = extract_depth(keypoints, depth_img, indices_h,
-                                                       color_img_shape, transform_mats, DEPTH_KERNEL_SIZE)
-            invalid_indeces = np.logical_or(
-                poses_3d_c[2, :] < MIN_VALID_DEPTH_METERS,
-                poses_3d_c[2, :] > MAX_VALID_DEPTH_METERS
-            )
-            poses_3d_c[:, invalid_indeces] = np.nan
-            poses_in_depth[invalid_indeces, :] = np.nan
-            keypoints3d_dset[idx, :, :] = poses_3d_c.T
-            keypoints_depth_dset[idx, :, :] = poses_in_depth
+    num_frames = hdf5_in[color_dset_name].shape[0]
+    matched_index_l = [None]*num_frames
+    keypoints_l = [None] * num_frames
+    depth_time_l = [None]*num_frames
+    color_time_l = [None]*num_frames
+    depth_img_l = [None]*num_frames
+    for idx in range(num_frames):
+        matched_index_l[idx] = hdf5_in[depth_match_dset_name][idx]
+        keypoints_l[idx] = hdf5_out[keypoints_dset_name][idx]
+        depth_time_l[idx] = hdf5_in[depth_time_dset_name][matched_index_l[idx]]
+        color_time_l[idx] = hdf5_in[color_time_dset_name][idx]
+        depth_img_l[idx] = hdf5_in[depth_dset_name][matched_index_l[idx]]
+    print('done with setup, starting multiprocessing run')
+    bound_func = partial(
+        extract_depth_wrap, indices_h, color_img_shape, transform_mats)
+    args = zip(depth_img_l, keypoints_l, depth_time_l,
+               color_time_l, range(num_frames))
+    # test_idx = 90
+    # extract_depth_wrap(indices_h, color_img_shape, transform_mats,
+    #                    depth_img_l[test_idx], keypoints_l[test_idx], depth_time_l[test_idx], color_time_l[test_idx], test_idx)
+    with multiprocessing.Pool() as pool:
+        results = pool.starmap(bound_func, tqdm.tqdm(
+            args, total=num_frames), chunksize=10)
+    # for idx in trange(hdf5_in[color_dset_name].shape[0]):
+    #     extract_depth_wrap(
+    #         hdf5_in, hdf5_out, dset_names, indices_h, color_img_shape, transform_mats, idx)
+    for result in results:
+        idx = result[0]
+        keypoints3d_dset[idx, :, :] = result[1]
+        keypoints_depth_dset[idx, :, :] = result[2]
+    # return (poses_3d_c.T, poses_in_depth)
