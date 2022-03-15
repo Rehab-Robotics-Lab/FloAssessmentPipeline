@@ -81,7 +81,7 @@ def plot_overhead(img, keypoints_3d, scaling_params, confidence, joint_pairs, po
              the y position for the top of the plotting)
     """
     #pylint: disable=too-many-arguments
-    plot_scale = (np.min([pos[0], pos[1]])/2)/1.2*scaling_params[0]
+    plot_scale = (np.min([pos[0], pos[1]])/2)/(1.2*scaling_params[0])
     for limb in joint_pairs:
         if ((not np.any(np.isnan(
             [keypoints_3d[limb[jidx]][0:2] for jidx in (0, 1)]
