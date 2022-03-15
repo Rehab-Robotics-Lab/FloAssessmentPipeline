@@ -357,7 +357,7 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     depth_img_l = [None]*num_frames
     for idx in range(num_frames):
         matched_index_l[idx] = hdf5_in[depth_match_dset_name][idx]
-        keypoints_l[idx] = hdf5_out[keypoints_dset_name][idx]
+        keypoints_l[idx] = hdf5_out[keypoints_dset_name][idx][:, :2]
         depth_time_l[idx] = hdf5_in[depth_time_dset_name][matched_index_l[idx]]
         color_time_l[idx] = hdf5_in[color_time_dset_name][idx]
         depth_img_l[idx] = hdf5_in[depth_dset_name][matched_index_l[idx]]
