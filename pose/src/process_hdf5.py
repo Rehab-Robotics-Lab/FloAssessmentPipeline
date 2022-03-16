@@ -202,6 +202,6 @@ if __name__ == '__main__':
                         "uses openpose with whole body (body+hand+foot+face) " +
                         "mp-hands uses the mediapipe hand pose estimator")
     ARGS = PARSER.parse_args()
-    with ipdb.launch_ipdb_on_exception():
-        convert(ARGS.directory, ARGS.source,
-                ARGS.camera, ARGS.rerun, ARGS.algorithm)
+    # with ipdb.launch_ipdb_on_exception():
+    convert(ARGS.directory, ARGS.source,
+            ARGS.camera, ARGS.rerun, ARGS.algorithm)
