@@ -132,6 +132,13 @@ def extract_depth(poses, depth_img, color_img_shape, transform_mats,
     return(poses_3d_c, poses_in_depth, mapped_depth_img)
 
 
+def extract_depth_wrap_multiprocess(color_img_shape, transform_mats, zipped_args):
+    (depth_img, keypoints, depth_time, color_time,
+     depth_in_color,  idx) = zipped_args
+    return extract_depth_wrap(color_img_shape, transform_mats,
+                              depth_img, keypoints, depth_time, color_time, depth_in_color,  idx)
+
+
 def extract_depth_wrap(color_img_shape, transform_mats,
                        depth_img, keypoints, depth_time, color_time, depth_in_color,  idx):
     """Calculate 3D pose and pose in depth pixel
@@ -406,6 +413,7 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
         hdf5_in,  cam_root)
     if rerun:
         depth_color_filled = False
+    depth_color_filled = False
 
     t_cd, r_cd = get_extinsics(
         hdf5_in, color_dset_name, color_time_dset_name, transforms)
@@ -431,16 +439,18 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
             depth_img_l[idx] = hdf5_in[depth_dset_name][matched_index_l[idx]]
     print('done with setup, starting multiprocessing run')
     bound_func = partial(
-        extract_depth_wrap, color_img_shape, transform_mats)
+        extract_depth_wrap_multiprocess, color_img_shape, transform_mats)
     args = zip(depth_img_l, keypoints_l, depth_time_l,
                color_time_l, color_depth_l, range(num_frames))
-    with multiprocessing.Pool(4) as pool:
-        results = pool.starmap(bound_func, tqdm.tqdm(
-            args, total=num_frames), chunksize=10)
-    # results = itertools.starmap(bound_func, tqdm.tqdm(
-    #     args, total=num_frames))
-    for result in results:
-        idx = result[0]
-        keypoints3d_dset[idx, :, :] = result[1]
-        keypoints_depth_dset[idx, :, :] = result[2]
-        depth_in_color_dset[idx, :, :] = result[3]
+
+    with multiprocessing.Pool() as pool:
+        # results = pool.starmap(bound_func, tqdm.tqdm(
+        #     args, total=num_frames), chunksize=10)
+        # results =     # results = itertools.starmap(bound_func, tqdm.tqdm(
+        #     args, total=num_frames))
+        for result in pool.imap_unordered(bound_func, tqdm.tqdm(
+                args, total=num_frames), chunksize=10):
+            idx = result[0]
+            keypoints3d_dset[idx, :, :] = result[1]
+            keypoints_depth_dset[idx, :, :] = result[2]
+            depth_in_color_dset[idx, :, :] = result[3]
