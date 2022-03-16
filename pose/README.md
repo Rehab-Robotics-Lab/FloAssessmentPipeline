@@ -44,7 +44,7 @@ it just isn't worth it.
 1.  push the code files to OCI by running `./oci_utilities/push_code.sh`
 2.  Provision instance of:
     *   Image: Oracle Linux 8 GPU Build, [supported version](https://nvidia.github.io/nvidia-docker/)
-    *   Shape: VM.GPU3.2 (for higher resolution use a GPU4 instance)
+    *   Shape: VM.GPU3.1
     *   vcn: flo vcn
     *   subnet: private
     *   SSH Keys: None
@@ -58,7 +58,7 @@ it just isn't worth it.
 8.  Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
 9.  Pull down code onto the remote instance:
     `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
-10. Run setup script: `chmod u+x "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" && mkdir -p "$HOME/logs/install/" && bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/machine_setup.sh" 2>&1 | tee -a "$HOME/logs/install/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)"`
+10. Run setup script: `bash LilFloAssessmentPipeline/oci_utilities/pose/machine_setup.sh`
 11. Test that nvidia docker installed properly:
 12. Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
 13. Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`

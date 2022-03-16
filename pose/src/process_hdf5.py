@@ -8,6 +8,7 @@ import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
 from pose.src.filter import smooth_2d
+import ipdb
 
 
 def allkeys(obj):
@@ -48,7 +49,7 @@ def convert(directory, source, cam, rerun, algorithm):
 
     # open hdf5 file
     directory = pathlib.Path(directory)
-    hdf5_in = h5py.File(directory/'full_data-vid.hdf5', 'r')
+    hdf5_in = h5py.File(directory/'full_data-vid.hdf5', 'r+')
     print('opened hdf file for reading video')
     hdf5_out = h5py.File(directory/'full_data-novid.hdf5', 'r+')
     print('opened hdf file for writing poses')
@@ -112,10 +113,12 @@ def convert(directory, source, cam, rerun, algorithm):
         smooth_2d(hdf5_out, f'{pose_dset_root}')
         add_stereo_depth(
             hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints',
+            rerun,
             transforms[source][cam] if (source in transforms and
                                         cam in transforms[source]) else None)
         add_stereo_depth(
             hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints-median5',
+            rerun,
             transforms[source][cam] if (source in transforms and
                                         cam in transforms[source]) else None)
         print('Done Adding Stereo Depth')
@@ -155,10 +158,12 @@ def convert(directory, source, cam, rerun, algorithm):
             smooth_2d(hdf5_out, f'{pose_dset_root}/{hand}')
             add_stereo_depth(
                 hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints',
+                rerun,
                 transforms[source][cam] if (source in transforms and
                                             cam in transforms[source]) else None)
             add_stereo_depth(
                 hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints-median5',
+                rerun,
                 transforms[source][cam] if (source in transforms and
                                             cam in transforms[source]) else None)
         print('Done Adding Stereo Depth')
@@ -197,5 +202,6 @@ if __name__ == '__main__':
                         "uses openpose with whole body (body+hand+foot+face) " +
                         "mp-hands uses the mediapipe hand pose estimator")
     ARGS = PARSER.parse_args()
-    convert(ARGS.directory, ARGS.source,
-            ARGS.camera, ARGS.rerun, ARGS.algorithm)
+    with ipdb.launch_ipdb_on_exception():
+        convert(ARGS.directory, ARGS.source,
+                ARGS.camera, ARGS.rerun, ARGS.algorithm)

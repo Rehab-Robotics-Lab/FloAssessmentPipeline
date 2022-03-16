@@ -4,11 +4,13 @@ Module to extract depth given hdf5_in and hdf5_out files
 import multiprocessing
 from functools import partial
 import tqdm
+import itertools
 import numpy as np
 from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import DEPTH_KERNEL_SIZE
 from common.tracking_params import MAX_TIME_DISPARITY
+import ipdb
 
 assert DEPTH_KERNEL_SIZE % 2 == 1
 MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
@@ -61,14 +63,38 @@ def project_depth_to_colorframe(px_color, color_img_shape):
 
 
 def calc_depth_from_sparse_image(mapped_depth_img, poses, window):
-    # we would kind of prefer min here, but don't want to end up
-    # with zero values
-    depths = [np.max(mapped_depth_img[max(0, pose[1]-window):
-                                      min(pose[1]+window,
-                                          mapped_depth_img.shape[0]),
-                                      max(pose[0] - window, 0):
-                                      min(pose[0]+window, mapped_depth_img.shape[1])]
-                     ) for pose in np.round(poses).astype('uint16')]
+    """Calculate the depth at a 2D pose estimate given an image of sparse
+    depth values.
+
+    Based on the expected sparsity, you should select a window to look for
+    valid values at. The kernel size will actually be 2window+1.
+
+    The values within the kernel, centered at the pose will be retrieved
+    from the image, any zero values will be removed, and the minimum
+    remaining value will be taken.
+
+    When the kernel places target coordinates beyond the edge of the image,
+    those points are ignored.
+
+    Args:
+        mapped_depth_img: A sparse image of depth values
+        poses: An array of x, y pixel poses, assumed to all fall within the
+               mapped_depth_img coordinates.
+        window: The distance +/- the target pixels to look for a value.
+    """
+    depths = [mapped_depth_img[max(0, pose[1]-window):
+                               min(pose[1] + window,
+                                   mapped_depth_img.shape[0]),
+                               max(pose[0] - window, 0):
+                               min(pose[0]+window, mapped_depth_img.shape[1])].flatten()
+              for pose in np.round(poses).astype('uint16')]
+    for idx, _ in enumerate(depths):
+        depths[idx] = depths[idx][depths[idx] != 0]
+        if len(depths[idx]) > 0:  # the above command will make some depths empty
+            depths[idx] = min(depths[idx])
+        else:
+            depths[idx] = 0
+
     return depths
 
 
@@ -89,22 +115,25 @@ def project_keypoints2depth(k_d, h_matrix_inv, poses_3d_c):
 
 
 def extract_depth(poses, depth_img, color_img_shape, transform_mats,
-                  window):
-    indices_h = generate_image_h_indices(depth_img.shape)
-    window = int((window-1)/2)
-    world_d = de_project_depth(indices_h, transform_mats['k_d_inv'], depth_img)
-    px_color = transform_depth_world2color_pixels(
-        transform_mats['color_cam_matrix'], world_d)
-    mapped_depth_img = project_depth_to_colorframe(px_color, color_img_shape)
+                  window, mapped_depth_img):
+    if mapped_depth_img is None:
+        indices_h = generate_image_h_indices(depth_img.shape)
+        window = int((window-1)/2)
+        world_d = de_project_depth(
+            indices_h, transform_mats['k_d_inv'], depth_img)
+        px_color = transform_depth_world2color_pixels(
+            transform_mats['color_cam_matrix'], world_d)
+        mapped_depth_img = project_depth_to_colorframe(
+            px_color, color_img_shape)
     depths = calc_depth_from_sparse_image(mapped_depth_img, poses, window)
     poses_3d_c = deproject_colordepth(transform_mats['k_c_inv'], poses, depths)
     poses_in_depth = project_keypoints2depth(
         transform_mats['k_d'], transform_mats['h_matrix_inv'], poses_3d_c)
-    return(poses_3d_c, poses_in_depth)
+    return(poses_3d_c, poses_in_depth, mapped_depth_img)
 
 
 def extract_depth_wrap(color_img_shape, transform_mats,
-                       depth_img, keypoints, depth_time, color_time, idx):
+                       depth_img, keypoints, depth_time, color_time, depth_in_color,  idx):
     """Calculate 3D pose and pose in depth pixel
 
     This is meant to be safe to run in a multiprocessing pool.
@@ -137,14 +166,15 @@ def extract_depth_wrap(color_img_shape, transform_mats,
             depth_time -
             color_time
     ) > MAX_TIME_DISPARITY:
-        return (idx, np.NaN, np.NaN)
+        return (idx, np.NaN, np.NaN, np.NaN)
         # keypoints3d_dset[idx, :, :] = np.NaN
         # keypoints_depth_dset[idx, :, :] = np.NaN
-    depth_img[depth_img < MIN_VALID_DEPTH_MM] = 0
-    depth_img[depth_img > MAX_VALID_DEPTH_MM] = 0
-    poses_3d_c, poses_in_depth = \
+    if depth_img is not None:
+        depth_img[depth_img < MIN_VALID_DEPTH_MM] = 0
+        depth_img[depth_img > MAX_VALID_DEPTH_MM] = 0
+    poses_3d_c, poses_in_depth, depth_in_color = \
         extract_depth(keypoints, depth_img,
-                      color_img_shape, transform_mats, DEPTH_KERNEL_SIZE)
+                      color_img_shape, transform_mats, DEPTH_KERNEL_SIZE, depth_in_color)
     invalid_indeces = np.logical_or(
         poses_3d_c[2, :] < MIN_VALID_DEPTH_MM,
         poses_3d_c[2, :] > MAX_VALID_DEPTH_MM
@@ -153,7 +183,7 @@ def extract_depth_wrap(color_img_shape, transform_mats,
     poses_in_depth[invalid_indeces, :] = np.nan
     # keypoints3d_dset[idx, :, :] = poses_3d_c.T
     # keypoints_depth_dset[idx, :, :] = poses_in_depth
-    return (idx, poses_3d_c.T, poses_in_depth)
+    return (idx, poses_3d_c.T, poses_in_depth, depth_in_color)
 
 
 def build_tranformations(r_cd, t_cd, k_d, k_c):
@@ -250,6 +280,36 @@ def generate_keypoints_depth_dset(hdf5_out, pose_dset_root, keypoints_dset_name)
     return keypoints_depth_dset
 
 
+def generate_depth_in_color_dset(hdf5_file,  cam_root):
+    """Get the dataset to store depth frames in.
+
+    This dataset is used to store the data that is mapped from the depth
+    image to the color image space, vastly speeding up the depth extraction.
+
+    If the dataset already exists, just return it. If not, create it.
+
+    Args:
+        hdf5_file: The HDF5 file to put the data into
+        cam_root: The string representing the root of the camera for this data
+    """
+    dset_name = f'{cam_root}/color/depth_map'
+    color_dset_name = f'{cam_root}/color/data'
+    already_exists = False
+    if dset_name not in hdf5_file:
+        img_shape = hdf5_file[color_dset_name].shape[:3]
+        dset = hdf5_file.create_dataset(
+            dset_name,
+            img_shape,
+            dtype=np.float32)
+    else:
+        already_exists = True
+        dset = hdf5_file[dset_name]
+
+    dset.attrs['desc'] =\
+        'Depth points mapped into the color image frame as depth in millimeters'
+    return (dset, already_exists)
+
+
 def get_extinsics(hdf5_in, color_dset_name, color_time_dset_name, transforms):
     """Get the camera extrinsics (color to depth camera)
 
@@ -295,7 +355,7 @@ def get_intrinsics(hdf5_in, color_dset_name, depth_dset_name):
     return(k_c, k_d)
 
 
-def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=None):
+def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, transforms=None):
     """Add stereo depth to hdf5 out file given keypoints and depth images.
 
     It is necessary to know the camera intrinsics and extrinsics. This can be pulled out
@@ -342,9 +402,13 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     keypoints_depth_dset = generate_keypoints_depth_dset(
         hdf5_out, pose_dset_root, keypoints_dset_name)
 
+    depth_in_color_dset, depth_color_filled = generate_depth_in_color_dset(
+        hdf5_in,  cam_root)
+    if rerun:
+        depth_color_filled = False
+
     t_cd, r_cd = get_extinsics(
         hdf5_in, color_dset_name, color_time_dset_name, transforms)
-
     k_c, k_d = get_intrinsics(hdf5_in, color_dset_name, depth_dset_name)
     transform_mats = build_tranformations(r_cd, t_cd, k_d, k_c)
     color_img_shape = hdf5_in[color_dset_name][0].shape
@@ -355,21 +419,28 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, transforms=Non
     depth_time_l = [None]*num_frames
     color_time_l = [None]*num_frames
     depth_img_l = [None]*num_frames
+    color_depth_l = [None]*num_frames
     for idx in range(num_frames):
         matched_index_l[idx] = hdf5_in[depth_match_dset_name][idx]
         keypoints_l[idx] = hdf5_out[keypoints_dset_name][idx][:, :2]
         depth_time_l[idx] = hdf5_in[depth_time_dset_name][matched_index_l[idx]]
         color_time_l[idx] = hdf5_in[color_time_dset_name][idx]
-        depth_img_l[idx] = hdf5_in[depth_dset_name][matched_index_l[idx]]
+        if depth_color_filled:
+            color_depth_l = depth_in_color_dset[idx]
+        else:
+            depth_img_l[idx] = hdf5_in[depth_dset_name][matched_index_l[idx]]
     print('done with setup, starting multiprocessing run')
     bound_func = partial(
         extract_depth_wrap, color_img_shape, transform_mats)
     args = zip(depth_img_l, keypoints_l, depth_time_l,
-               color_time_l, range(num_frames))
-    with multiprocessing.Pool() as pool:
+               color_time_l, color_depth_l, range(num_frames))
+    with multiprocessing.Pool(4) as pool:
         results = pool.starmap(bound_func, tqdm.tqdm(
             args, total=num_frames), chunksize=10)
+    # results = itertools.starmap(bound_func, tqdm.tqdm(
+    #     args, total=num_frames))
     for result in results:
         idx = result[0]
         keypoints3d_dset[idx, :, :] = result[1]
         keypoints_depth_dset[idx, :, :] = result[2]
+        depth_in_color_dset[idx, :, :] = result[3]
