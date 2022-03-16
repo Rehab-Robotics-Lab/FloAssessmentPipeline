@@ -69,10 +69,7 @@ it just isn't worth it.
 If you want to run a bunch of subjects at once, you can do that with something like:
 
 ```{bash}
-for sn in 1 2 3 4
-do
-bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual_multi.sh" "$sn" 2>&1 | tee -a $log
-done
+bash "$HOME/LilFloAssessmentPipeline/oci_utilities/pose/run_manual_multi.sh" 001 003 004 005 006 008 500-2 500-3 500-4 2>&1 | tee -a "$HOME/logs/run"
 ```
 
 Note, for this script, you will have to pad the subject numbers you

@@ -2,22 +2,19 @@
 set -o errexit
 set -o pipefail
 
-## NOTE: the list of subjects must be passed in perfectly formatted
+## This script will run openpose pose detection only. Run it on a GPU enabled machine.
 
 bucket_hdf5='rrl-flo-hdf5'
-condition='robot' # or 'podium' or 'mixed'
-data_source='robot'
+condition='robot' # or 'podium' or 'mixed' this is the folder in oci
+data_source='robot' # or 'podium'
 
 #script="$(realpath "$0")"
 #scriptpath="$(dirname "$script")"
 
 [ "$(docker container ls --all --filter name=openpose-runner -q)" ] && docker rm /openpose-runner
-[ "$(docker container ls --all --filter name=mediapipe-runner -q)" ] && docker rm /mediapipe-runner
 
 done_first=false
-done_second=false
 subj_back1=''
-subj_back2=''
 
 mkdir -p "$HOME/data"
 rm -rf "$HOME/data/"*
@@ -49,7 +46,6 @@ do
     ### Download Files ###
     subj_data_local="$HOME/data/$subj"
     subj_back1_data_local="$HOME/data/$subj_back1"
-    subj_back2_data_local="$HOME/data/$subj_back2"
     vid_local_location="$subj_data_local/full_data-vid.hdf5"
     novid_local_location="$subj_data_local/full_data-novid.hdf5"
     mkdir -p "$subj_data_local"
@@ -71,36 +67,16 @@ do
             exit "$docker_exit_code"
         fi
 
-        if [ $done_second = true ]
-        then
-            echo "[$(date +"%T")] waiting for subj $subj_back2 mediapipe-hands to finish"
-            docker_exit_code=$(docker container wait mediapipe-runner)
-            echo "[$(date +"%T")] mediapipe finished "
-            docker rm /mediapipe-runner
-            echo "[$(date +"%T")] removed old docker instance for mediapipe-hands"
-            if [ "$docker_exit_code" -ne 0 ]
-            then
-                echo "error from docker exit for mediapipe-hands"
-                exit "$docker_exit_code"
-            fi
 
-            echo "[$(date +"%T")] starting file upload"
-            oci os object put \
-                --bucket-name $bucket_hdf5 \
-                --file "$subj_back2_data_local/full_data-novid.hdf5" \
-                --name "$subj_back2/$condition/full_data-novid-poses.hdf5" \
-                --force
-            rm -rf "$subj_back2_data_local"
-        fi
+        echo "[$(date +"%T")] starting file upload for subj $subj_back1"
+        oci os object put \
+            --bucket-name $bucket_hdf5 \
+            --file "$subj_back1_data_local/full_data-novid.hdf5" \
+            --name "$subj_back1/$condition/full_data-novid-poses.hdf5" \
+            --force
+        rm -rf "$subj_back1_data_local"
+        echo "[$(date +"%T")] done with file upload for subj $subj_back1"
 
-        docker run \
-            --mount type=bind,source="$subj_back1_data_local",target=/data \
-            --name=mediapipe-runner \
-            --detach \
-            mediapipe \
-            python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'mp-hands' -c 'upper'
-
-            done_second=true
     fi
 
     echo "[$(date +"%T")] starting openpose run"
@@ -109,14 +85,15 @@ do
         --detach \
         --name=openpose-runner \
         openpose \
-        python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'openpose:25B' -c 'lower'
+        python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'openpose:25B' -c 'lower' -p 'pose'
 
         #--detach \
 
-    subj_back2="$subj_back1"
     subj_back1="$subj"
     done_first=true
 done
+
+subj_back1_data_local="$HOME/data/$subj_back1"
 
 if [ $done_first = true ]
 then
@@ -131,40 +108,14 @@ then
         exit "$docker_exit_code"
     fi
 
-    if [ $done_second = true ]
-    then
-        echo "[$(date +"%T")] waiting for previous subj mediapipe-hands to finish"
-        docker_exit_code=$(docker container wait mediapipe-runner)
-        echo "[$(date +"%T")] docker finished "
-        docker rm /mediapipe-runner
-        echo "[$(date +"%T")] removed old instance"
-        if [ "$docker_exit_code" -ne 0 ]
-        then
-            echo "[$(date +"%T")] error from docker exit"
-            exit "$docker_exit_code"
-        fi
-
-        echo "[$(date +"%T")] starting file upload"
-        oci os object put \
-            --bucket-name $bucket_hdf5 \
-            --file "$subj_back2_data_local/full_data-novid.hdf5" \
-            --name "$subj_back2/$condition/full_data-novid-poses.hdf5" \
-            --force
-        rm -rf "$subj_back2_data_local"
-    fi
-
-    docker run \
-        --mount type=bind,source="$subj_back1_data_local",target=/data \
-        --name=mediapipe-runner \
-        mediapipe \
-        python3 -m pose.src.process_hdf5 -d "/data/" -s "$condition" -a 'mp-hands' -c 'upper'
-
+    echo "[$(date +"%T")] starting file upload for subj $subj_back1"
     oci os object put \
         --bucket-name $bucket_hdf5 \
         --file "$subj_back1_data_local/full_data-novid.hdf5" \
         --name "$subj_back1/$condition/full_data-novid-poses.hdf5" \
         --force
     rm -rf "$subj_back1_data_local"
+    echo "[$(date +"%T")] done with file upload for subj $subj_back1"
 fi
 
 echo "[$(date +"%T")] done with pose processing"

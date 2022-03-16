@@ -2,17 +2,18 @@
 set -o errexit
 set -o pipefail
 
-## NOTE: the list of subjects must be passed in perfectly formatted
+## Runs the hand detector and depth extraction assumes that openpose as already been run and the
+## data has been pushed back up to
 
 bucket_hdf5='rrl-flo-hdf5'
-condition='robot' # or 'podium' or 'mixed'
-data_source='robot'
+condition='robot' # or 'podium' or 'mixed' this is the folder in oci
+data_source='robot' # or 'podium'
 
 #script="$(realpath "$0")"
 #scriptpath="$(dirname "$script")"
 
-[ "$(docker container ls --all --filter name=openpose-runner -q)" ] && docker rm /openpose-runner
 [ "$(docker container ls --all --filter name=mediapipe-runner -q)" ] && docker rm /mediapipe-runner
+[ "$(docker container ls --all --filter name=openpose-runner -q)" ] && docker rm /openpose-runner
 
 done_first=false
 done_second=false
@@ -34,7 +35,7 @@ do
 
     ### Figure out if subject has hdf5 files ###
     hdf5_dir="$subj/$condition"
-    novid_bucket_location="$hdf5_dir/full_data-novid.hdf5"
+    novid_bucket_location="$hdf5_dir/full_data-novid-pose.hdf5" # here looking for the file that was aready passed through openpose
     vid_bucket_location="$hdf5_dir/full_data-vid.hdf5"
     novid_present=$(oci os object list -bn "$bucket_hdf5" --prefix "$novid_bucket_location" --query 'contains(keys(@),`data`)')
     vid_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$vid_bucket_location" --query 'contains(keys(@),`data`)')
@@ -51,7 +52,7 @@ do
     subj_back1_data_local="$HOME/data/$subj_back1"
     subj_back2_data_local="$HOME/data/$subj_back2"
     vid_local_location="$subj_data_local/full_data-vid.hdf5"
-    novid_local_location="$subj_data_local/full_data-novid.hdf5"
+    novid_local_location="$subj_data_local/full_data-novid.hdf5" # we strip of the pose bit to work with the pipeline
     mkdir -p "$subj_data_local"
     echo "[$(date +"%T")] Downloading files for: $subj"
     oci os object get -bn "$bucket_hdf5" --name "$novid_bucket_location" --file "$novid_local_location" # fast
@@ -60,27 +61,27 @@ do
 
     if [ $done_first = true ]
     then
-        echo "[$(date +"%T")] waiting for subj $subj_back1 openpose to finish"
-        docker_exit_code=$(docker container wait openpose-runner)
-        echo "[$(date +"%T")] openpose finished"
-        docker rm /openpose-runner
-        echo "[$(date +"%T")] removed old docker instance for openpose"
+        echo "[$(date +"%T")] waiting for subj $subj_back1 mp-hands to finish"
+        docker_exit_code=$(docker container wait mediapipe-runner)
+        echo "[$(date +"%T")] mp-hands finished"
+        docker rm /mediapipe-runner
+        echo "[$(date +"%T")] removed old docker instance for mp-hands"
         if [ "$docker_exit_code" -ne 0 ]
         then
-            echo "[$(date +"%T")] error from docker exit from openpose"
+            echo "[$(date +"%T")] error from docker exit from mp-hands"
             exit "$docker_exit_code"
         fi
 
         if [ $done_second = true ]
         then
-            echo "[$(date +"%T")] waiting for subj $subj_back2 mediapipe-hands to finish"
-            docker_exit_code=$(docker container wait mediapipe-runner)
-            echo "[$(date +"%T")] mediapipe finished "
-            docker rm /mediapipe-runner
-            echo "[$(date +"%T")] removed old docker instance for mediapipe-hands"
+            echo "[$(date +"%T")] waiting for subj $subj_back2 openpose-depth to finish"
+            docker_exit_code=$(docker container wait openpose-runner)
+            echo "[$(date +"%T")] openpose depth finished "
+            docker rm /openpose-runner
+            echo "[$(date +"%T")] removed old docker instance for openpose depth"
             if [ "$docker_exit_code" -ne 0 ]
             then
-                echo "error from docker exit for mediapipe-hands"
+                echo "[$(date +"%T")] error from docker exit for openpose depth"
                 exit "$docker_exit_code"
             fi
 
@@ -88,28 +89,29 @@ do
             oci os object put \
                 --bucket-name $bucket_hdf5 \
                 --file "$subj_back2_data_local/full_data-novid.hdf5" \
-                --name "$subj_back2/$condition/full_data-novid-poses.hdf5" \
+                --name "$subj_back2/$condition/full_data-novid-poses-depth.hdf5" \
                 --force
             rm -rf "$subj_back2_data_local"
         fi
 
+        echo "[$(date +"%T")] starting openpose depth detection for subj $subj_back1"
         docker run \
             --mount type=bind,source="$subj_back1_data_local",target=/data \
             --name=mediapipe-runner \
             --detach \
-            mediapipe \
-            python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'mp-hands' -c 'upper'
+            mediapipe \ # no need for all of the openpose stuff here
+            python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'openpose:25B' -c 'lower' -p 'depth'
 
             done_second=true
     fi
 
-    echo "[$(date +"%T")] starting openpose run"
+    echo "[$(date +"%T")] starting mediapipe run"
     docker run \
         --mount type=bind,source="$subj_data_local",target=/data \
         --detach \
-        --name=openpose-runner \
-        openpose \
-        python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'openpose:25B' -c 'lower'
+        --name=mediapipe-runner \
+        mediapipe \
+        python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'mp-hands' -c 'upper' -p 'pose' -p 'depth'
 
         #--detach \
 
