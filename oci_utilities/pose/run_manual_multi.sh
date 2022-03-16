@@ -24,6 +24,13 @@ rm -rf "$HOME/data/"*
 
 for subj in "$@"
 do
+    re='^[0-9]+$'
+    if ! [[ "$subj" =~ $re ]] ; then
+        subj="$subj"
+    else
+        subj=$(printf '%03d' $(( 10#$subj )))
+    fi
+
     ### Figure out if subject has hdf5 files ###
     bag_dir="$subj/$condition"
     novid_bucket_location="$bag_dir/full_data-novid.hdf5"

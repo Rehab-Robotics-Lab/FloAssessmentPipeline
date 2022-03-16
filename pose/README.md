@@ -62,16 +62,20 @@ it just isn't worth it.
 11. Test that nvidia docker installed properly:
 12. Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
 13. Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
+14. To keep an eye on the processes running under the hood in docker, you can run:
+    a. `while true; do sleep 1; docker logs -f openpose-runner 2>&1 | tee -a "$HOME/logs/runs/docker"; done`
+    b. `while true; do sleep 1; docker logs -f mediapipe-runner 2>&1 | tee -a "$HOME/logs/runs/docker"; done`
 
 If you want to run a bunch of subjects at once, you can do that with something like:
 
 ```{bash}
-for sn in 35
+for sn in 1 2 3 4
 do
-log="$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_$sn"
-bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" "$sn" 2>&1 | tee -a $log
+bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual_multi.sh" "$sn" 2>&1 | tee -a $log
 done
 ```
+
+Note, for this script, you will have to pad the subject numbers you
 
 ### Running Locally
 
