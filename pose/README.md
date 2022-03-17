@@ -41,6 +41,13 @@ it just isn't worth it.
 
 ### On OCI
 
+#### Body Pose
+
+You will need to run the openpose pose detections on a GPU enabled machine.
+
+Once that is done, you will need to run the hand detector and depth detection on a machine
+with many more GPUs.
+
 1.  push the code files to OCI by running `./oci_utilities/push_code.sh`
 2.  Provision instance of:
     *   Image: Oracle Linux 8 GPU Build, [supported version](https://nvidia.github.io/nvidia-docker/)
@@ -49,30 +56,60 @@ it just isn't worth it.
     *   subnet: private
     *   SSH Keys: None
     *   Boot Volume: 2000GB
-3.  Modify the performance level of the boot volume to higher performance
-4.  Enable Bastion Service on the instance
-5.  Remote into that instance. Ex:
+3.  Enable Bastion Service on the instance
+4.  Remote into that instance. Ex:
     `oci-cli-helpers/utilities/oci-ssh.sh $(oci-cli-helpers/utilities/ocid.sh instance flo-hdf5-1)`
-6.  Check if the nvidia drivers are working: `nvidia-smi`
-7.  Setup permissions: `OCI_CLI_AUTH=instance_principal && export OCI_CLI_AUTH`
-8.  Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
-9.  Pull down code onto the remote instance:
+5.  Check if the nvidia drivers are working: `nvidia-smi`
+6.  Setup permissions: `OCI_CLI_AUTH=instance_principal && export OCI_CLI_AUTH`
+7.  Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
+8.  Pull down code onto the remote instance:
     `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
-10. Run setup script: `bash LilFloAssessmentPipeline/oci_utilities/pose/machine_setup.sh`
-11. Test that nvidia docker installed properly:
-12. Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
-13. Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
-14. To keep an eye on the processes running under the hood in docker, you can run:
+9.  Run setup script: `bash LilFloAssessmentPipeline/oci_utilities/pose/machine_setup_openpose.sh`
+10. Test that nvidia docker installed properly:
+11. Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
+12. Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
+13. To keep an eye on the processes running under the hood in docker, you can run:
+    a. `while true; do sleep 1; docker logs -f openpose-runner 2>&1 | tee -a "$HOME/logs/runs/docker"; done`
+
+If you want to run a bunch of subjects at once, you can do that with something like:
+
+```{bash}
+bash "$HOME/LilFloAssessmentPipeline/oci_utilities/pose/run_manual_multi_openpose.sh" 001 003 004 005 006 008 500-2 500-3 500-4
+```
+
+#### Hand Pose/Depth and Body Depth
+
+For the hand detector and depth extraction:
+
+1.  push the code files to OCI by running `./oci_utilities/push_code.sh`
+2.  Provision instance of:
+    *   Image: Oracle Linux 8
+    *   Shape: VM.GPU3.1
+    *   vcn: flo vcn
+    *   subnet: private
+    *   SSH Keys: None
+    *   Boot Volume: 2000GB
+3.  Enable Bastion Service on the instance
+4.  Remote into that instance. Ex:
+    `oci-cli-helpers/utilities/oci-ssh.sh $(oci-cli-helpers/utilities/ocid.sh instance flo-hdf5-1)`
+5.  Check if the nvidia drivers are working: `nvidia-smi`
+6.  Setup permissions: `OCI_CLI_AUTH=instance_principal && export OCI_CLI_AUTH`
+7.  Install the oci cli: `sudo dnf -y install oraclelinux-developer-release-el8 && sudo dnf -y install python36-oci-cli`
+8.  Pull down code onto the remote instance:
+    `oci os object bulk-download -bn 'rrl-flo-run' --download-dir "$HOME/LilFloAssessmentPipeline" --overwrite`
+9.  Run setup script: `bash LilFloAssessmentPipeline/oci_utilities/pose/machine_setup.sh`
+10. Test that nvidia docker installed properly:
+11. Run tmux: `tmux`. If you disconnect, reconect: `tmux a`. You could also use screen.
+12. Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
+13. To keep an eye on the processes running under the hood in docker, you can run:
     a. `while true; do sleep 1; docker logs -f openpose-runner 2>&1 | tee -a "$HOME/logs/runs/docker"; done`
     b. `while true; do sleep 1; docker logs -f mediapipe-runner 2>&1 | tee -a "$HOME/logs/runs/docker"; done`
 
 If you want to run a bunch of subjects at once, you can do that with something like:
 
 ```{bash}
-bash "$HOME/LilFloAssessmentPipeline/oci_utilities/pose/run_manual_multi.sh" 001 003 004 005 006 008 500-2 500-3 500-4 2>&1 | tee -a "$HOME/logs/run"
+bash "$HOME/LilFloAssessmentPipeline/oci_utilities/pose/run_manual_multi_openpose.sh" 001 003 004 005 006 008 500-2 500-3 500-4
 ```
-
-Note, for this script, you will have to pad the subject numbers you
 
 ### Running Locally
 
