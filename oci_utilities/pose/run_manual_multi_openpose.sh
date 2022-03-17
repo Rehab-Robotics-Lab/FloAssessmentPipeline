@@ -44,13 +44,21 @@ do
         hdf5_dir="$subj/$condition"
         novid_bucket_location="$hdf5_dir/full_data-novid.hdf5"
         vid_bucket_location="$hdf5_dir/full_data-vid.hdf5"
+        output_file="$hdf5_dir/full_data-novid-poses.hdf5"
         novid_present=$(oci os object list -bn "$bucket_hdf5" --prefix "$novid_bucket_location" --query 'contains(keys(@),`data`)')
         vid_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$vid_bucket_location" --query 'contains(keys(@),`data`)')
+        output_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$output_file" --query 'contains(keys(@),`data`)')
 
         # If the vid and novid are not present, then skip
         if [ "$novid_present" != true ] || [ "$vid_present" != true ]
         then
             echo "[$(date +"%T")] Subject $subj is missing $condition hdf5 files !!!! No further processing will be done for the subject."
+            continue
+        fi
+
+        if [ "$output_present" = true ]
+        then
+            echo "[$(date +"%T")] Subject $subj already has an output file generated for $condition hdf5 files !!!! No further processing will be done for the subject."
             continue
         fi
 
@@ -94,6 +102,7 @@ do
         docker run \
             --mount type=bind,source="$subj_data_local",target=/data \
             --detach \
+            --log-driver=journald \
             --name=openpose-runner \
             openpose \
             python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'openpose:25B' -c 'lower' -p 'pose'

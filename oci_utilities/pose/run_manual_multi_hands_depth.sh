@@ -98,6 +98,7 @@ do
         docker run \
             --mount type=bind,source="$subj_back1_data_local",target=/data \
             --name=mediapipe-runner \
+            --log-driver=journald \
             --detach \
             mediapipe \ # no need for all of the openpose stuff here
             python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'openpose:25B' -c 'lower' -p 'depth'
@@ -109,6 +110,7 @@ do
     docker run \
         --mount type=bind,source="$subj_data_local",target=/data \
         --detach \
+        --log-driver=journald \
         --name=mediapipe-runner \
         mediapipe \
         python3 -m pose.src.process_hdf5 -d "/data/" -s "$data_source" -a 'mp-hands' -c 'upper' -p 'pose' -p 'depth'
@@ -157,6 +159,7 @@ then
 
     docker run \
         --mount type=bind,source="$subj_back1_data_local",target=/data \
+        --log-driver=journald \
         --name=mediapipe-runner \
         mediapipe \
         python3 -m pose.src.process_hdf5 -d "/data/" -s "$condition" -a 'mp-hands' -c 'upper'

@@ -5,13 +5,11 @@ import multiprocessing
 import math
 from functools import partial
 import tqdm
-import itertools
 import numpy as np
 from common.realsense_params import MIN_VALID_DEPTH_METERS
 from common.realsense_params import MAX_VALID_DEPTH_METERS
 from common.tracking_params import DEPTH_KERNEL_SIZE
 from common.tracking_params import MAX_TIME_DISPARITY
-import ipdb
 
 assert DEPTH_KERNEL_SIZE % 2 == 1
 MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
@@ -57,6 +55,19 @@ def transform_depth_world2color_pixels(color_cam_matrix, world_d):
 
 
 def project_depth_to_colorframe(px_color, color_img_shape):
+    """Place depth data that has been converted into pixels in the color
+    space into a color image.
+
+    It is expected that the pixels are not yet homogonized and are in
+    fact still rays with x, y, z. The z will be used to place the ray
+    on the image sensor and to define the value which the pixel should have.
+
+    Discards pixels that end up falling outside of the image.
+
+    Args:
+        px_color: List of pixels, unnormalized, in color space, to place.
+        color_img_shape: The shape of the desired output image.
+    """
     valid_px_color = px_color[2, :] != 0
 
     mapped_depth_img = np.zeros((color_img_shape[0], color_img_shape[1]))
@@ -108,6 +119,15 @@ def calc_depth_from_sparse_image(mapped_depth_img, poses, window):
 
 
 def deproject_colordepth(k_inv, poses, depths):
+    """Givven pixel locations of interest in an image and the depths
+    at those locations, determine the full 3D representation of the
+    points of inerest.
+
+    Args:
+        k_inv: Inverse K matrix (intrinsics) for the imager
+        poses: The points of interest
+        depths: The depths at the points of interest
+    """
     poses_3d_c = (
         k_inv @
         np.concatenate((poses, np.ones((poses.shape[0], 1))), axis=1).T)*depths
@@ -115,6 +135,14 @@ def deproject_colordepth(k_inv, poses, depths):
 
 
 def project_keypoints2depth(k_d, h_matrix_inv, poses_3d_c):
+    """Given 3d poses in the camera frame, project them to pixels in the depth
+    image frame.
+
+    Args:
+        k_d: K matrix (intrinsics) for the depth camera
+        h_matrix_inv: Inverse transformation between depth and color imager
+        poses_3d_c: 3D points in camera coordinate frame
+    """
     poses_in_depth = (k_d @
                       (h_matrix_inv @
                        np.concatenate((poses_3d_c,
@@ -125,6 +153,16 @@ def project_keypoints2depth(k_d, h_matrix_inv, poses_3d_c):
 
 def extract_depth(poses, depth_img, color_img_shape, transform_mats,
                   window, mapped_depth_img):
+    """
+
+    Args:
+        poses:
+        depth_img:
+        color_img_shape:
+        transform_mats:
+        window:
+        mapped_depth_img:
+    """
     if mapped_depth_img is None:
         indices_h = generate_image_h_indices(depth_img.shape)
         window = int((window-1)/2)
@@ -142,6 +180,10 @@ def extract_depth(poses, depth_img, color_img_shape, transform_mats,
 
 
 def extract_depth_wrap_multiprocess(color_img_shape, transform_mats, zipped_args):
+    """wraps extract_depth_wrap so that it can be used with a variety off multiprocessing
+    tools. The arguments mirror extract_depth_wrap, except that all but the first two
+    are zipped into a tuple like structure and passed as the third argument.
+    """
     (depth_img, keypoints, depth_time, color_time,
      depth_in_color,  idx) = zipped_args
     return extract_depth_wrap(color_img_shape, transform_mats,

@@ -8,7 +8,6 @@ import numpy as np
 import h5py
 from pose.src.extract_depth import add_stereo_depth
 from pose.src.filter import smooth_2d
-import ipdb
 
 
 def allkeys(obj):
@@ -27,6 +26,7 @@ def convert(directory, source, cam, rerun, algorithm, process):
     # pylint: disable= too-many-statements
     # pylint: disable= too-many-locals
     # pylint: disable= too-many-branches
+    # pylint: disable= too-many-arguments
     """Extract poses from video in hdf5 file and build new hdf
     file with poses, confidences, and other non-video data.
 
@@ -45,7 +45,7 @@ def convert(directory, source, cam, rerun, algorithm, process):
         algorithm: Which pose detection algorithm to run. Options are:
                    `openpose:25B` (openpose), `openpose:135`,
                    `mp-hands` (mediapipe hands), `detectron2`
-        process: Which process to run: depth extraction or pose detection (list with 
+        process: Which process to run: depth extraction or pose detection (list with
                  all desired options)
     """
 
@@ -97,7 +97,8 @@ def convert(directory, source, cam, rerun, algorithm, process):
             preexisting_confidence = True
             print('confidences already exist')
 
-        if ('pose' in process) and ((not(preexisting_keypoints and preexisting_confidence)) or rerun):
+        if ('pose' in process) and ((not(preexisting_keypoints and
+                                         preexisting_confidence)) or rerun):
             print('running pose detections')
             # We only want to import if we are doing openpose. We could alternatively
             # put a wrapper around this whole thing. But since we aren't doing that,
