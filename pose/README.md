@@ -70,6 +70,8 @@ with many more GPUs.
 12. Run Script: `bash "$HOME/LilFloAssessmentPipeline/oci_utilities/openpose/run_manual.sh" <subj number> 2>&1 | tee -a "$HOME/logs/runs/$(date +"%Y-%m-%d-%H-%M-%S-%N" | cut -b1-22)-subj_<subj number>"`
 13. To keep an eye on the processes running under the hood in docker, you can run:
     a. `while true; do sleep 1; docker logs -f openpose-runner 2>&1 | tee -a "$HOME/logs/runs/docker"; done`
+    b. `journalctl -f -u docker CONTAINER_NAME=openpose-runner`
+14. To view logs after an image has been destroyed, use jornalctl to query the system logs.
 
 If you want to run a bunch of subjects at once, you can do that with something like:
 

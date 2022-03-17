@@ -498,6 +498,8 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
 
     with tqdm.tqdm(total=len(hdf5_in[color_dset_name])) as pbar:
         # for chunk_iters in tqdm.tqdm(hdf5_in[color_dset_name].iter_chunks(), desc='chunks'):
+        import ipdb
+        ipdb.set_trace()
         for chunk_iters in hdf5_in[color_dset_name].iter_chunks():
             # tqdm.tqdm.write('staring to build args')
             chunk_iter = chunk_iters[0]
