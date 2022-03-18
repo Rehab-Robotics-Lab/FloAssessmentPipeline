@@ -15,6 +15,10 @@ assert DEPTH_KERNEL_SIZE % 2 == 1
 MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
 MAX_VALID_DEPTH_MM = MAX_VALID_DEPTH_METERS*1000
 
+DATA_PROCESSING_CHUNK_SIZE = 1000  # How many frames to process. These will all be
+# loaded into memory, so need to make sure there
+# is enough memory to handle.
+
 
 def generate_image_h_indices(depth_img_shape):
     """Generate matrix of indeces for image in homogenous form
@@ -241,6 +245,9 @@ def extract_depth_wrap(color_img_shape, transform_mats,
     poses_in_depth[invalid_indeces, :] = np.nan
     # keypoints3d_dset[idx, :, :] = poses_3d_c.T
     # keypoints_depth_dset[idx, :, :] = poses_in_depth
+    if depth_img is None:
+        # if the depth map was passed in, no need to pass it back out
+        return (idx, poses_3d_c.T, poses_in_depth, None)
     return (idx, poses_3d_c.T, poses_in_depth, depth_in_color)
 
 
@@ -497,53 +504,43 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
     color_img_shape = hdf5_in[color_dset_name][0].shape
 
     with tqdm.tqdm(total=len(hdf5_in[color_dset_name])) as pbar:
-        # for chunk_iters in tqdm.tqdm(hdf5_in[color_dset_name].iter_chunks(), desc='chunks'):
-        import ipdb
-        ipdb.set_trace()
-        for chunk_iters in hdf5_in[color_dset_name].iter_chunks():
-            # tqdm.tqdm.write('staring to build args')
-            chunk_iter = chunk_iters[0]
-            num_frames = slice_len(chunk_iter, len(hdf5_in[color_dset_name]))
-            matched_index_l = [None]*num_frames
-            keypoints_l = [None] * num_frames
+        for start_idx in range(0, len(hdf5_in[color_dset_name]), DATA_PROCESSING_CHUNK_SIZE):
+            chunk = slice(start_idx, min(
+                len(hdf5_in[color_dset_name]), start_idx+DATA_PROCESSING_CHUNK_SIZE), 1)
+            # we n
+            num_frames = slice_len(chunk, len(hdf5_in[color_dset_name]))
             depth_time_l = [None]*num_frames
-            color_time_l = [None]*num_frames
             depth_img_l = [None]*num_frames
-            color_depth_l = [None]*num_frames
-            # for idx, hdf5_idx in enumerate(chunk_iter):
-            matched_index_l[0:num_frames] = hdf5_in[depth_match_dset_name][chunk_iter]
-            keypoints_l[0:num_frames] = hdf5_out[keypoints_dset_name][chunk_iter][:, :, :2]
+            matched_index_l = hdf5_in[depth_match_dset_name][chunk]
             for frame in range(num_frames):
                 depth_time_l[frame] = hdf5_in[depth_time_dset_name][matched_index_l[frame]]
-            color_time_l[0:num_frames] = hdf5_in[color_time_dset_name][chunk_iter]
             if depth_color_filled:
-                color_depth_l[0:num_frames] = depth_in_color_dset[chunk_iter]
+                color_depth_l = depth_in_color_dset[chunk]
             else:
+                color_depth_l = [None]*num_frames
                 for frame in range(num_frames):
                     depth_img_l[frame] = hdf5_in[depth_dset_name][matched_index_l[frame]]
-            # tqdm.tqdm.write('done with setup, starting run')
             bound_func = partial(
                 extract_depth_wrap_multiprocess, color_img_shape, transform_mats)
-            zipped_args = zip(depth_img_l, keypoints_l, depth_time_l,
-                              color_time_l, color_depth_l,
-                              range(chunk_iter.start, chunk_iter.stop, chunk_iter.step))
+            zipped_args = zip(depth_img_l,
+                              hdf5_out[keypoints_dset_name][chunk][:, :, :2],
+                              depth_time_l,
+                              hdf5_in[color_time_dset_name][chunk],
+                              color_depth_l,
+                              range(chunk.start, chunk.stop, chunk.step))
 
-            # with multiprocessing.Pool(math.floor(multiprocessing.cpu_count()/2)) as pool:
             if depth_color_filled:
-                # tqdm.tqdm.write('running in single process')
-                # for result in map(bound_func, tqdm.tqdm(zipped_args, total=num_frames)):
+                # calculating the depth color map is computationally expensive. Iff we
+                # already have it, no need for multiprocessing
                 for result in map(bound_func, zipped_args):
                     idx = result[0]
                     keypoints3d_dset[idx, :, :] = result[1]
                     keypoints_depth_dset[idx, :, :] = result[2]
-                    depth_in_color_dset[idx, :, :] = result[3]
+                    # If the depth color map was already filled, it will not be returned
                     pbar.update(1)
 
             else:
-                # tqdm.tqdm.write('running in multiple processes')
                 with multiprocessing.Pool() as pool:
-                    # for result in pool.imap_unordered(bound_func, tqdm.tqdm(
-                    #         zipped_args, total=num_frames), chunksize=10):
                     for result in pool.imap_unordered(bound_func,
                                                       zipped_args, chunksize=2):
                         idx = result[0]
