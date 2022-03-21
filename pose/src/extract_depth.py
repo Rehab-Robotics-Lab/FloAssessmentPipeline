@@ -15,9 +15,10 @@ assert DEPTH_KERNEL_SIZE % 2 == 1
 MIN_VALID_DEPTH_MM = MIN_VALID_DEPTH_METERS*1000
 MAX_VALID_DEPTH_MM = MAX_VALID_DEPTH_METERS*1000
 
-DATA_PROCESSING_CHUNK_SIZE = 1000  # How many frames to process. These will all be
+# How many frames to process. These will all be
+DATA_PROCESSING_CHUNK_SIZE = 5000
 # loaded into memory, so need to make sure there
-# is enough memory to handle.
+# is enough memory to handle. about 18 GB / 1000 frames
 
 
 def generate_image_h_indices(depth_img_shape):
@@ -306,7 +307,6 @@ def generate_keypoints_3d_dset(hdf5_out, pose_dset_root, keypoints_dset_name):
             dtype=np.float32)
     else:
         keypoints3d_dset = hdf5_out[keypoints3d_dset_name]
-        print('You might be running the Stereo depth extraction twice')
 
     keypoints3d_dset.attrs['desc'] = \
         'Keypoints in 3D coordinates using the raw depth from the ' +\
@@ -338,7 +338,6 @@ def generate_keypoints_depth_dset(hdf5_out, pose_dset_root, keypoints_dset_name)
             dtype=np.float32)
     else:
         keypoints_depth_dset = hdf5_out[keypoints_depth_dset_name]
-        print('You might be running the Stereo depth extraction twice')
 
     keypoints_depth_dset.attrs['desc'] =\
         'Keypoints in the depth image frame space (pixels)'
@@ -497,11 +496,19 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
     if rerun:
         depth_color_filled = False
 
+    if (depth_match_dset_name not in hdf5_in) or (len(hdf5_in[depth_match_dset_name]) == 0):
+        keypoints3d_dset[:] = np.nan
+        keypoints_depth_dset[:] = np.nan
+        depth_in_color_dset[:] = np.nan
+        depth_in_color_dset.attrs['complete'] = True
+        print('No available depth data')
+        return
+
     t_cd, r_cd = get_extinsics(
         hdf5_in, color_dset_name, color_time_dset_name, transforms)
     k_c, k_d = get_intrinsics(hdf5_in, color_dset_name, depth_dset_name)
     transform_mats = build_tranformations(r_cd, t_cd, k_d, k_c)
-    color_img_shape = hdf5_in[color_dset_name][0].shape
+    color_img_shape = hdf5_in[color_dset_name][5].shape
 
     with tqdm.tqdm(total=len(hdf5_in[color_dset_name])) as pbar:
         for start_idx in range(0, len(hdf5_in[color_dset_name]), DATA_PROCESSING_CHUNK_SIZE):
@@ -530,6 +537,7 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
                               range(chunk.start, chunk.stop, chunk.step))
 
             if depth_color_filled:
+                pbar.set_postfix(num_processes=1)
                 # calculating the depth color map is computationally expensive. Iff we
                 # already have it, no need for multiprocessing
                 for result in map(bound_func, zipped_args):
@@ -541,8 +549,9 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
 
             else:
                 with multiprocessing.Pool() as pool:
+                    pbar.set_postfix(num_processes=pool._processes)
                     for result in pool.imap_unordered(bound_func,
-                                                      zipped_args, chunksize=2):
+                                                      zipped_args, chunksize=10):
                         idx = result[0]
                         keypoints3d_dset[idx, :, :] = result[1]
                         keypoints_depth_dset[idx, :, :] = result[2]

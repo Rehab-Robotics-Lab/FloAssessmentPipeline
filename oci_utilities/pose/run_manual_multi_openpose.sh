@@ -5,8 +5,6 @@ set -o pipefail
 ## This script will run openpose pose detection only. Run it on a GPU enabled machine.
 
 bucket_hdf5='rrl-flo-hdf5'
-condition='robot' # or 'podium' or 'mixed' this is the folder in oci
-data_source='robot' # or 'podium'
 
 for condition in 'robot' 'mixed' 'podium'
 do
@@ -42,9 +40,11 @@ do
 
         ### Figure out if subject has hdf5 files ###
         hdf5_dir="$subj/$condition"
+
         novid_bucket_location="$hdf5_dir/full_data-novid.hdf5"
         vid_bucket_location="$hdf5_dir/full_data-vid.hdf5"
         output_file="$hdf5_dir/full_data-novid-poses.hdf5"
+
         novid_present=$(oci os object list -bn "$bucket_hdf5" --prefix "$novid_bucket_location" --query 'contains(keys(@),`data`)')
         vid_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$vid_bucket_location" --query 'contains(keys(@),`data`)')
         output_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$output_file" --query 'contains(keys(@),`data`)')
@@ -67,6 +67,7 @@ do
         subj_back1_data_local="$HOME/data/$subj_back1"
         vid_local_location="$subj_data_local/full_data-vid.hdf5"
         novid_local_location="$subj_data_local/full_data-novid.hdf5"
+
         mkdir -p "$subj_data_local"
         echo "[$(date +"%T")] Downloading files for: $subj"
         oci os object get -bn "$bucket_hdf5" --name "$novid_bucket_location" --file "$novid_local_location" # fast

@@ -69,6 +69,15 @@ def convert(directory, source, cam, rerun, algorithm, process):
     color_dset_name = f'{cam_root}/color/data'
     pose_dset_root = f'{cam_root}/pose/{algorithm}'
 
+    if color_dset_name in hdf5_in:
+        num_frames = hdf5_in[color_dset_name].len()
+    else:
+        print(f'{color_dset_name} does not exist')
+        return
+    if num_frames == 0:
+        print(f'No frames to process in {color_dset_name}')
+        return
+
     if algorithm in ("openpose:25B", "openpose:135"):
         if algorithm in ("openpose:25B", "openpose:25Bms"):
             num_keypoints = 25
@@ -81,7 +90,7 @@ def convert(directory, source, cam, rerun, algorithm, process):
         kp_dset_name = f'{pose_dset_root}/keypoints/color'
         if kp_dset_name not in hdf5_out:
             keypoints_dset = hdf5_out.create_dataset(
-                kp_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints, 2), dtype=np.float32)
+                kp_dset_name, (num_frames, num_keypoints, 2), dtype=np.float32)
         else:
             keypoints_dset = hdf5_out[kp_dset_name]
             preexisting_keypoints = True
@@ -91,7 +100,7 @@ def convert(directory, source, cam, rerun, algorithm, process):
         conf_dset_name = f'{pose_dset_root}/confidence'
         if conf_dset_name not in hdf5_out:
             confidence_dset = hdf5_out.create_dataset(
-                conf_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints), dtype=np.float32)
+                conf_dset_name, (num_frames, num_keypoints), dtype=np.float32)
         else:
             confidence_dset = hdf5_out[conf_dset_name]
             preexisting_confidence = True
@@ -127,7 +136,6 @@ def convert(directory, source, cam, rerun, algorithm, process):
                                             cam in transforms[source]) else None)
             print('Done Adding Stereo Depth')
     elif algorithm == "mp-hands":
-        num_frames = hdf5_in[color_dset_name].len()
         preexisting_keypoints = True
         kp_dsets = {'right': {'keypoints/color': (num_frames, 21, 3),
                               'keypoints/mp-world': (num_frames, 21, 3),
