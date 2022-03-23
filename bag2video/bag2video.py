@@ -470,7 +470,7 @@ def add_audio(filename, video, audio, idx):
         os.rename(tmp_vid_filename, get_idx_vid_filename(filename, idx))
         return
 
-    audio_filename = '{os.path.splitext(filename)[0]}-tmp.mp3'
+    audio_filename = f'{os.path.splitext(filename)[0]}-tmp.mp3'
     # if sys.version_info[0] == 3:
     #     with open(audio_filename, 'w+b') as mp3_file:
     #         mp3_file.write(bytes(audio['data']))
