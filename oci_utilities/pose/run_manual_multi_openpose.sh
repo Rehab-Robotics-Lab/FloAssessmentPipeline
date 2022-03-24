@@ -45,8 +45,11 @@ do
         vid_bucket_location="$hdf5_dir/full_data-vid.hdf5"
         output_file="$hdf5_dir/full_data-novid-poses.hdf5"
 
+        # shellcheck disable=SC2016
         novid_present=$(oci os object list -bn "$bucket_hdf5" --prefix "$novid_bucket_location" --query 'contains(keys(@),`data`)')
+        # shellcheck disable=SC2016
         vid_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$vid_bucket_location" --query 'contains(keys(@),`data`)')
+        # shellcheck disable=SC2016
         output_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$output_file" --query 'contains(keys(@),`data`)')
 
         # If the vid and novid are not present, then skip

@@ -36,7 +36,9 @@ do
     hdf5_dir="$subj/$condition"
     novid_bucket_location="$hdf5_dir/full_data-novid.hdf5"
     vid_bucket_location="$hdf5_dir/full_data-vid.hdf5"
+    # shellcheck disable=SC2016
     novid_present=$(oci os object list -bn "$bucket_hdf5" --prefix "$novid_bucket_location" --query 'contains(keys(@),`data`)')
+    # shellcheck disable=SC2016
     vid_present=$( oci os object list -bn "$bucket_hdf5" --prefix "$vid_bucket_location" --query 'contains(keys(@),`data`)')
 
     # If the vid and novid are not present, then skip
