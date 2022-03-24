@@ -158,16 +158,35 @@ def project_keypoints2depth(k_d, h_matrix_inv, poses_3d_c):
 
 def extract_depth(poses, depth_img, color_img_shape, transform_mats,
                   window, mapped_depth_img):
-    """
+    """Extract depth of poses.
+
+    If this is passed in a mapped_depth_img, then that will be used.
+    If not, then it will be generated and returned.
 
     Args:
-        poses:
-        depth_img:
-        color_img_shape:
-        transform_mats:
-        window:
-        mapped_depth_img:
+        poses: The 2D pixel joint keypoints in the color image
+        depth_img: the depth image. Only needed if mapped_depth_img is None.
+                   if mapped_depth_img is passed in, you can pass None for
+                   depth_img (this is particullarly useful in multiprocessing
+                   situations where passing images around is costly).
+        color_img_shape: The shape of the color image
+        transform_mats: A dictionary with the various extrinsics and intrinsics
+                        related to the RGBD sensor set
+        window: How big of an area to get depth from. This should not be 1.
+                when the depth image is mapped to the color space, it will likely
+                be sparse due to depth images generally being smaller than the
+                relevant color images and as a result of transformations not dropping
+                pixels from the depth camera cleanly onto the color imager.
+        mapped_depth_img: The depth image transformed into the color image space. This
+                          will be the same size as the color image. If you do not have
+                          this, pass in None.
+
+    Returns:
+        poses_3d_c: the poses in 3D relative to the color imager frame
+        poses_in_depth: the poses in 2D coordinates on the depth image
+        mapped_depth_img: Same as the argument above
     """
+    # pylint: disable= too-many-arguments
     if mapped_depth_img is None:
         indices_h = generate_image_h_indices(depth_img.shape)
         window = int((window-1)/2)
@@ -410,14 +429,21 @@ def get_extinsics(hdf5_in, color_dset_name, color_time_dset_name, transforms):
     return(t_cd, r_cd)
 
 
-def max_slice_len(s: slice):
-    # https://stackoverflow.com/a/65500526/5274985
-    assert s.stop or s.stop == 0, "Must define stop for max slice len!"
-    assert s.step != 0, "Step slice cannot be zero"
+def max_slice_len(slc: slice):
+    """Find the max length that a slice will produce accounting
+    for possible missing components
 
-    start = s.start or 0
-    stop = s.stop
-    step = s.step or 1
+    # https://stackoverflow.com/a/65500526/5274985
+
+    Args:
+        slc (slice): slice to process on
+    """
+    assert slc.stop or slc.stop == 0, "Must define stop for max slice len!"
+    assert slc.step != 0, "Step slice cannot be zero"
+
+    start = slc.start or 0
+    stop = slc.stop
+    step = slc.step or 1
 
     delta = (stop - start)
     dsteps = int(math.ceil(delta / step))
@@ -425,10 +451,19 @@ def max_slice_len(s: slice):
     return dsteps if dsteps >= 0 else 0
 
 
-def slice_len(s: slice, src_len: int):
-    # https://stackoverflow.com/a/65500526/5274985
-    stop = min(s.stop, src_len)
-    return max_slice_len(slice(s.start, stop, s.step))
+def slice_len(slc: slice, src_len: int):
+    """Determine the length of a slice taking into account
+    the end point of the slice and the actual end point
+    of the array that is being sliced.
+
+    https://stackoverflow.com/a/65500526/5274985
+
+    Args:
+        slc (slice): slice to process on
+        src_len (int): src_len
+    """
+    stop = min(slc.stop, src_len)
+    return max_slice_len(slice(slc.start, stop, slc.step))
 
 
 def get_intrinsics(hdf5_in, color_dset_name, depth_dset_name):
@@ -477,6 +512,7 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
                     element list representing translation.
     """
     # pylint: disable= too-many-locals
+    # pylint: disable= too-many-arguments
     depth_match_dset_name = f'{cam_root}/color/matched_depth_index'
     color_dset_name = f'{cam_root}/color/data'
     color_time_dset_name = f'{cam_root}/color/time'
@@ -507,8 +543,6 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
     t_cd, r_cd = get_extinsics(
         hdf5_in, color_dset_name, color_time_dset_name, transforms)
     k_c, k_d = get_intrinsics(hdf5_in, color_dset_name, depth_dset_name)
-    transform_mats = build_tranformations(r_cd, t_cd, k_d, k_c)
-    color_img_shape = hdf5_in[color_dset_name][5].shape
 
     with tqdm.tqdm(total=len(hdf5_in[color_dset_name])) as pbar:
         for start_idx in range(0, len(hdf5_in[color_dset_name]), DATA_PROCESSING_CHUNK_SIZE):
@@ -528,7 +562,9 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
                 for frame in range(num_frames):
                     depth_img_l[frame] = hdf5_in[depth_dset_name][matched_index_l[frame]]
             bound_func = partial(
-                extract_depth_wrap_multiprocess, color_img_shape, transform_mats)
+                extract_depth_wrap_multiprocess,
+                hdf5_in[color_dset_name][5].shape,
+                build_tranformations(r_cd, t_cd, k_d, k_c))
             zipped_args = zip(depth_img_l,
                               hdf5_out[keypoints_dset_name][chunk][:, :, :2],
                               depth_time_l,
@@ -549,6 +585,7 @@ def add_stereo_depth(hdf5_in, hdf5_out, cam_root, pose_dset_root, rerun=False, t
 
             else:
                 with multiprocessing.Pool() as pool:
+                    # pylint: disable=protected-access
                     pbar.set_postfix(num_processes=pool._processes)
                     for result in pool.imap_unordered(bound_func,
                                                       zipped_args, chunksize=10):
