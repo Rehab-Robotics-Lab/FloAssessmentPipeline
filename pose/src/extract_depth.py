@@ -291,7 +291,7 @@ def build_tranformations(r_cd, t_cd, k_d, k_c):
     h_matrix_inv[:3, :3] = np.linalg.inv(h_matrix[:3, :3])
     h_matrix_inv[:3, 3] = -h_matrix_inv[:3, :3]@h_matrix[:3, 3]
 
-    transform_mats = dict()
+    transform_mats = {}
     transform_mats['h_matrix'] = h_matrix
     transform_mats['k_c_padded'] = k_c_padded
     transform_mats['color_cam_matrix'] = color_cam_matrix
