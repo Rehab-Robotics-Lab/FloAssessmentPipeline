@@ -35,9 +35,9 @@ sudo dnf -y install jq
 
 echo 'make scripts executable'
 sudo chmod u+x "$scriptpath/"*.sh
-sudo chmod u+x "$scriptpath/../../openpose/"*.sh
-sudo chmod u+x "$scriptpath/../../openpose/scripts/"*.sh
-sudo chmod u+x "$scriptpath/../../openpose/scripts/"*.py
+sudo chmod u+x "$scriptpath/../../pose/"*.sh
+sudo chmod u+x "$scriptpath/../../pose/src/"*.sh
+sudo chmod u+x "$scriptpath/../../pose/src/"*.py
 
 echo 'install docker'
 # shellcheck source=../includes/install_docker.sh
@@ -69,6 +69,9 @@ echo 'done installing docker'
 
 echo 'build docker'
 docker build -t openpose -f "$scriptpath/../../dockerfiles/openpose" "$scriptpath/../../"
+
+echo 'build mediapipe'
+docker build -t mediapipe -f "$scriptpath/../../dockerfiles/mediapipe" "$scriptpath/../../"
 
 echo 'create log folder for runs'
 mkdir -p "$HOME/logs/runs/"

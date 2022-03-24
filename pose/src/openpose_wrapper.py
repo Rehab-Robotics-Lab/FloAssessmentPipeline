@@ -33,7 +33,7 @@ def process_frame(img, op_wrapper):
     # tqdm.write(datum.poseKeypoints.shape)
     #cv2.imwrite('output/test.jpg', datum.cvOutputData)
     # return datum.cvOutputData, datum.poseKeypoints, datum.handKeypoints
-    return datum.poseKeypoints
+    return datum.getPoseKeypoints()
 
 
 def process_frames(images, algorithm):
@@ -117,7 +117,7 @@ The last channel is taken as number of images
         # tqdm.write('for image {} found: {}'.format(i, pose_keypoints))
 
         # TODO: put this either into a log file or return it somehow to be included in the HDF5 file
-        if pose_keypoints is None:
+        if len(pose_keypoints) == 0:
             tqdm.write('\tno one found in image')
             continue
         if pose_keypoints.shape[0] > 1:

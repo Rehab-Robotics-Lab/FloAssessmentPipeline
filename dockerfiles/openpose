@@ -37,7 +37,9 @@ ENV PATH="/opt/cmake-3.16.0-Linux-x86_64/bin:${PATH}"
 
 #get openpose
 WORKDIR /openpose
-RUN git clone --depth 1 https://github.com/CMU-Perceptual-Computing-Lab/openpose.git .
+# when https://github.com/CMU-Perceptual-Computing-Lab/openpose/pull/2044 gets merged, switch back to master
+RUN git clone  --depth 1 https://github.com/cagdasbas/openpose.git .
+#RUN git clone --depth 1 https://github.com/CMU-Perceptual-Computing-Lab/openpose.git .
 
 #build it
 WORKDIR /openpose/build

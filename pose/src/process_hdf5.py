@@ -22,10 +22,11 @@ def allkeys(obj):
     return keys
 
 
-def convert(directory, source, cam, rerun, algorithm):
+def convert(directory, source, cam, rerun, algorithm, process):
     # pylint: disable= too-many-statements
     # pylint: disable= too-many-locals
     # pylint: disable= too-many-branches
+    # pylint: disable= too-many-arguments
     """Extract poses from video in hdf5 file and build new hdf
     file with poses, confidences, and other non-video data.
 
@@ -44,11 +45,13 @@ def convert(directory, source, cam, rerun, algorithm):
         algorithm: Which pose detection algorithm to run. Options are:
                    `openpose:25B` (openpose), `openpose:135`,
                    `mp-hands` (mediapipe hands), `detectron2`
+        process: Which process to run: depth extraction or pose detection (list with
+                 all desired options)
     """
 
     # open hdf5 file
     directory = pathlib.Path(directory)
-    hdf5_in = h5py.File(directory/'full_data-vid.hdf5', 'r')
+    hdf5_in = h5py.File(directory/'full_data-vid.hdf5', 'r+')
     print('opened hdf file for reading video')
     hdf5_out = h5py.File(directory/'full_data-novid.hdf5', 'r+')
     print('opened hdf file for writing poses')
@@ -66,6 +69,15 @@ def convert(directory, source, cam, rerun, algorithm):
     color_dset_name = f'{cam_root}/color/data'
     pose_dset_root = f'{cam_root}/pose/{algorithm}'
 
+    if color_dset_name in hdf5_in:
+        num_frames = hdf5_in[color_dset_name].len()
+    else:
+        print(f'{color_dset_name} does not exist')
+        return
+    if num_frames == 0:
+        print(f'No frames to process in {color_dset_name}')
+        return
+
     if algorithm in ("openpose:25B", "openpose:135"):
         if algorithm in ("openpose:25B", "openpose:25Bms"):
             num_keypoints = 25
@@ -78,7 +90,7 @@ def convert(directory, source, cam, rerun, algorithm):
         kp_dset_name = f'{pose_dset_root}/keypoints/color'
         if kp_dset_name not in hdf5_out:
             keypoints_dset = hdf5_out.create_dataset(
-                kp_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints, 2), dtype=np.float32)
+                kp_dset_name, (num_frames, num_keypoints, 2), dtype=np.float32)
         else:
             keypoints_dset = hdf5_out[kp_dset_name]
             preexisting_keypoints = True
@@ -88,13 +100,14 @@ def convert(directory, source, cam, rerun, algorithm):
         conf_dset_name = f'{pose_dset_root}/confidence'
         if conf_dset_name not in hdf5_out:
             confidence_dset = hdf5_out.create_dataset(
-                conf_dset_name, (hdf5_in[color_dset_name].len(), num_keypoints), dtype=np.float32)
+                conf_dset_name, (num_frames, num_keypoints), dtype=np.float32)
         else:
             confidence_dset = hdf5_out[conf_dset_name]
             preexisting_confidence = True
             print('confidences already exist')
 
-        if (not(preexisting_keypoints and preexisting_confidence)) or rerun:
+        if ('pose' in process) and ((not(preexisting_keypoints and
+                                         preexisting_confidence)) or rerun):
             print('running pose detections')
             # We only want to import if we are doing openpose. We could alternatively
             # put a wrapper around this whole thing. But since we aren't doing that,
@@ -108,19 +121,21 @@ def convert(directory, source, cam, rerun, algorithm):
             for key, val in params.items():
                 keypoints_dset.attrs[key] = val
                 confidence_dset.attrs[key] = val
-        print('Adding Stereo Depth')
-        smooth_2d(hdf5_out, f'{pose_dset_root}')
-        add_stereo_depth(
-            hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints',
-            transforms[source][cam] if (source in transforms and
-                                        cam in transforms[source]) else None)
-        add_stereo_depth(
-            hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints-median5',
-            transforms[source][cam] if (source in transforms and
-                                        cam in transforms[source]) else None)
-        print('Done Adding Stereo Depth')
+        if 'depth' in process:
+            print('Adding Stereo Depth')
+            smooth_2d(hdf5_out, f'{pose_dset_root}')
+            add_stereo_depth(
+                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints',
+                rerun,
+                transforms[source][cam] if (source in transforms and
+                                            cam in transforms[source]) else None)
+            add_stereo_depth(
+                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/keypoints-median5',
+                rerun,
+                transforms[source][cam] if (source in transforms and
+                                            cam in transforms[source]) else None)
+            print('Done Adding Stereo Depth')
     elif algorithm == "mp-hands":
-        num_frames = hdf5_in[color_dset_name].len()
         preexisting_keypoints = True
         kp_dsets = {'right': {'keypoints/color': (num_frames, 21, 3),
                               'keypoints/mp-world': (num_frames, 21, 3),
@@ -142,7 +157,7 @@ def convert(directory, source, cam, rerun, algorithm):
                 'The MULTI_HAND_WORLD_LANDMARKS provided by media pipe: ' +\
                 'https://google.github.io/mediapipe/solutions/hands.html#multi_hand_world_landmarks'
 
-        if not(preexisting_keypoints) or rerun:
+        if ('pose' in process) and (not(preexisting_keypoints) or rerun):
             print('running pose detections')
             # pylint: disable=import-outside-toplevel
             from pose.src.mphands_wrapper import process_frames
@@ -150,18 +165,21 @@ def convert(directory, source, cam, rerun, algorithm):
             for hand in kp_dsets:  # pylint: disable=consider-using-dict-items
                 for kp_type in kp_dsets[hand]:
                     kp_dsets[hand][kp_type][...] = keypoints[hand][kp_type]
-        print('Adding Stereo Depth')
-        for hand in kp_dsets:
-            smooth_2d(hdf5_out, f'{pose_dset_root}/{hand}')
-            add_stereo_depth(
-                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints',
-                transforms[source][cam] if (source in transforms and
-                                            cam in transforms[source]) else None)
-            add_stereo_depth(
-                hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints-median5',
-                transforms[source][cam] if (source in transforms and
-                                            cam in transforms[source]) else None)
-        print('Done Adding Stereo Depth')
+        if 'depth' in process:
+            print('Adding Stereo Depth')
+            for hand in kp_dsets:
+                smooth_2d(hdf5_out, f'{pose_dset_root}/{hand}')
+                add_stereo_depth(
+                    hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints',
+                    rerun,
+                    transforms[source][cam] if (source in transforms and
+                                                cam in transforms[source]) else None)
+                add_stereo_depth(
+                    hdf5_in, hdf5_out, cam_root, f'{pose_dset_root}/{hand}/keypoints-median5',
+                    rerun,
+                    transforms[source][cam] if (source in transforms and
+                                                cam in transforms[source]) else None)
+            print('Done Adding Stereo Depth')
 
     print('done processing')
     hdf5_in.close()
@@ -196,6 +214,10 @@ if __name__ == '__main__':
                         "the same with a multi-scale net, openpose:135 " +
                         "uses openpose with whole body (body+hand+foot+face) " +
                         "mp-hands uses the mediapipe hand pose estimator")
+    PARSER.add_argument("-p", "--process", choices=['pose', 'depth'],
+                        action='append', required=True,
+                        help='Run pose detection or depth extraction?')
     ARGS = PARSER.parse_args()
+    # with ipdb.launch_ipdb_on_exception():
     convert(ARGS.directory, ARGS.source,
-            ARGS.camera, ARGS.rerun, ARGS.algorithm)
+            ARGS.camera, ARGS.rerun, ARGS.algorithm, ARGS.process)
