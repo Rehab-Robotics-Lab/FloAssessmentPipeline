@@ -38,7 +38,7 @@ done
 
 if [ "$rebuild" = true ] ; then
     echo 'rebuilding docker images'
-    docker build -t openpose -f "$scriptpath/../../dockerfiles/openpose" "$scriptpath/../../"
+    #docker build -t openpose -f "$scriptpath/../../dockerfiles/openpose" "$scriptpath/../../"
     docker build -t mediapipe -f "$scriptpath/../../dockerfiles/mediapipe" "$scriptpath/../../"
 fi
 
