@@ -1,6 +1,8 @@
 '''The joints that are used by the different pose detection
 algorithms'''
 
+import numpy as np
+
 
 def openpose_joints():
     """Return a list with the joints produced by openpose
@@ -32,6 +34,10 @@ def openpose_joints():
         "RSmallToe",
         "RHeel"
     ]
+
+
+def get_openpose_joint(name):
+    return np.where(np.asarray(openpose_joints()) == name)[0][0]
 
 
 def openpose_joint_pairs():
