@@ -12,6 +12,7 @@ from pose.src import joints
 
 def load_hdf5_files(data_folder):
     hdf5_files = {}
+    file_names = {}
     data_folder = pathlib.Path(data_folder)
     for subj_folder in data_folder.iterdir():
         if not subj_folder.is_dir():
@@ -20,11 +21,13 @@ def load_hdf5_files(data_folder):
         file_name = subj_folder/'robot'/'full_data-novid-poses-depth.hdf5'
         if (file_name).exists():
             hdf5_files[subj_no] = h5py.File(file_name, 'r')
+            file_names[subj_no] = file_name
         file_name = subj_folder/'mixed'/'full_data-novid-poses-depth.hdf5'
         if (file_name).exists():
             hdf5_files[subj_no] = h5py.File(file_name, 'r')
+            file_names[subj_no] = file_name
         # note, subjects without data are just not added to dictionary
-    return hdf5_files
+    return (hdf5_files, file_names)
 
 
 def check_data(hdf5_files, cutoff=2000):
