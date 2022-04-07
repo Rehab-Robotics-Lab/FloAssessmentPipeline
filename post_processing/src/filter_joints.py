@@ -33,12 +33,9 @@ def filter_file(hdf5_file):
             if (times['finish_idx']-times['start_idx']) < 100:
                 print('game with little to no recording, passing')
                 continue
-            game_time = hdf5_file[time_name][times['start_idx']
-                :times['finish_idx']]
-            keypoint_data = hdf5_file[keypoint_name][times['start_idx']
-                :times['finish_idx']]
-            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']
-                :times['finish_idx']]
+            game_time = hdf5_file[time_name][times['start_idx']                                             :times['finish_idx']]
+            keypoint_data = hdf5_file[keypoint_name][times['start_idx']                                                     :times['finish_idx']]
+            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']                                                        :times['finish_idx']]
             results[game_idx]['state'] = filter_ss(
                 keypoint_data, pixel_data, game_time)
     return results
@@ -52,11 +49,12 @@ def filter_file(hdf5_file):
 def filter_ss(keypoint_data, pixel_data, game_time):
     print('filtering a simon says game')
     filtered_state = {}
-    filtered_state['time'] = game_time-game_time[0]
+    filtered_state['time'] = game_time
     # start with wrists
     filtered_state['smooth'] = {}
     filtered_state['raw'] = {}
     filtered_state['filtered'] = {}
+    filtered_state['covariance'] = {}
     for side in ['R', 'L']:
         wrist_name = f'{side}Wrist'
         print(f'working on {wrist_name}')
@@ -64,10 +62,12 @@ def filter_ss(keypoint_data, pixel_data, game_time):
         wrist_pose = keypoint_data[:, wrist_idx, :]
         if np.all(np.isnan(wrist_pose)):
             continue
-        wrist_poses_filtered, wrist_state = filter_wrist(wrist_pose, game_time)
+        wrist_poses_filtered, wrist_state, wrist_state_covariance = filter_wrist(
+            wrist_pose, game_time)
         filtered_state['smooth'][wrist_name] = wrist_state
         filtered_state['filtered'][wrist_name] = wrist_poses_filtered
         filtered_state['raw'][wrist_name] = wrist_pose
+        filtered_state['covariance'][wrist_name] = wrist_state_covariance
         # process elbows
         elbow_name = f'{side}Elbow'
         print(f'working on {elbow_name}')
@@ -77,11 +77,12 @@ def filter_ss(keypoint_data, pixel_data, game_time):
         wrist_pixels = pixel_data[:, wrist_idx, :2]
         if np.all(np.isnan(elbow_pose)):
             continue
-        elbow_poses_filtered, elbow_state = filter_elbow(
+        elbow_poses_filtered, elbow_state, elbow_state_covariance = filter_elbow(
             elbow_pose, wrist_state[:, 2], game_time, elbow_pixels, wrist_pixels)
         filtered_state['smooth'][elbow_name] = elbow_state
         filtered_state['filtered'][elbow_name] = elbow_poses_filtered
         filtered_state['raw'][elbow_name] = elbow_pose
+        filtered_state['covariance'][elbow_name] = elbow_state_covariance
         # process shoulders
         shoulder_name = f'{side}Shoulder'
         print(f'working on {shoulder_name}')
@@ -90,12 +91,13 @@ def filter_ss(keypoint_data, pixel_data, game_time):
         shoulder_pixels = pixel_data[:, shoulder_idx, :2]
         if np.all(np.isnan(shoulder_pose)):
             continue
-        shoulder_poses_filtered, shoulder_state = filter_shoulder(
+        shoulder_poses_filtered, shoulder_state, shoulder_state_covariance = filter_shoulder(
             shoulder_pose, wrist_state[:, 2], game_time,
             shoulder_pixels, elbow_pixels, wrist_pixels)
         filtered_state['smooth'][shoulder_name] = shoulder_state
         filtered_state['filtered'][shoulder_name] = shoulder_poses_filtered
         filtered_state['raw'][shoulder_name] = shoulder_pose
+        filtered_state['covariance'][shoulder_name] = shoulder_state_covariance
     return filtered_state
 
 
@@ -189,8 +191,8 @@ def filter_shoulder(game_pose, wrist_depth, game_time, shoulder_pixels, elbow_pi
     init_meds = [np.ma.median(gp[~gp.mask][:20]) for gp in game_pose_masked.T]
     kalman_filter.initial_state_mean = np.array(
         [init_meds[0], init_meds[1], init_meds[2], 0, 0, 0])
-    computed_state, _ = kalman_filter.smooth(game_pose_masked)
-    return (game_pose_masked, computed_state)
+    computed_state, state_covariance = kalman_filter.smooth(game_pose_masked)
+    return (game_pose_masked, computed_state, state_covariance)
 
 
 def filter_elbow(game_pose, wrist_depth, game_time, elbow_pixels, wrist_pixels):
@@ -261,8 +263,8 @@ def filter_elbow(game_pose, wrist_depth, game_time, elbow_pixels, wrist_pixels):
     init_meds = [np.ma.median(gp[~gp.mask][:20]) for gp in game_pose_masked.T]
     kalman_filter.initial_state_mean = np.array(
         [init_meds[0], init_meds[1], init_meds[2], 0, 0, 0, 0, 0, 0])
-    computed_state, _ = kalman_filter.smooth(game_pose_masked)
-    return (game_pose_masked, computed_state)
+    computed_state, state_covariance = kalman_filter.smooth(game_pose_masked)
+    return (game_pose_masked, computed_state, state_covariance)
 
 
 def filter_wrist(game_pose, game_time):
@@ -327,5 +329,5 @@ def filter_wrist(game_pose, game_time):
     init_meds = [np.ma.median(gp[~gp.mask][:20]) for gp in game_pose_masked.T]
     kalman_filter.initial_state_mean = np.array(
         [init_meds[0], init_meds[1], init_meds[2], 0, 0, 0, 0, 0, 0])
-    computed_state, _ = kalman_filter.smooth(game_pose_masked)
-    return (game_pose_masked, computed_state)
+    computed_state, state_covariance = kalman_filter.smooth(game_pose_masked)
+    return (game_pose_masked, computed_state, state_covariance)

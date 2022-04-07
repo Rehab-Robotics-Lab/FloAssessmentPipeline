@@ -27,8 +27,8 @@ def smooth_data(path_name):
 
     files_list = [(subj, hdf5_files_names[subj]) for subj in all_subj]
     with multiprocessing.Pool() as pool:
-        # for subj_id, result in pool.imap(filter_joints_wrapper, files_list):
-        for subj_id, result in map(filter_joints_wrapper, files_list):
+        for subj_id, result in pool.imap(filter_joints_wrapper, files_list):
+            # for subj_id, result in map(filter_joints_wrapper, files_list):
             print(f'inserting data for {subj_id}')
             game_counter = {}
             for game in result:
@@ -40,7 +40,7 @@ def smooth_data(path_name):
                 if 'state' in game and game['state'] is not None:
                     hdf5_out.create_dataset(
                         f'{subj_id}/{game_type}/{game_counter[game_type]}/time', data=game['state']['time'])
-                    for group in ['smooth', 'raw', 'filtered']:
+                    for group in ['smooth', 'raw', 'filtered', 'covariance']:
                         for joint in ['RWrist', 'RElbow', 'RShoulder', 'LWrist', 'LElbow', 'LShoulder']:
                             if joint in game['state'][group]:
                                 hdf5_out.create_dataset(
