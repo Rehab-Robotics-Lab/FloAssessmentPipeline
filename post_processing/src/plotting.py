@@ -1,7 +1,22 @@
+"""Tools for plotting results"""
+
 import matplotlib.pyplot as plt
 
 
 def plot_model_results(times, raw_data, model_output, start_idx=0, num_idx=None, title=None):
+    """Plot a 3 row subplot with x,y,z; dx,dy,dz; ddx,ddy,ddz. Plots raw values for x,y,z
+    in background.
+
+    Shifts time to start at 0.
+
+    Args:
+        times: The times that data was captured at.
+        raw_data: The raw x,y,z data
+        model_output: The state produced by the kalman filter, etc.
+        start_idx: The start frame
+        num_idx: The number of frames to plot
+        title: The title of the plot
+    """
     if num_idx is None:
         num_idx = len(times)-start_idx
     if model_output.shape[1] == 9:

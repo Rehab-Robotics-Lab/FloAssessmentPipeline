@@ -7,4 +7,4 @@ init-hook="from pylint.config import find_pylintrc; import os, sys; sys.path.app
 extension-pkg-whitelist=cv2
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,j,k,x,y,z,Q,R,P,H,fn
+good-names=i,j,k,x,y,z,Q,R,P,H,fn,Fs

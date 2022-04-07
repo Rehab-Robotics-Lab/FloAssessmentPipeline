@@ -1,3 +1,4 @@
+"""Module to determine length of limbs"""
 
 import numpy as np
 
@@ -22,9 +23,20 @@ def filter_by_variance(covariances, threshold=5):
     return np.any((variances-med) > (mad*threshold), axis=1)
 
 
-def arm_length(data, side):
+def arm_length(data, side, threshold=3):
+    """Calculate arm length given a game rep dataset.
+    Filters using variance. Takes median of sum of upper and lower
+    arm lengths.
+
+    Filtering is done with a cutoff set at the median variance for each of
+    x,y,z + the median absolute difference for each * threshold.
+
+    Args:
+        data: Game rep dataset, should have members covariance and smooth
+        side: The side to process (`R` or `L`)
+        threshold: The threshold to apply to the variance based filtering
+    """
     # filter to only get the highest confidence points
-    threshold = 3
 
     wrist_bad_vals = filter_by_variance(
         data['covariance'][f'{side}Wrist'][:, :3], threshold=threshold)
