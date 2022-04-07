@@ -1,5 +1,4 @@
-'''The joints that are used by the different pose detection
-algorithms'''
+'''The joints that are used by the different pose detection algorithms'''
 
 import numpy as np
 
@@ -37,6 +36,11 @@ def openpose_joints():
 
 
 def get_openpose_joint(name):
+    """Get the index of a joint in openpose, given its name
+
+    Args:
+        name: The name to find
+    """
     return np.where(np.asarray(openpose_joints()) == name)[0][0]
 
 
