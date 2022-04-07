@@ -1,5 +1,4 @@
-'''The joints that are used by the different pose detection
-algorithms'''
+'''The joints that are used by the different pose detection algorithms'''
 
 import numpy as np
 

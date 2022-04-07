@@ -41,6 +41,7 @@ def smooth_data(path_name):
 
     files_list = [(subj, hdf5_files_names[subj]) for subj in all_subj]
     with multiprocessing.Pool() as pool:
+        # pylint: disable=too-many-nested-blocks
         for subj_id, result in pool.imap(filter_joints_wrapper, files_list):
             # for subj_id, result in map(filter_joints_wrapper, files_list):
             print(f'inserting data for {subj_id}')
@@ -53,19 +54,22 @@ def smooth_data(path_name):
                     game_counter[game_type] += 1
                 if 'state' in game and game['state'] is not None:
                     hdf5_out.create_dataset(
-                        f'{subj_id}/{game_type}/{game_counter[game_type]}/time', data=game['state']['time'])
+                        f'{subj_id}/{game_type}/{game_counter[game_type]}/time',
+                        data=game['state']['time'])
                     for group in ['smooth', 'raw', 'filtered', 'covariance']:
-                        for joint in ['RWrist', 'RElbow', 'RShoulder', 'LWrist', 'LElbow', 'LShoulder']:
+                        for joint in [
+                                'RWrist', 'RElbow', 'RShoulder', 'LWrist', 'LElbow', 'LShoulder']:
                             if joint in game['state'][group]:
                                 hdf5_out.create_dataset(
-                                    f'{subj_id}/{game_type}/{game_counter[game_type]}/{group}/{joint}',
+                                    f'{subj_id}/{game_type}/' +
+                                    f'{game_counter[game_type]}/{group}/{joint}',
                                     data=game['state'][group][joint])
 
 
 if __name__ == '__main__':
-    PARSER = argparse.ArgumentParser()
+    SMOOTH_PARSER = argparse.ArgumentParser()
 
-    PARSER.add_argument("-t", "--target", type=str, required=True,
-                        help="where to find the hdf5 files and save the result")
-    ARGS = PARSER.parse_args()
+    SMOOTH_PARSER.add_argument("-t", "--target", type=str, required=True,
+                               help="where to find the hdf5 files and save the result")
+    ARGS = SMOOTH_PARSER.parse_args()
     smooth_data(ARGS.target)

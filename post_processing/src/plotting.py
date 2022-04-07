@@ -17,6 +17,7 @@ def plot_model_results(times, raw_data, model_output, start_idx=0, num_idx=None,
         num_idx: The number of frames to plot
         title: The title of the plot
     """
+    # pylint: disable=too-many-arguments
     if num_idx is None:
         num_idx = len(times)-start_idx
     if model_output.shape[1] == 9:

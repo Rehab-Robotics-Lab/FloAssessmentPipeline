@@ -70,11 +70,12 @@ def simon_says_convex_hell(target_dir, threshold=5):
                               'arm_length', 'norm_convex_hull'])
     results_df.to_csv(target_dir/'ss_ch.csv')
 
+
     # target_dir = pathlib.Path("/media/mjsobrep/43CDA61E672B9161/pose/")
 if __name__ == '__main__':
-    PARSER = argparse.ArgumentParser()
+    SS_PARSER = argparse.ArgumentParser()
 
-    PARSER.add_argument("-t", "--target", type=str, required=True,
-                        help="where to find the hdf5 files and save the result")
-    ARGS = PARSER.parse_args()
+    SS_PARSER.add_argument("-t", "--target", type=str, required=True,
+                           help="where to find the hdf5 files and save the result")
+    ARGS = SS_PARSER.parse_args()
     simon_says_convex_hell(ARGS.target)
