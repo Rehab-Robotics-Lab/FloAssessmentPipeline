@@ -120,6 +120,15 @@ def mphands_joints():
     ]
 
 
+def get_mediapipe_joint(name):
+    """Get the index of a joint in mediapipe, given its name
+
+    Args:
+        name: The name to find
+    """
+    return np.where(np.asarray(mphands_joints()) == name)[0][0]
+
+
 def mphands_joint_pairs():
     """Pairs of joints that are connected
     Joints listed here:

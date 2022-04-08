@@ -6,6 +6,7 @@ import pathlib
 import h5py
 from post_processing.src import hdf5_tools
 from post_processing.src import filter_joints
+import ipdb
 
 
 def filter_joints_wrapper(args):
@@ -52,7 +53,7 @@ def smooth_data(path_name):
                     game_counter[game_type] = 0
                 else:
                     game_counter[game_type] += 1
-                if 'state' in game and game['state'] is not None:
+                if game_type == 'simon_says' and 'state' in game and game['state'] is not None:
                     hdf5_out.create_dataset(
                         f'{subj_id}/{game_type}/{game_counter[game_type]}/time',
                         data=game['state']['time'])
@@ -64,6 +65,21 @@ def smooth_data(path_name):
                                     f'{subj_id}/{game_type}/' +
                                     f'{game_counter[game_type]}/{group}/{joint}',
                                     data=game['state'][group][joint])
+                if game_type == 'target_touch':
+                    time_added = False
+                    for arm in ['left', 'right']:
+                        if arm not in game['state'] or game['state'][arm] is None:
+                            continue
+                        if not time_added:
+                            hdf5_out.create_dataset(
+                                f'{subj_id}/{game_type}/{game_counter[game_type]}/time',
+                                data=game['state'][arm]['time'])
+                            time_added = True
+                        for group in ['smooth', 'raw', 'filtered', 'covariance']:
+                            hdf5_out.create_dataset(
+                                f'{subj_id}/{game_type}/' +
+                                f'{game_counter[game_type]}/{group}/{arm}',
+                                data=game['state'][arm][group])
 
 
 if __name__ == '__main__':
@@ -72,4 +88,5 @@ if __name__ == '__main__':
     SMOOTH_PARSER.add_argument("-t", "--target", type=str, required=True,
                                help="where to find the hdf5 files and save the result")
     ARGS = SMOOTH_PARSER.parse_args()
+    # with ipdb.launch_ipdb_on_exception():
     smooth_data(ARGS.target)

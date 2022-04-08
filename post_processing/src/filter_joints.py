@@ -51,12 +51,53 @@ def filter_file(hdf5_file):
             if (times['finish_idx']-times['start_idx']) < 100:
                 print('game with little to no recording, passing')
                 continue
-            game_time = hdf5_file[time_name][times['start_idx']:times['finish_idx']]
-            keypoint_data = hdf5_file[keypoint_name][times['start_idx']:times['finish_idx']]
-            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']:times['finish_idx']]
+            game_time = hdf5_file[time_name][times['start_idx']                                             :times['finish_idx']]
+            keypoint_data = hdf5_file[keypoint_name][times['start_idx']                                                     :times['finish_idx']]
+            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']                                                        :times['finish_idx']]
             results[game_idx]['state'] = filter_ss(
                 keypoint_data, pixel_data, game_time)
+        if game_type == 'target_touch':
+            time_name = 'vid/upper/color/time'
+            results[game_idx]['state'] = {}
+            for hand in ['right', 'left']:
+                keypoint_name = f'vid/upper/pose/mp-hands/{hand}/keypoints-median5/3d-realsense-raw'
+                times = get_times(hdf5_file, games, game_idx, time_name)
+                # it is possible that little to none of the game was recorded. handle that
+                if (times['finish_idx']-times['start_idx']) < 100:
+                    print('game with little to no recording, passing')
+                    continue
+                game_time = hdf5_file[time_name][times['start_idx']:times['finish_idx']]
+                keypoint_data = hdf5_file[keypoint_name][times['start_idx']:times['finish_idx']]
+                results[game_idx]['state'][hand] = filter_tt(
+                    keypoint_data,  game_time)
+
     return results
+
+
+def filter_tt(keypoint_data,  game_time):
+    """Filter and determine state for the arms in target touch activity.
+    For the passed in arm, gathers the raw, filtered, and smoothed values as well as covariances
+    for the wrist.
+
+
+    Args:
+        keypoint_data: The 3D keypoint data provided by mediapipe-hands + depth
+        game_time: The time of the keypoint and pixel data capture
+    """
+    print('filtering a target touch game')
+    filtered_state = {}
+    filtered_state['time'] = game_time
+    wrist_idx = joints.get_mediapipe_joint('WRIST')
+    wrist_pose = keypoint_data[:, wrist_idx, :]
+    if np.all(np.isnan(wrist_pose)):
+        return None
+    wrist_poses_filtered, wrist_state, wrist_state_covariance = filter_wrist(
+        wrist_pose, game_time, 10)
+    filtered_state['smooth'] = wrist_state
+    filtered_state['filtered'] = wrist_poses_filtered
+    filtered_state['raw'] = wrist_pose
+    filtered_state['covariance'] = wrist_state_covariance
+    return filtered_state
 
 
 def filter_ss(keypoint_data, pixel_data, game_time):
@@ -320,7 +361,7 @@ def filter_elbow(game_pose, wrist_depth, game_time, elbow_pixels, wrist_pixels):
     return (game_pose_masked, computed_state, state_covariance)
 
 
-def filter_wrist(game_pose, game_time):
+def filter_wrist(game_pose, game_time, threshold=5):
     """Filter data from the wrist using a hampel filter followed by a kalman smoother
 
     The observation covariance is based on the raw z values provided by game_pose.
@@ -384,7 +425,7 @@ def filter_wrist(game_pose, game_time):
          ]) for dt in np.diff(game_time)]
     print('Filtering with Hampel Filter')
     bad_vals = np.unique(np.concatenate([hampel_filter.hampel_filter_v(
-        game_pose[:, axis], 50, 5) for axis in range(3)], axis=0))
+        game_pose[:, axis], 50, threshold) for axis in range(3)], axis=0))
     game_pose[bad_vals, :] = np.nan
     print('Smoothing with Kalman Smoother')
     kalman_filter = pykalman.KalmanFilter(
