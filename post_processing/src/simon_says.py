@@ -9,7 +9,7 @@ import pandas as pd
 from post_processing.src import arm_length
 
 
-def simon_says_convex_hell(target_dir, threshold=5):
+def simon_says_convex_hell(target_dir, set, threshold=5):
     """Calculate the convex hull for arm movement for simon says games
 
     1. Loads data from target_dir/smoothed_data.hdf5 (generated in generate_state.py)
@@ -28,11 +28,11 @@ def simon_says_convex_hell(target_dir, threshold=5):
     target_dir = pathlib.Path(target_dir)
 
     hdf5_file = h5py.File(target_dir/"smoothed_data.hdf5", 'r')
-    train = pd.read_csv(target_dir/"train.csv")
+    data_set = pd.read_csv(target_dir/f"{set}.csv")
 
     results = []
 
-    for subj in [f'{id:03}' for id in train['record_id']]:
+    for subj in [f'{id:03}' for id in data_set['record_id']]:
         for game_name in hdf5_file[subj]:
             if not game_name == 'simon_says':
                 continue
@@ -57,7 +57,8 @@ def simon_says_convex_hell(target_dir, threshold=5):
                         arm_l = arm_length.arm_length(game_rep, side)
                         norm_ch_vol = conv_hull.volume/(4/3*np.pi*arm_l**3)
                         norm_ch_sa = conv_hull.area/(4*np.pi*arm_l**2)
-                        subj_norms = train[train["record_id"] == int(subj)]
+                        subj_norms = data_set[data_set["record_id"] == int(
+                            subj)]
                         bbt = subj_norms[f"bbt.z_{'right' if side=='R' else 'left'}"].values[0]
                         age = subj_norms["age"].values[0]
                         print(
@@ -69,8 +70,7 @@ def simon_says_convex_hell(target_dir, threshold=5):
     results_df = pd.DataFrame(results, columns=[
                               'subject', 'rep', 'side', 'bbt', 'age', 'convex_hull',
                               'arm_length', 'norm_convex_hull', 'convex_hull_surface_area', 'convex_hull_surface_area_norm'])
-    results_df.to_csv(target_dir/'ss_ch.csv')
-
+    results_df.to_csv(target_dir/f'ss_ch-{set}.csv')
 
     # target_dir = pathlib.Path("/media/mjsobrep/43CDA61E672B9161/pose/")
 if __name__ == '__main__':
@@ -78,5 +78,8 @@ if __name__ == '__main__':
 
     SS_PARSER.add_argument("-t", "--target", type=str, required=True,
                            help="where to find the hdf5 files and save the result")
+    SS_PARSER.add_argument('-d', '--dataset', type=str, required=True,
+                           choices=['test', 'train'],
+                           help='Whether to run on the test or train dataset')
     ARGS = SS_PARSER.parse_args()
-    simon_says_convex_hell(ARGS.target)
+    simon_says_convex_hell(ARGS.target, ARGS.dataset)
