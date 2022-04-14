@@ -7,21 +7,22 @@ import numpy as np
 import scipy.signal
 import scipy.spatial
 import pandas as pd
-from post_processing.src import arm_length
 
 
-def target_touch_accel(target_dir, set):
+def target_touch_accel(target_dir, dset):
     """Calculate the convex hull for arm movement for simon says games
 
     Args:
         target_dir: The directory to process in
-        set: either `train` or `test`
+        dset: either `train` or `test`
     """
     #pylint: disable=too-many-locals
+    #pylint: disable=too-many-statements
+    #pylint: disable=too-many-branches
     target_dir = pathlib.Path(target_dir)
 
     hdf5_file = h5py.File(target_dir/"smoothed_data.hdf5", 'r')
-    data_set = pd.read_csv(target_dir/f"{set}.csv")
+    data_set = pd.read_csv(target_dir/f"{dset}.csv")
 
     results = []
 
@@ -76,8 +77,6 @@ def target_touch_accel(target_dir, set):
                         start_idx = start_idx[real_movements]
                         end_idx = end_idx[real_movements]
 
-                        # note: mean acceleration is change in velocity. We already know that is small
-                        # note: mean velocity is displacement/time
                         max_speed = []
                         max_accel = []
                         max_jerk = []
@@ -238,7 +237,7 @@ def target_touch_accel(target_dir, set):
                               'normalized_jerk',
                               'speed_metric',
                               'number_movements'])
-    results_df.to_csv(target_dir/f'tt_features-{set}.csv')
+    results_df.to_csv(target_dir/f'tt_features-{dset}.csv')
 
 
     # target_dir = pathlib.Path("/media/mjsobrep/43CDA61E672B9161/pose/")

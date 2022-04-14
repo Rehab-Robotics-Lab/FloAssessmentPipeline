@@ -9,7 +9,7 @@ import pandas as pd
 from post_processing.src import arm_length
 
 
-def simon_says_convex_hell(target_dir, set, threshold=5):
+def simon_says_convex_hell(target_dir, dset, threshold=5):
     """Calculate the convex hull for arm movement for simon says games
 
     1. Loads data from target_dir/smoothed_data.hdf5 (generated in generate_state.py)
@@ -22,13 +22,14 @@ def simon_says_convex_hell(target_dir, set, threshold=5):
 
     Args:
         target_dir: The directory to process in
+        dset: dataset to work on (`test` or `train`)
         threshold: The threshold for which values to trust
     """
     #pylint: disable=too-many-locals
     target_dir = pathlib.Path(target_dir)
 
     hdf5_file = h5py.File(target_dir/"smoothed_data.hdf5", 'r')
-    data_set = pd.read_csv(target_dir/f"{set}.csv")
+    data_set = pd.read_csv(target_dir/f"{dset}.csv")
 
     results = []
 
@@ -65,12 +66,14 @@ def simon_says_convex_hell(target_dir, set, threshold=5):
                             f'subj: {subj}; {side} Arm bbt: {bbt}; age: {age}; ' +
                             f'norm convex hull: {norm_ch_vol}; arm length: {arm_l}')
                         results.append(
-                            [subj, rep, side, bbt, age, conv_hull.volume, arm_l, norm_ch_vol, conv_hull.area, norm_ch_sa])
+                            [subj, rep, side, bbt, age, conv_hull.volume,
+                                arm_l, norm_ch_vol, conv_hull.area, norm_ch_sa])
 
     results_df = pd.DataFrame(results, columns=[
                               'subject', 'rep', 'side', 'bbt', 'age', 'convex_hull',
-                              'arm_length', 'norm_convex_hull', 'convex_hull_surface_area', 'convex_hull_surface_area_norm'])
-    results_df.to_csv(target_dir/f'ss_ch-{set}.csv')
+                              'arm_length', 'norm_convex_hull',
+                              'convex_hull_surface_area', 'convex_hull_surface_area_norm'])
+    results_df.to_csv(target_dir/f'ss_ch-{dset}.csv')
 
     # target_dir = pathlib.Path("/media/mjsobrep/43CDA61E672B9161/pose/")
 if __name__ == '__main__':

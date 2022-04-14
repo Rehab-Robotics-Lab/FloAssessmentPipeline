@@ -51,9 +51,9 @@ def filter_file(hdf5_file):
             if (times['finish_idx']-times['start_idx']) < 100:
                 print('game with little to no recording, passing')
                 continue
-            game_time = hdf5_file[time_name][times['start_idx']                                             :times['finish_idx']]
-            keypoint_data = hdf5_file[keypoint_name][times['start_idx']                                                     :times['finish_idx']]
-            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']                                                        :times['finish_idx']]
+            game_time = hdf5_file[time_name][times['start_idx']:times['finish_idx']]
+            keypoint_data = hdf5_file[keypoint_name][times['start_idx']:times['finish_idx']]
+            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']:times['finish_idx']]
             results[game_idx]['state'] = filter_ss(
                 keypoint_data, pixel_data, game_time)
         if game_type == 'target_touch':

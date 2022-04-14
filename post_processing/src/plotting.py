@@ -1,7 +1,6 @@
 """Tools for plotting results"""
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def plot_model_results(times, raw_data, model_output, start_idx=0, num_idx=None, title=None):
@@ -44,14 +43,14 @@ def plot_model_results(times, raw_data, model_output, start_idx=0, num_idx=None,
     ax2.set_prop_cycle('color', colors)
     ax2.plot(times[start_idx:start_idx+num_idx]-times[start_idx],
              model_output[start_idx:start_idx+num_idx, 3:6], linewidth=0.5, alpha=1)
-    ax2.legend(['$\dot{x}$', '$\dot{y}$', '$\dot{z}$'], loc='right',
+    ax2.legend([r'$\dot{x}$', r'$\dot{y}$', r'$\dot{z}$'], loc='right',
                labelspacing=legend_label_spacing)
     ax2.set_ylabel('Velocity\n(mm/s)')
     if model_output.shape[1] == 9:
         ax3.set_prop_cycle('color', colors)
         ax3.plot(times[start_idx:start_idx+num_idx]-times[start_idx],
                  model_output[start_idx:start_idx+num_idx, 6:9], linewidth=0.5, alpha=1)
-        ax3.legend(['$\ddot{x}$', '$\ddot{y}$', '$\ddot{z}$'], loc='right',
+        ax3.legend([r'$\ddot{x}$', r'$\ddot{y}$', r'$\ddot{z}$'], loc='right',
                    labelspacing=legend_label_spacing)
         ax3.set_ylabel('Acceleration\n(mm/s$^2$)')
     if title:
