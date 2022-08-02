@@ -104,7 +104,7 @@ def plot_overhead(img, keypoints_3d, scaling_params, confidence, joint_pairs, po
                 confidence[limb[0]] + confidence[limb[1]], 0, 3))
 
     img_overlays.draw_text(
-        img, 'view: top (synced to depth)', pos=(pos[2]+20, pos[3]+3))
+        img, 'view: top', pos=(pos[2]+20, pos[3]+3))
 
 
 def visualize_depth(depth_img):

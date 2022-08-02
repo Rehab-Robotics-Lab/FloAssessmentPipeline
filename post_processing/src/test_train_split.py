@@ -49,6 +49,7 @@ def test_train_split(target_dir, random_seed=24402):
         random_seed: The random seed to use when randomly making
                      selections.
     """
+    #pylint: disable=too-many-locals
     target_dir = pathlib.Path(target_dir)
     data_labels = pd.read_csv(target_dir/"data_labels.csv")
     hdf5_file = h5py.File(target_dir/"smoothed_data.hdf5", 'r')

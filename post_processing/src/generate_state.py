@@ -6,7 +6,6 @@ import pathlib
 import h5py
 from post_processing.src import hdf5_tools
 from post_processing.src import filter_joints
-import ipdb
 
 
 def filter_joints_wrapper(args):
@@ -34,6 +33,8 @@ def smooth_data(path_name):
     Args:
         path_name: The path to look for files in
     """
+    #pylint: disable=too-many-locals
+    #pylint: disable=too-many-branches
     target_dir = pathlib.Path(path_name)
     _, hdf5_files_names = hdf5_tools.load_hdf5_files(target_dir)
     hdf5_out = h5py.File(target_dir/'smoothed_data.hdf5', 'w-')

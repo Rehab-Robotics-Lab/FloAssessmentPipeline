@@ -18,23 +18,41 @@ def plot_model_results(times, raw_data, model_output, start_idx=0, num_idx=None,
         title: The title of the plot
     """
     # pylint: disable=too-many-arguments
+    legend_label_spacing = 0
+    # colors = plt.get_cmap('viridis')(np.linspace(0, 1, 5))[1:4]
+    colors = ["#274569", "#AE629F", "#D8BA96"]
     if num_idx is None:
         num_idx = len(times)-start_idx
     if model_output.shape[1] == 9:
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 5), dpi=100)
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(
+            5.4, 4), dpi=100, sharex=True, sharey=False)
     elif model_output.shape[1] == 6:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), dpi=100)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(
+            5.4, 8/3), sharex=True, sharey=False, dpi=100)
+
+    fig.tight_layout(rect=(0.0, 0.03, 1, 1))  # ,h_pad=3)
+    ax1.set_prop_cycle('color', colors)
     ax1.plot(times[start_idx:start_idx+num_idx]-times[start_idx],
-             raw_data[start_idx:start_idx+num_idx, 0:3], linewidth=1, alpha=0.3)
+             raw_data[start_idx:start_idx+num_idx, 0:3], linewidth=2, alpha=0.4)
+    ax1.set_prop_cycle('color', colors)
     ax1.plot(times[start_idx:start_idx+num_idx]-times[start_idx],
-             model_output[start_idx:start_idx+num_idx, 0:3], linewidth=.5, alpha=.8)
-    ax1.legend(['x-raw', 'y-raw', 'z-raw', 'x', 'y', 'z'])
+             model_output[start_idx:start_idx+num_idx, 0:3], linewidth=.5, alpha=1)
+    ax1.legend(['$x$ raw', '$y$ raw', '$z$ raw', '$x$', '$y$', '$z$'],
+               loc='right', labelspacing=legend_label_spacing)
+    ax1.set_ylabel('Position\n(mm)')
+    ax2.set_prop_cycle('color', colors)
     ax2.plot(times[start_idx:start_idx+num_idx]-times[start_idx],
-             model_output[start_idx:start_idx+num_idx, 3:6], linewidth=0.5, alpha=.8)
-    ax2.legend(['dx', 'dy', 'dz'])
+             model_output[start_idx:start_idx+num_idx, 3:6], linewidth=0.5, alpha=1)
+    ax2.legend([r'$\dot{x}$', r'$\dot{y}$', r'$\dot{z}$'], loc='right',
+               labelspacing=legend_label_spacing)
+    ax2.set_ylabel('Velocity\n(mm/s)')
     if model_output.shape[1] == 9:
+        ax3.set_prop_cycle('color', colors)
         ax3.plot(times[start_idx:start_idx+num_idx]-times[start_idx],
-                 model_output[start_idx:start_idx+num_idx, 6:9], linewidth=0.5, alpha=.8)
-        ax3.legend(['ddx', 'ddy', 'ddz'])
+                 model_output[start_idx:start_idx+num_idx, 6:9], linewidth=0.5, alpha=1)
+        ax3.legend([r'$\ddot{x}$', r'$\ddot{y}$', r'$\ddot{z}$'], loc='right',
+                   labelspacing=legend_label_spacing)
+        ax3.set_ylabel('Acceleration\n(mm/s$^2$)')
     if title:
         fig.suptitle(title)
+    fig.supxlabel('Time (s)')

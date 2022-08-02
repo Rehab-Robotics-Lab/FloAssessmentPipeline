@@ -51,9 +51,9 @@ def filter_file(hdf5_file):
             if (times['finish_idx']-times['start_idx']) < 100:
                 print('game with little to no recording, passing')
                 continue
-            game_time = hdf5_file[time_name][times['start_idx']                                             :times['finish_idx']]
-            keypoint_data = hdf5_file[keypoint_name][times['start_idx']                                                     :times['finish_idx']]
-            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']                                                        :times['finish_idx']]
+            game_time = hdf5_file[time_name][times['start_idx']:times['finish_idx']]
+            keypoint_data = hdf5_file[keypoint_name][times['start_idx']:times['finish_idx']]
+            pixel_data = hdf5_file[pixel_keypoint_name][times['start_idx']:times['finish_idx']]
             results[game_idx]['state'] = filter_ss(
                 keypoint_data, pixel_data, game_time)
         if game_type == 'target_touch':
@@ -92,7 +92,7 @@ def filter_tt(keypoint_data,  game_time):
     if np.all(np.isnan(wrist_pose)):
         return None
     wrist_poses_filtered, wrist_state, wrist_state_covariance = filter_wrist(
-        wrist_pose, game_time, 10)
+        wrist_pose.copy(), game_time, 10)
     filtered_state['smooth'] = wrist_state
     filtered_state['filtered'] = wrist_poses_filtered
     filtered_state['raw'] = wrist_pose
@@ -128,7 +128,7 @@ def filter_ss(keypoint_data, pixel_data, game_time):
         if np.all(np.isnan(wrist_pose)):
             continue
         wrist_poses_filtered, wrist_state, wrist_state_covariance = filter_wrist(
-            wrist_pose, game_time)
+            wrist_pose.copy(), game_time)
         filtered_state['smooth'][wrist_name] = wrist_state
         filtered_state['filtered'][wrist_name] = wrist_poses_filtered
         filtered_state['raw'][wrist_name] = wrist_pose
@@ -143,7 +143,7 @@ def filter_ss(keypoint_data, pixel_data, game_time):
         if np.all(np.isnan(elbow_pose)):
             continue
         elbow_poses_filtered, elbow_state, elbow_state_covariance = filter_elbow(
-            elbow_pose, wrist_state[:, 2], game_time, elbow_pixels, wrist_pixels)
+            elbow_pose.copy(), wrist_state[:, 2], game_time, elbow_pixels, wrist_pixels)
         filtered_state['smooth'][elbow_name] = elbow_state
         filtered_state['filtered'][elbow_name] = elbow_poses_filtered
         filtered_state['raw'][elbow_name] = elbow_pose
@@ -157,7 +157,7 @@ def filter_ss(keypoint_data, pixel_data, game_time):
         if np.all(np.isnan(shoulder_pose)):
             continue
         shoulder_poses_filtered, shoulder_state, shoulder_state_covariance = filter_shoulder(
-            shoulder_pose, wrist_state[:, 2], game_time,
+            shoulder_pose.copy(), wrist_state[:, 2], game_time,
             shoulder_pixels, elbow_pixels, wrist_pixels)
         filtered_state['smooth'][shoulder_name] = shoulder_state
         filtered_state['filtered'][shoulder_name] = shoulder_poses_filtered
