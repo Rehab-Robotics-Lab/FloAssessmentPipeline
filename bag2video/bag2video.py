@@ -98,8 +98,8 @@ def find_image_sizes(bag_filenames, video_topics):
                 continue
     found_video_topics = []
     found_image_sizes = []
-    for idx, _ in enumerate(image_sizes):
-        if not image_sizes[idx] is None:
+    for idx, img_size in enumerate(image_sizes):
+        if not img_size is None:
             found_video_topics.append(video_topics[idx])
             found_image_sizes.append(image_sizes[idx])
     return (found_video_topics, found_image_sizes)
@@ -350,9 +350,9 @@ def stitch_image(img_to_write, columns):
     # Need to make sure that every row has the same width.
     # find max width and
     max_w = np.max([row.shape[1] for row in rows])
-    for row_idx, _ in enumerate(rows):
-        left_padding = int(np.floor((max_w - np.shape(rows[row_idx])[1])/2))
-        right_padding = int(np.ceil((max_w - np.shape(rows[row_idx])[1])/2))
+    for row_idx, row1 in enumerate(rows):
+        left_padding = int(np.floor((max_w - np.shape(row1)[1])/2))
+        right_padding = int(np.ceil((max_w - np.shape(row1)[1])/2))
         if left_padding > 0 or right_padding > 0:
             rows[row_idx] = cv2.copyMakeBorder(
                 rows[row_idx],
